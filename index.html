@@ -3,9 +3,488 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hola, mundo</title>
+  <title>Centro de Recargas - Free Fire</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>¡Hola, mundo y hola jose!</h1>
+
+  <header class="navbar">
+    <div class="nav-left">
+      <button class="menu-toggle-btn" onclick="toggleMenu()" aria-label="Abrir Menú">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <div class="logo">
+        RECARGAS <span class="garena-red">FF</span> 🔥
+      </div>
+    </div>
+    <div class="region">
+      🇦🇷 Argentina | ES
+    </div>
+  </header>
+
+  <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
+  
+  <aside class="sidebar-menu" id="sidebar-menu">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        RECARGAS <span class="garena-red">FF</span> 🔥
+      </div>
+      <button class="close-menu-btn" onclick="toggleMenu()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="sidebar-content">
+      <div class="sidebar-card user-wallet-box">
+        <div class="wallet-header">
+          <i class="fa-solid fa-wallet"></i>
+          <span>Monedero Virtual</span>
+        </div>
+        <div class="wallet-id">ID Monedero: <strong id="menu-wallet-id">#REV-84920</strong></div>
+        <div class="wallet-balance-row">
+          <span>Saldo Disponible:</span>
+          <strong class="balance-text" id="menu-wallet-balance">$0 ARS</strong>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h4><i class="fa-solid fa-user-gear"></i> Revendedores</h4>
+        <a href="#auth-section" class="menu-link" onclick="toggleMenu()">
+          <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión / Registro
+        </a>
+        <div class="info-badge-box">
+          <p><strong>Beneficios Revendedor:</strong> Accedé a precios mayoristas con acreditación automática en segundos.</p>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h4><i class="fa-solid fa-headset"></i> Soporte & Contacto</h4>
+        <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Tengo%20una%20consulta%20sobre%20las%20recargas." target="_blank" class="menu-link whatsapp-link">
+          <i class="fa-brands fa-whatsapp"></i> Atención por WhatsApp
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <h4><i class="fa-solid fa-circle-info"></i> Estado del Sistema</h4>
+        <div class="status-indicator">
+          <span class="status-dot online"></span>
+          <span>Servidores de Recarga: <b>ONLINE</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <p>© Centro de Recargas FF - Argentina</p>
+    </div>
+  </aside>
+
+  <section class="hero-banner-section">
+    <!-- Contador sin fondo negro -->
+    <div class="live-counter-badge">
+      <span class="live-green-dot"></span>
+      <span class="live-counter-text"><strong id="online-count">148</strong> Clientes Online</span>
+    </div>
+
+    <div class="carousel-wrapper" id="carousel-wrapper">
+      <button class="carousel-btn prev-btn" onclick="moverCarrusel(-1)" aria-label="Anterior">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+
+      <div class="carousel-track-container">
+        <div class="carousel-track" id="carousel-track">
+          <div class="carousel-slide prev">
+            <img src="banner1.jpg" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop';" alt="Promoción 1">
+          </div>
+          <div class="carousel-slide active">
+            <img src="banner2.jpg" onerror="this.onerror=null; this.src='https://i.supaimg.com/d720aa86-6d33-4180-8339-caf8d59e6a66/c4716906-2102-4bfb-9b7f-e0b5c5b33502.jpg';" alt="Promoción 2">
+          </div>
+          <div class="carousel-slide next">
+            <img src="banner3.jpg" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=800&auto=format&fit=crop';" alt="Promoción 3">
+          </div>
+          <div class="carousel-slide hidden">
+            <img src="banner4.gif" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop';" alt="Promoción 4">
+          </div>
+          <div class="carousel-slide hidden">
+            <img src="banner5.jpg" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=800&auto=format&fit=crop';" alt="Promoción 5">
+          </div>
+        </div>
+      </div>
+
+      <button class="carousel-btn next-btn" onclick="moverCarrusel(1)" aria-label="Siguiente">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+
+    <div class="carousel-dots" id="carousel-dots">
+      <span class="dot" onclick="irASlide(0)"></span>
+      <span class="dot active" onclick="irASlide(1)"></span>
+      <span class="dot" onclick="irASlide(2)"></span>
+      <span class="dot" onclick="irASlide(3)"></span>
+      <span class="dot" onclick="irASlide(4)"></span>
+    </div>
+  </section>
+
+  <div class="container">
+
+    <section class="card">
+      <div class="step-title">
+        <span class="badge">1</span>
+        <h3>Ingresar ID de jugador</h3>
+      </div>
+      <div class="input-group">
+        <input type="text" placeholder="Introduce el ID del jugador..." id="player-id">
+      </div>
+      <p class="subtext">⚠️️ Verificá bien tu ID antes de enviar el pedido.</p>
+    </section>
+
+    <section class="card">
+      <div class="step-title">
+        <span class="badge">2</span>
+        <h3>Monto de recarga</h3>
+      </div>
+
+      <div class="grid-diamonds">
+        <div class="diamond-box">
+          <span class="icon">💎</span>
+          <h4>100 Diamantes</h4>
+          <p class="price">$2.500 ARS</p>
+          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20100%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '100 Diamantes', '$2.500 ARS')">Pedir por WhatsApp</a>
+        </div>
+
+        <div class="diamond-box">
+          <span class="icon">💎</span>
+          <h4>310 Diamantes</h4>
+          <p class="price">$7.500 ARS</p>
+          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20310%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '310 Diamantes', '$7.500 ARS')">Pedir por WhatsApp</a>
+        </div>
+
+        <div class="diamond-box">
+          <span class="icon">💎</span>
+          <h4>520 Diamantes</h4>
+          <p class="price">$12.000 ARS</p>
+          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20520%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '520 Diamantes', '$12.000 ARS')">Pedir por WhatsApp</a>
+        </div>
+
+        <div class="diamond-box">
+          <span class="icon">💎</span>
+          <h4>1.060 Diamantes</h4>
+          <p class="price">$23.000 ARS</p>
+          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%201060%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '1.060 Diamantes', '$23.000 ARS')">Pedir por WhatsApp</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="step-title">
+        <span class="badge">3</span>
+        <h3>Medios de pago aceptados</h3>
+      </div>
+      <div class="payment-methods">
+        <span class="pay-tag">Mercado Pago</span>
+        <span class="pay-tag">Transferencia Bancaria</span>
+        <span class="pay-tag">Efectivo (RapiPago / PagoFácil)</span>
+      </div>
+    </section>
+
+    <section class="card auth-card" id="auth-section">
+      <div class="step-title">
+        <span class="badge"><i class="fa-solid fa-user-gear"></i></span>
+        <h3>Cuenta de Revendedor</h3>
+      </div>
+      
+      <div id="auth-forms" class="auth-box">
+        <p class="auth-desc">Iniciá sesión para usar tu saldo o recargar tu monedero mayorista.</p>
+        <div class="input-group">
+          <input type="email" id="auth-email" placeholder="Correo electrónico...">
+        </div>
+        <div class="input-group" style="margin-top: 10px;">
+          <input type="password" id="auth-password" placeholder="Contraseña...">
+        </div>
+        <div class="auth-buttons">
+          <button class="btn-auth btn-login" onclick="iniciarSesionSimulado()">Iniciar Sesión</button>
+          <button class="btn-auth btn-register" onclick="registrarseSimulado()">Registrarse</button>
+        </div>
+      </div>
+
+      <div id="user-dashboard" class="dashboard-box" style="display: none;">
+        <div class="dashboard-header">
+          <span>Bienvenido, <b id="user-email-display">revendedor@freefire.com</b></span>
+          <button class="btn-logout" onclick="cerrarSesionSimulado()">Cerrar Sesión</button>
+        </div>
+        <div class="wallet-card">
+          <span class="wallet-label">Tu Saldo Virtual</span>
+          <h2 class="wallet-amount" id="user-balance">$0 ARS</h2>
+          <p class="wallet-subtext">El saldo se descontará automáticamente al realizar recargas.</p>
+          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20cargar%20saldo%20a%20mi%20cuenta%20de%20revendedor." target="_blank" class="btn-add-funds">
+            <i class="fa-solid fa-plus-circle"></i> Cargar Saldo por WhatsApp
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="card comments-section">
+      <div class="step-title">
+        <span class="badge"><i class="fa-solid fa-comments"></i></span>
+        <h3>Opiniones de Clientes</h3>
+        <span class="rating-overall">⭐ 4.9/5 (1.420+ recargas)</span>
+      </div>
+
+      <div class="add-comment-box">
+        <h4><i class="fa-solid fa-pen-to-square"></i> Dejá tu comentario o reseña</h4>
+        <div class="comment-inputs-row">
+          <div class="input-group">
+            <input type="text" id="comment-author" placeholder="Tu Nombre o Apodo...">
+          </div>
+          <div class="rating-select-group">
+            <label>Calificación:</label>
+            <select id="comment-rating">
+              <option value="5">⭐⭐⭐⭐⭐ (5/5 Excelente)</option>
+              <option value="4">⭐⭐⭐⭐ (4/5 Muy bueno)</option>
+              <option value="3">⭐⭐⭐ (3/5 Bueno)</option>
+            </select>
+          </div>
+        </div>
+        <div class="input-group" style="margin-top: 10px;">
+          <textarea id="comment-text" placeholder="Escribí tu experiencia con la recarga de diamantes..." rows="3"></textarea>
+        </div>
+        <button class="btn-submit-comment" onclick="agregarComentario()">
+          <i class="fa-solid fa-paper-plane"></i> Publicar Comentario
+        </button>
+      </div>
+
+      <div class="comments-list" id="comments-list">
+        <div class="comment-item">
+          <div class="comment-header">
+            <span class="comment-user"><i class="fa-solid fa-circle-user"></i> Matias_FF</span>
+            <span class="comment-stars">⭐⭐⭐⭐⭐</span>
+            <span class="comment-time">Hace 5 minutos</span>
+          </div>
+          <p class="comment-body">10/10 súper rápido! Cargué 520 diamantes con Mercado Pago y llegaron al toque a mi ID 🔥</p>
+        </div>
+
+        <div class="comment-item">
+          <div class="comment-header">
+            <span class="comment-user"><i class="fa-solid fa-circle-user"></i> Lucas_Kratos</span>
+            <span class="comment-stars">⭐⭐⭐⭐⭐</span>
+            <span class="comment-time">Hace 18 minutos</span>
+          </div>
+          <p class="comment-body">Muy confiable la verdad, primera vez que compro acá para el pase de batalla y re bien.</p>
+        </div>
+
+        <div class="comment-item">
+          <div class="comment-header">
+            <span class="comment-user"><i class="fa-solid fa-circle-user"></i> Valen_Gamer</span>
+            <span class="comment-stars">⭐⭐⭐⭐⭐</span>
+            <span class="comment-time">Hace 42 minutos</span>
+          </div>
+          <p class="comment-body">Acreditación instantánea por WhatsApp, recomendado al 100% gente!</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <p>© Tienda de Recargas Independiente. Todos los derechos reservados.</p>
+  </footer>
+
+  <!-- Audio -->
+  <audio id="musica-fondo" loop preload="auto">
+    <source src="musica.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- Botón de Música -->
+  <button id="btn-musica" class="btn-musica-flotante" onclick="toggleMusica()" aria-label="Reproducir Música">
+    <img src="disco.jpg" id="imagen-disco" alt="Disco de Música" onerror="this.style.opacity='0';">
+    <i id="icono-musica" class="fa-solid fa-play"></i>
+  </button>
+
+  <script>
+    function toggleMenu() {
+      const sidebar = document.getElementById('sidebar-menu');
+      const overlay = document.getElementById('menu-overlay');
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('open');
+    }
+
+    function toggleMusica() {
+      var audio = document.getElementById("musica-fondo");
+      var icono = document.getElementById("icono-musica");
+      var boton = document.getElementById("btn-musica");
+
+      if (audio.paused) {
+        icono.className = "fa-solid fa-pause";
+        boton.classList.add("reproduciendo");
+        var playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(function(error) {
+            console.log("Audio listo para reproducir.");
+          });
+        }
+      } else {
+        audio.pause();
+        icono.className = "fa-solid fa-play";
+        boton.classList.remove("reproduciendo");
+      }
+    }
+
+    function actualizarEnlaceWhatsApp(elem, paquete, precio) {
+      const idPlayer = document.getElementById('player-id').value.trim();
+      let msg = `Hola! Quiero comprar ${paquete} (${precio}).`;
+      if (idPlayer) {
+        msg += ` Mi ID de Jugador es: ${idPlayer}`;
+      }
+      elem.href = `https://wa.me/54911XXXXXXXX?text=${encodeURIComponent(msg)}`;
+    }
+
+    let slideActual = 1;
+    const totalSlides = 5;
+    let autoSlideTimer = null;
+
+    function actualizarCarrusel() {
+      const slides = document.querySelectorAll('.carousel-slide');
+      const dots = document.querySelectorAll('.dot');
+      if (!slides.length) return;
+
+      slides.forEach((slide, index) => {
+        slide.className = 'carousel-slide';
+        
+        if (index === slideActual) {
+          slide.classList.add('active');
+        } else if (index === (slideActual - 1 + totalSlides) % totalSlides) {
+          slide.classList.add('prev');
+        } else if (index === (slideActual + 1) % totalSlides) {
+          slide.classList.add('next');
+        } else {
+          slide.classList.add('hidden');
+        }
+      });
+
+      dots.forEach((dot, index) => {
+        dot.classList.toggle('active', index === slideActual);
+      });
+    }
+
+    function moverCarrusel(direccion) {
+      slideActual = (slideActual + direccion + totalSlides) % totalSlides;
+      actualizarCarrusel();
+      reiniciarTimer();
+    }
+
+    function irASlide(index) {
+      slideActual = index;
+      actualizarCarrusel();
+      reiniciarTimer();
+    }
+
+    function iniciarTimer() {
+      clearInterval(autoSlideTimer);
+      autoSlideTimer = setInterval(() => {
+        moverCarrusel(1);
+      }, 4000);
+    }
+
+    function reiniciarTimer() {
+      iniciarTimer();
+    }
+
+    let startX = 0;
+    let endX = 0;
+    const carouselWrapper = document.getElementById('carousel-wrapper');
+
+    if (carouselWrapper) {
+      carouselWrapper.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+      }, { passive: true });
+
+      carouselWrapper.addEventListener('touchend', (e) => {
+        endX = e.changedTouches[0].clientX;
+        handleSwipe();
+      }, { passive: true });
+    }
+
+    function handleSwipe() {
+      const diff = startX - endX;
+      if (Math.abs(diff) > 40) {
+        if (diff > 0) {
+          moverCarrusel(1);
+        } else {
+          moverCarrusel(-1);
+        }
+      }
+    }
+
+    function iniciarSesionSimulado() {
+      const email = document.getElementById('auth-email').value;
+      if(!email) { alert("Ingresá un correo electrónico"); return; }
+      document.getElementById('user-email-display').innerText = email;
+      document.getElementById('auth-forms').style.display = 'none';
+      document.getElementById('user-dashboard').style.display = 'block';
+    }
+
+    function registrarseSimulado() {
+      iniciarSesionSimulado();
+    }
+
+    function cerrarSesionSimulado() {
+      document.getElementById('auth-forms').style.display = 'block';
+      document.getElementById('user-dashboard').style.display = 'none';
+    }
+
+    function iniciarContadorLive() {
+      const el = document.getElementById('online-count');
+      if (!el) return;
+      let count = Math.floor(Math.random() * (160 - 135 + 1)) + 135;
+      el.innerText = count;
+      
+      setInterval(() => {
+        const cambio = Math.floor(Math.random() * 5) - 2;
+        count = Math.max(120, Math.min(190, count + cambio));
+        el.innerText = count;
+      }, 3500);
+    }
+
+    function agregarComentario() {
+      const autorInput = document.getElementById('comment-author');
+      const textoInput = document.getElementById('comment-text');
+      const ratingSelect = document.getElementById('comment-rating');
+      const list = document.getElementById('comments-list');
+
+      const autor = autorInput.value.trim() || "Jugador Anónimo";
+      const texto = textoInput.value.trim();
+      const rating = parseInt(ratingSelect.value) || 5;
+
+      if (!texto) {
+        alert("Por favor escribí un comentario antes de publicar.");
+        return;
+      }
+
+      let starsStr = "⭐".repeat(rating);
+
+      const newComment = document.createElement('div');
+      newComment.className = 'comment-item new-comment-anim';
+      newComment.innerHTML = `
+        <div class="comment-header">
+          <span class="comment-user"><i class="fa-solid fa-circle-user"></i> ${autor}</span>
+          <span class="comment-stars">${starsStr}</span>
+          <span class="comment-time">Justo ahora</span>
+        </div>
+        <p class="comment-body">${texto}</p>
+      `;
+
+      list.insertBefore(newComment, list.firstChild);
+
+      autorInput.value = '';
+      textoInput.value = '';
+      alert("¡Gracias por tu reseña! Se publicó con éxito.");
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      actualizarCarrusel();
+      iniciarTimer();
+      iniciarContadorLive();
+    });
+  </script>
 </body>
 </html>
