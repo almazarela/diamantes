@@ -18,8 +18,13 @@
         RECARGAS <span class="garena-red">FF</span> 🔥
       </div>
     </div>
-    <div class="region">
-      🇦🇷 Argentina | ES
+    <div class="header-right-group">
+      <div class="region">
+        🇦🇷 Argentina | ES
+      </div>
+      <div class="saldo-usd-badge">
+        <i class="fa-solid fa-wallet"></i> SALDO USD
+      </div>
     </div>
   </header>
 
@@ -80,7 +85,6 @@
   </aside>
 
   <section class="hero-banner-section">
-    <!-- Contador sin fondo negro -->
     <div class="live-counter-badge">
       <span class="live-green-dot"></span>
       <span class="live-counter-text"><strong id="online-count">148</strong> Clientes Online</span>
@@ -127,50 +131,202 @@
 
   <div class="container">
 
-    <section class="card">
-      <div class="step-title">
-        <span class="badge">1</span>
-        <h3>Ingresar ID de jugador</h3>
-      </div>
-      <div class="input-group">
-        <input type="text" placeholder="Introduce el ID del jugador..." id="player-id">
-      </div>
-      <p class="subtext">⚠️️ Verificá bien tu ID antes de enviar el pedido.</p>
-    </section>
+    <!-- GRILLA PRINCIPAL EN 2 COLUMNAS -->
+    <div class="main-layout-grid">
 
-    <section class="card">
-      <div class="step-title">
-        <span class="badge">2</span>
-        <h3>Monto de recarga</h3>
+      <!-- COLUMNA IZQUIERDA -->
+      <div class="left-content-col">
+        <section class="card">
+          <div class="step-title">
+            <span class="badge">1</span>
+            <h3>Ingresar ID de jugador</h3>
+          </div>
+          <div class="input-group">
+            <input type="text" placeholder="Introduce el ID del jugador..." id="player-id">
+          </div>
+          <p class="subtext">⚠️ Verificá bien tu ID antes de enviar el pedido.</p>
+        </section>
+
+        <section class="card">
+          <div class="step-title">
+            <span class="badge">2</span>
+            <h3>Monto de recarga</h3>
+          </div>
+
+          <div class="grid-diamonds">
+            <div class="diamond-box">
+              <span class="icon">💎</span>
+              <h4>110 Diamantes</h4>
+              <p class="price">ARS $7.463</p>
+              <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20110%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'ARS $7.463')">Comprar ARS</a>
+            </div>
+
+            <div class="diamond-box">
+              <span class="icon">💎</span>
+              <h4>341 Diamantes</h4>
+              <p class="price">ARS $4.555</p>
+              <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20341%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'ARS $4.555')">Comprar ARS</a>
+            </div>
+
+            <div class="diamond-box">
+              <span class="icon">💎</span>
+              <h4>572 Diamantes</h4>
+              <p class="price">ARS $8.059</p>
+              <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20572%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'ARS $8.059')">Comprar ARS</a>
+            </div>
+
+            <div class="diamond-box">
+              <span class="icon">💎</span>
+              <h4>1.166 Diamantes</h4>
+              <p class="price">ARS $14.690</p>
+              <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%201.166%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'ARS $14.690')">Comprar ARS</a>
+            </div>
+
+            <div class="diamond-box">
+              <span class="icon">💎</span>
+              <h4>2.398 Diamantes</h4>
+              <p class="price">ARS $27.602</p>
+              <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%202.398%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'ARS $27.602')">Comprar ARS</a>
+            </div>
+
+            <div class="diamond-box">
+              <span class="icon">💎</span>
+              <h4>6.160 Diamantes</h4>
+              <p class="price">ARS $67.750</p>
+              <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%206.160%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'ARS $67.750')">Comprar ARS</a>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- COLUMNA DERECHA: CHAT EN VIVO INTEGRADO Y BIENVENIDA SAKURA -->
+      <div class="right-widgets-col">
+        
+        <!-- CHAT INTERACTIVO DIRECTO EN LA WEB (SIN APLICACIONES EXTERNAS) -->
+        <div class="chat-widget-card">
+          <div class="chat-widget-header">
+            <span><i class="fa-solid fa-comments"></i> CHAT EN VIVO: ALMA ZARELA</span>
+            <span class="chat-status-dot"></span>
+          </div>
+          <div class="chat-messages-area" id="chat-messages-container">
+            <div class="chat-message admin-msg">HOLA JUAN, ¿en qué te puedo ayudar hoy?</div>
+          </div>
+       <div class="chat-input-area">
+  <!-- Botón de Archivos / Clip a la izquierda -->
+  <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarComprobantePC()">
+  <button type="button" class="btn-attach" onclick="document.getElementById('chat-file-input').click()" title="Adjuntar Comprobante">
+    <i class="fa-solid fa-paperclip"></i>
+  </button>
+
+  <!-- Cuadro para escribir en el medio -->
+  <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí..." onkeydown="if(event.key === 'Enter'){ enviarMensajeDirecto(); }">
+
+  <!-- Botón de Enviar a la derecha con función directa -->
+  <button type="button" class="btn-send" onclick="enviarMensajeDirecto()" title="Enviar mensaje">
+    <i class="fa-solid fa-paper-plane"></i>
+  </button>
+</div>
+
+<script>
+  // Función directa para que el botón de enviar funcione al 100% de inmediato
+  function enviarMensajeDirecto() {
+    const input = document.getElementById('chat-user-input');
+    const mensaje = input.value.trim();
+    if (!mensaje) return;
+
+    // Buscar el área de mensajes del chat
+    const areaMensajes = document.getElementById('chat-messages-container') || document.querySelector('.chat-messages-area');
+    if (areaMensajes) {
+      // Crear burbuja del usuario
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'chat-message user-msg';
+      msgDiv.textContent = mensaje;
+      areaMensajes.appendChild(msgDiv);
+      
+      // Auto-scroll al final
+      areaMensajes.scrollTop = areaMensajes.scrollHeight;
+    }
+
+    // Limpiar input
+    input.value = '';
+
+    // Simular respuesta automática del sistema/soporte de Zarela después de 1 segundo
+    setTimeout(() => {
+      const areaMensajes = document.getElementById('chat-messages-container') || document.querySelector('.chat-messages-area');
+      if (areaMensajes) {
+        const adminDiv = document.createElement('div');
+        adminDiv.className = 'chat-message admin-msg';
+        adminDiv.textContent = 'hola ¡Mensaje recibido! Alma Zarela te atenderá en breve.';
+        areaMensajes.appendChild(adminDiv);
+        areaMensajes.scrollTop = areaMensajes.scrollHeight;
+      }
+    }, 1000);
+  }
+</script>
+     </div>
+        </div>
+
+        <!-- CUADRO DE BIENVENIDA ESTILO SAKURA -->
+        <div class="sakura-welcome-card">
+          <div class="sakura-badge-icon">🌸</div>
+          <h2 class="sakura-title">BIENVENIDOS</h2>
+          <span class="sakura-sub">A</span>
+          <h3 class="sakura-brand">RECARGAS ZARELA</h3>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SECCIÓN PRECIO REVENDEDOR - BINANCE USDT -->
+    <section class="reseller-binance-section">
+      <div class="binance-title-header">
+        <h3 class="reseller-main-title">PRECIO REVENDEDOR</h3>
+        <p class="binance-sub-heading">
+          <span class="binance-brand">BINANCE</span> <span class="usdt-brand">USDT</span>
+        </p>
       </div>
 
       <div class="grid-diamonds">
-        <div class="diamond-box">
+        <div class="diamond-box reseller-box">
           <span class="icon">💎</span>
-          <h4>100 Diamantes</h4>
-          <p class="price">$2.500 ARS</p>
-          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20100%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '100 Diamantes', '$2.500 ARS')">Pedir por WhatsApp</a>
+          <h4>110 Diamantes</h4>
+          <p class="price usdt-price">USD 0,86</p>
+          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20110%20Diamantes%20con%20Binance%20USDT.%20Mi%20ID%20es:" target="_blank" class="btn-buy btn-usdt">Comprar USDT</a>
         </div>
 
-        <div class="diamond-box">
+        <div class="diamond-box reseller-box">
           <span class="icon">💎</span>
-          <h4>310 Diamantes</h4>
-          <p class="price">$7.500 ARS</p>
-          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20310%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '310 Diamantes', '$7.500 ARS')">Pedir por WhatsApp</a>
+          <h4>341 Diamantes</h4>
+          <p class="price usdt-price">USD 2,45</p>
+          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20341%20Diamantes%20con%20Binance%20USDT.%20Mi%20ID%20es:" target="_blank" class="btn-buy btn-usdt">Comprar USDT</a>
         </div>
 
-        <div class="diamond-box">
+        <div class="diamond-box reseller-box">
           <span class="icon">💎</span>
-          <h4>520 Diamantes</h4>
-          <p class="price">$12.000 ARS</p>
-          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20520%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '520 Diamantes', '$12.000 ARS')">Pedir por WhatsApp</a>
+          <h4>572 Diamantes</h4>
+          <p class="price usdt-price">USD 4,16</p>
+          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20572%20Diamantes%20con%20Binance%20USDT.%20Mi%20ID%20es:" target="_blank" class="btn-buy btn-usdt">Comprar USDT</a>
         </div>
 
-        <div class="diamond-box">
+        <div class="diamond-box reseller-box">
           <span class="icon">💎</span>
-          <h4>1.060 Diamantes</h4>
-          <p class="price">$23.000 ARS</p>
-          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%201060%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '1.060 Diamantes', '$23.000 ARS')">Pedir por WhatsApp</a>
+          <h4>1.166 Diamantes</h4>
+          <p class="price usdt-price">USD 8,27</p>
+          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%201.166%20Diamantes%20con%20Binance%20USDT.%20Mi%20ID%20es:" target="_blank" class="btn-buy btn-usdt">Comprar USDT</a>
+        </div>
+
+        <div class="diamond-box reseller-box">
+          <span class="icon">💎</span>
+          <h4>2.398 Diamantes</h4>
+          <p class="price usdt-price">USD 16,10</p>
+          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%202.398%20Diamantes%20con%20Binance%20USDT.%20Mi%20ID%20es:" target="_blank" class="btn-buy btn-usdt">Comprar USDT</a>
+        </div>
+
+        <div class="diamond-box reseller-box">
+          <span class="icon">💎</span>
+          <h4>6.160 Diamantes</h4>
+          <p class="price usdt-price">USD 40,55</p>
+          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%206.160%20Diamantes%20con%20Binance%20USDT.%20Mi%20ID%20es:" target="_blank" class="btn-buy btn-usdt">Comprar USDT</a>
         </div>
       </div>
     </section>
@@ -184,6 +340,7 @@
         <span class="pay-tag">Mercado Pago</span>
         <span class="pay-tag">Transferencia Bancaria</span>
         <span class="pay-tag">Efectivo (RapiPago / PagoFácil)</span>
+        <span class="pay-tag" style="background: rgba(243, 186, 47, 0.2); color: #f3ba2f; border: 1px solid #f3ba2f;">Binance USDT</span>
       </div>
     </section>
 
@@ -230,29 +387,6 @@
         <span class="rating-overall">⭐ 4.9/5 (1.420+ recargas)</span>
       </div>
 
-      <div class="add-comment-box">
-        <h4><i class="fa-solid fa-pen-to-square"></i> Dejá tu comentario o reseña</h4>
-        <div class="comment-inputs-row">
-          <div class="input-group">
-            <input type="text" id="comment-author" placeholder="Tu Nombre o Apodo...">
-          </div>
-          <div class="rating-select-group">
-            <label>Calificación:</label>
-            <select id="comment-rating">
-              <option value="5">⭐⭐⭐⭐⭐ (5/5 Excelente)</option>
-              <option value="4">⭐⭐⭐⭐ (4/5 Muy bueno)</option>
-              <option value="3">⭐⭐⭐ (3/5 Bueno)</option>
-            </select>
-          </div>
-        </div>
-        <div class="input-group" style="margin-top: 10px;">
-          <textarea id="comment-text" placeholder="Escribí tu experiencia con la recarga de diamantes..." rows="3"></textarea>
-        </div>
-        <button class="btn-submit-comment" onclick="agregarComentario()">
-          <i class="fa-solid fa-paper-plane"></i> Publicar Comentario
-        </button>
-      </div>
-
       <div class="comments-list" id="comments-list">
         <div class="comment-item">
           <div class="comment-header">
@@ -261,24 +395,6 @@
             <span class="comment-time">Hace 5 minutos</span>
           </div>
           <p class="comment-body">10/10 súper rápido! Cargué 520 diamantes con Mercado Pago y llegaron al toque a mi ID 🔥</p>
-        </div>
-
-        <div class="comment-item">
-          <div class="comment-header">
-            <span class="comment-user"><i class="fa-solid fa-circle-user"></i> Lucas_Kratos</span>
-            <span class="comment-stars">⭐⭐⭐⭐⭐</span>
-            <span class="comment-time">Hace 18 minutos</span>
-          </div>
-          <p class="comment-body">Muy confiable la verdad, primera vez que compro acá para el pase de batalla y re bien.</p>
-        </div>
-
-        <div class="comment-item">
-          <div class="comment-header">
-            <span class="comment-user"><i class="fa-solid fa-circle-user"></i> Valen_Gamer</span>
-            <span class="comment-stars">⭐⭐⭐⭐⭐</span>
-            <span class="comment-time">Hace 42 minutos</span>
-          </div>
-          <p class="comment-body">Acreditación instantánea por WhatsApp, recomendado al 100% gente!</p>
         </div>
       </div>
     </section>
@@ -289,12 +405,10 @@
     <p>© Tienda de Recargas Independiente. Todos los derechos reservados.</p>
   </footer>
 
-  <!-- Audio -->
   <audio id="musica-fondo" loop preload="auto">
     <source src="musica.mp3" type="audio/mpeg">
   </audio>
 
-  <!-- Botón de Música -->
   <button id="btn-musica" class="btn-musica-flotante" onclick="toggleMusica()" aria-label="Reproducir Música">
     <img src="disco.jpg" id="imagen-disco" alt="Disco de Música" onerror="this.style.opacity='0';">
     <i id="icono-musica" class="fa-solid fa-play"></i>
@@ -329,6 +443,39 @@
       }
     }
 
+    /* FUNCIÓN DE CHAT INTERACTIVO DIRECTO EN LA PÁGINA */
+    function enviarMensajeWeb() {
+      const input = document.getElementById('chat-user-input');
+      const container = document.getElementById('chat-messages-container');
+      const texto = input.value.trim();
+
+      if (!texto) return;
+
+      // Mensaje del usuario (Juan)
+      const userMsg = document.createElement('div');
+      userMsg.className = 'chat-message user-msg';
+      userMsg.innerText = texto;
+      container.appendChild(userMsg);
+
+      input.value = '';
+      container.scrollTop = container.scrollHeight;
+
+      // Respuesta automática simulada de Alma Zarela desde la web
+      setTimeout(() => {
+        const adminMsg = document.createElement('div');
+        adminMsg.className = 'chat-message admin-msg';
+        adminMsg.innerText = "¡Hola! Recibí tu mensaje. Ya te atiendo desde el panel de Alma Zarela.";
+        container.appendChild(adminMsg);
+        container.scrollTop = container.scrollHeight;
+      }, 1000);
+    }
+
+    function handleChatKeyPress(event) {
+      if (event.key === 'Enter') {
+        enviarMensajeWeb();
+      }
+    }
+
     function actualizarEnlaceWhatsApp(elem, paquete, precio) {
       const idPlayer = document.getElementById('player-id').value.trim();
       let msg = `Hola! Quiero comprar ${paquete} (${precio}).`;
@@ -349,7 +496,6 @@
 
       slides.forEach((slide, index) => {
         slide.className = 'carousel-slide';
-        
         if (index === slideActual) {
           slide.classList.add('active');
         } else if (index === (slideActual - 1 + totalSlides) % totalSlides) {
@@ -389,32 +535,6 @@
       iniciarTimer();
     }
 
-    let startX = 0;
-    let endX = 0;
-    const carouselWrapper = document.getElementById('carousel-wrapper');
-
-    if (carouselWrapper) {
-      carouselWrapper.addEventListener('touchstart', (e) => {
-        startX = e.touches[0].clientX;
-      }, { passive: true });
-
-      carouselWrapper.addEventListener('touchend', (e) => {
-        endX = e.changedTouches[0].clientX;
-        handleSwipe();
-      }, { passive: true });
-    }
-
-    function handleSwipe() {
-      const diff = startX - endX;
-      if (Math.abs(diff) > 40) {
-        if (diff > 0) {
-          moverCarrusel(1);
-        } else {
-          moverCarrusel(-1);
-        }
-      }
-    }
-
     function iniciarSesionSimulado() {
       const email = document.getElementById('auth-email').value;
       if(!email) { alert("Ingresá un correo electrónico"); return; }
@@ -443,41 +563,6 @@
         count = Math.max(120, Math.min(190, count + cambio));
         el.innerText = count;
       }, 3500);
-    }
-
-    function agregarComentario() {
-      const autorInput = document.getElementById('comment-author');
-      const textoInput = document.getElementById('comment-text');
-      const ratingSelect = document.getElementById('comment-rating');
-      const list = document.getElementById('comments-list');
-
-      const autor = autorInput.value.trim() || "Jugador Anónimo";
-      const texto = textoInput.value.trim();
-      const rating = parseInt(ratingSelect.value) || 5;
-
-      if (!texto) {
-        alert("Por favor escribí un comentario antes de publicar.");
-        return;
-      }
-
-      let starsStr = "⭐".repeat(rating);
-
-      const newComment = document.createElement('div');
-      newComment.className = 'comment-item new-comment-anim';
-      newComment.innerHTML = `
-        <div class="comment-header">
-          <span class="comment-user"><i class="fa-solid fa-circle-user"></i> ${autor}</span>
-          <span class="comment-stars">${starsStr}</span>
-          <span class="comment-time">Justo ahora</span>
-        </div>
-        <p class="comment-body">${texto}</p>
-      `;
-
-      list.insertBefore(newComment, list.firstChild);
-
-      autorInput.value = '';
-      textoInput.value = '';
-      alert("¡Gracias por tu reseña! Se publicó con éxito.");
     }
 
     document.addEventListener('DOMContentLoaded', function() {
