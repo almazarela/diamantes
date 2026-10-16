@@ -13,10 +13,10 @@
     .verify-row input { flex: 1; min-width: 0; }
     .btn-verificar {
       display: inline-flex; align-items: center; gap: 8px;
-      padding: 0 18px; border: none; border-radius: 10px; cursor: pointer;
-      font-weight: 700; font-size: 14px; color: #fff; white-space: nowrap;
+      padding: 0 18px; border: none; border-radius: 12px; cursor: pointer;
+      font-weight: 700; font-size: 14px; color: #ffffff; white-space: nowrap;
       background: linear-gradient(135deg, #ff3b3b, #ff7a18);
-      box-shadow: 0 4px 14px rgba(255, 70, 40, 0.35);
+      box-shadow: 0 4px 14px rgba(255, 40, 40, 0.568);
       transition: transform .15s ease, opacity .15s ease;
     }
     .btn-verificar:hover { transform: translateY(-1px); }
@@ -25,16 +25,28 @@
     .player-card {
       display: flex; align-items: center; gap: 14px;
       margin-bottom: 12px; padding: 12px 14px; border-radius: 12px;
-      background: linear-gradient(135deg, rgba(46, 204, 113, .15), rgba(46, 204, 113, .05));
+      background: linear-gradient(135deg, rgba(46, 154, 204, 0.349), rgba(46, 204, 113, .05));
       border: 1px solid rgba(46, 204, 113, .6);
       animation: aparecer .35s ease;
+      position: relative; overflow: hidden; min-height: 76px;
+      background-size: cover; background-position: center;
     }
+    .player-card.con-banner {
+      background-image: linear-gradient(90deg, rgba(10, 12, 20, .55), rgba(10, 12, 20, .25)), var(--banner);
+      text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
+    }
+    .player-card > * { position: relative; z-index: 1; }
     .player-card[hidden] { display: none; }
     .player-avatar {
-      width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+      width: 56px; height: 56px; border-radius: 10px; flex-shrink: 0; overflow: hidden;
       display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(135deg, #ff3b3b, #ff7a18); color: #fff; font-size: 20px;
+      background: linear-gradient(135deg, #ff3b3b, #ff7a18); color: #fff; font-size: 22px;
+      border: 2px solid rgba(255, 255, 255, .85); box-shadow: 0 2px 8px rgba(0, 0, 0, .6);
     }
+    .player-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .player-avatar img[hidden] { display: none !important; }
+    .player-avatar.con-img { background: none; }
+    .player-avatar.con-img i { display: none !important; }
     .player-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
     .player-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: .7; }
     .player-name { font-size: 18px; line-height: 1.25; word-break: break-word; }
@@ -42,7 +54,7 @@
     .player-ok { color: #2ecc71; font-size: 22px; }
 
     .verify-status { margin: 8px 0 0; font-size: 13px; min-height: 18px; }
-    .verify-status.ok { color: #2ecc71; }
+    .verify-status.ok { color: #2ecc70; }
     .verify-status.error { color: #ff5c5c; }
     .verify-status.loading { color: #f3ba2f; }
 
@@ -61,7 +73,7 @@
         <i class="fa-solid fa-bars"></i>
       </button>
       <div class="logo">
-        RECARGAS <span class="garena-red">FF</span> 🔥
+        Zarela <span class="garena-red"></span> 🔥
       </div>
     </div>
     <div class="header-right-group">
@@ -74,13 +86,13 @@
 
   <aside class="sidebar-menu" id="sidebar-menu">
     <div class="sidebar-header">
-      <div class="sidebar-logo">RECARGAS <span class="garena-red">FF</span> 🔥</div>
+      <div class="sidebar-logo">Zarela <span class="garena-red"></span> </div>
       <button class="close-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-xmark"></i></button>
     </div>
 
     <div class="sidebar-content">
       <div class="sidebar-card user-wallet-box">
-        <div class="wallet-header"><i class="fa-solid fa-wallet"></i><span>Monedero Virtual</span></div>
+        <div class="wallet-header"><i class="fa-solid fa-wallet"></i><span>billetera Virtual</span></div>
         <div class="wallet-id">ID Monedero: <strong id="menu-wallet-id">#REV-84920</strong></div>
         <div class="wallet-balance-row">
           <span>Saldo Disponible:</span>
@@ -177,7 +189,7 @@
 
           <!-- TARJETA DEL JUGADOR (aparece arriba del ID al verificar) -->
           <div id="player-card" class="player-card" hidden>
-            <div class="player-avatar"><i class="fa-solid fa-user-astronaut"></i></div>
+            <div class="player-avatar"><img id="player-avatar-img" alt="Avatar" hidden><i id="player-avatar-icon" class="fa-solid fa-user-astronaut"></i></div>
             <div class="player-info">
               <span class="player-label">Jugador verificado</span>
               <strong id="player-name" class="player-name"></strong>
@@ -205,39 +217,40 @@
           <div class="grid-diamonds">
             <div class="diamond-box">
               <span class="icon">💎</span>
-              <h4>110 Diamantes</h4>
-              <p class="price">ARS $7.463</p>
-              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'ARS $7.463')">Comprar ARS</a>
+              <h4>110 Diamantes</h4> 
+              <p class="price">ARS $1.463</p>
+              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'ARS $7.463')">mercado pago
+              </a>
             </div>
             <div class="diamond-box">
               <span class="icon">💎</span>
               <h4>341 Diamantes</h4>
               <p class="price">ARS $4.555</p>
-              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'ARS $4.555')">Comprar ARS</a>
+              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'ARS $4.555')">mercado pago</a>
             </div>
             <div class="diamond-box">
               <span class="icon">💎</span>
               <h4>572 Diamantes</h4>
               <p class="price">ARS $8.059</p>
-              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'ARS $8.059')">Comprar ARS</a>
+              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'ARS $8.059')">mercado pago</a>
             </div>
             <div class="diamond-box">
               <span class="icon">💎</span>
               <h4>1.166 Diamantes</h4>
               <p class="price">ARS $14.690</p>
-              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'ARS $14.690')">Comprar ARS</a>
+              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'ARS $14.690')">mercado pago</a>
             </div>
             <div class="diamond-box">
               <span class="icon">💎</span>
               <h4>2.398 Diamantes</h4>
               <p class="price">ARS $27.602</p>
-              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'ARS $27.602')">Comprar ARS</a>
+              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'ARS $27.602')">mercado pago</a>
             </div>
             <div class="diamond-box">
               <span class="icon">💎</span>
               <h4>6.160 Diamantes</h4>
               <p class="price">ARS $67.750</p>
-              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'ARS $67.750')">Comprar ARS</a>
+              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'ARS $67.750')">mercado pago</a>
             </div>
           </div>
         </section>
@@ -252,7 +265,7 @@
             <span class="chat-status-dot"></span>
           </div>
           <div class="chat-messages-area" id="chat-messages-container">
-            <div class="chat-message admin-msg">HOLA JUAN, ¿en qué te puedo ayudar hoy?</div>
+            <div class="chat-message admin-msg">HOLA, ¿en qué te puedo ayudar hoy?</div>
           </div>
           <div class="chat-input-area">
             <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarComprobantePC()">
@@ -333,15 +346,14 @@
       <div class="payment-methods">
         <span class="pay-tag">Mercado Pago</span>
         <span class="pay-tag">Transferencia Bancaria</span>
-        <span class="pay-tag">Efectivo (RapiPago / PagoFácil)</span>
-        <span class="pay-tag" style="background: rgba(243, 186, 47, 0.2); color: #f3ba2f; border: 1px solid #f3ba2f;">Binance USDT</span>
+        <span class="pay-tag" style="background: rgba(74, 70, 87, 0.26); color: #f3ba2f; border: 1px solid #ceb577;">Binance USDT</span>
       </div>
     </section>
 
     <section class="card auth-card" id="auth-section">
       <div class="step-title">
         <span class="badge"><i class="fa-solid fa-user-gear"></i></span>
-        <h3>Cuenta de Revendedor</h3>
+        <h3>Cuenta Revendedor</h3>
       </div>
 
       <div id="auth-forms" class="auth-box">
@@ -374,14 +386,14 @@
       <div class="step-title">
         <span class="badge"><i class="fa-solid fa-comments"></i></span>
         <h3>Opiniones de Clientes</h3>
-        <span class="rating-overall">⭐ 4.9/5 (1.420+ recargas)</span>
+        <span class="rating-overall">⭐ 4.9/5 (+73.520 recargas)</span>
       </div>
       <div class="comments-list" id="comments-list">
         <div class="comment-item">
           <div class="comment-header">
             <span class="comment-user"><i class="fa-solid fa-circle-user"></i> Matias_FF</span>
             <span class="comment-stars">⭐⭐⭐⭐⭐</span>
-            <span class="comment-time">Hace 5 minutos</span>
+            <span class="comment-time">Hace 3 semanas</span>
           </div>
           <p class="comment-body">10/10 súper rápido! Cargué 520 diamantes con Mercado Pago y llegaron al toque a mi ID 🔥</p>
         </div>
@@ -428,10 +440,35 @@
       document.getElementById('player-name').textContent = data.nickname || 'Jugador';
       const meta = [];
       if (data.level) meta.push('Nivel ' + data.level);
+      if (data.rank) meta.push(data.rank);
       if (data.region) meta.push('Región ' + data.region);
       meta.push('ID ' + data.playerId);
       document.getElementById('player-meta').textContent = meta.join(' · ');
-      document.getElementById('player-card').hidden = false;
+
+      // Icono de Free Fire (si no carga, queda el icono por defecto)
+      const img = document.getElementById('player-avatar-img');
+      const icono = document.getElementById('player-avatar-icon');
+      const caja = img.parentElement;
+      img.hidden = true; caja.classList.remove('con-img');
+      if (data.avatar) {
+        img.onload = function () { img.hidden = false; caja.classList.add('con-img'); };
+        img.onerror = function () { img.hidden = true; caja.classList.remove('con-img'); };
+        img.src = data.avatar;
+      }
+
+      // Fondo (banner) de Free Fire
+      const card = document.getElementById('player-card');
+      card.classList.remove('con-banner');
+      card.style.removeProperty('--banner');
+      if (data.banner) {
+        const pre = new Image();
+        pre.onload = function () {
+          card.style.setProperty('--banner', 'url("' + data.banner + '")');
+          card.classList.add('con-banner');
+        };
+        pre.src = data.banner;
+      }
+      card.hidden = false;
     }
 
     async function verificarJugador() {

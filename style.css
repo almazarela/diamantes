@@ -2,29 +2,29 @@
 
 * {
   margin: 0;
-  padding: 0;
+  padding: ;
   box-sizing: border-box;
   font-family: 'Poppins', sans-serif;
 }
 
 body {
-  background-color: #12131a;
-  color: #ffffff;
-  padding-bottom: 40px;
+  background-color: #1e03b8;
+  color: #d8e60d;
+  padding-bottom:px;
   overflow-x: hidden;
 }
 
 .navbar {
-  background-color: #1a1c24;
+  background-color: #010620;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
-  border-bottom: 2px solid #e50914;
+  padding: 20px 20px;
+  border-bottom: 2px solid #e50909;
   position: sticky;
   top: 0;
   z-index: 100;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(100px);
 }
 
 .nav-left {
@@ -40,28 +40,42 @@ body {
 }
 
 .saldo-usd-badge {
-  background: linear-gradient(135deg, #26A69A, #00b09b);
-  color: #ffffff;
+  background: linear-gradient(135deg, #00b445, #15b00041, #010007);
+  color: #d8f0e3;
   font-family: 'Orbitron', sans-serif;
   font-weight: 800;
-  padding: 6px 12px;
+  padding: 10px 12px;
   border-radius: 20px;
   font-size: 0.78rem;
-  box-shadow: 0 0 12px rgba(38, 166, 154, 0.4);
+  box-shadow: 0 0 18px rgb(5, 224, 122) rgb(27, 2, 255);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   letter-spacing: 0.5px;
   white-space: nowrap;
+  animation: pulso 1.5s infinite; /* Agregamos la animación */
 }
+
+@keyframes pulso {
+  0% {
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    text-shadow: 0 0 20px rgb(218, 221, 219);
+  }
+  100% {
+    text-shadow: 0 0 5px rgba(12, 14, 13, 0.2);
+  }
+}
+
 
 .menu-toggle-btn {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background-color: #26293b;
-  border: 1px solid #3a3f58;
-  color: #ffffff;
+  background-color: #1d1c1c;
+  border: 1px solid #d4d8ec;
+  color: #d4dfdc;
   font-size: 1.1rem;
   display: flex;
   align-items: center;
@@ -71,7 +85,7 @@ body {
 }
 
 .menu-toggle-btn:hover {
-  background-color: #e50914;
+  background-color: #e51809;
   border-color: #e50914;
   transform: scale(1.05);
 }
@@ -79,25 +93,25 @@ body {
 .logo {
   font-family: 'Orbitron', sans-serif;
   font-weight: bold;
-  font-size: 1.15rem;
-  letter-spacing: 0.5px;
+  font-size: 0.9rem;
+  letter-spacing: .5px;
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
 .garena-red {
-  color: #e50914;
+  color: #fbff04;
 }
 
 .region {
   font-size: 0.9rem;
-  color: #ffffff;
+  color: #0fd6e4;
   font-weight: 500;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(9, 200, 248, 0.041);
   padding: 6px 12px;
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.103);
   white-space: nowrap;
 }
 
@@ -144,8 +158,8 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 18px;
-  background-color: #1a1c24;
-  border-bottom: 1px solid #2a2d3d;
+  background-color: #1a2229;
+  border-bottom: 1px solid #171925;
 }
 
 .sidebar-logo {
@@ -164,7 +178,7 @@ body {
 }
 
 .close-menu-btn:hover {
-  color: #e50914;
+  color: #e50909;
 }
 
 .sidebar-content {
@@ -187,7 +201,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #e50914;
+  color: #e50909;
   font-size: 0.95rem;
   font-weight: bold;
   margin-bottom: 8px;
@@ -205,7 +219,7 @@ body {
   align-items: center;
   font-size: 0.85rem;
   padding-top: 6px;
-  border-top: 1px dashed #3a3f58;
+  border-top: 1px dashed #0e0f16;
 }
 
 .balance-text {
@@ -240,7 +254,7 @@ body {
 
 .menu-link:hover {
   background-color: #26293b;
-  border-color: #e50914;
+  border-color: #09e514;
 }
 
 .whatsapp-link {
@@ -403,7 +417,7 @@ body {
   opacity: 1;
   transform: translateX(0) scale(1);
   z-index: 5;
-  border: 2px solid #e50914;
+  border: 2px solid #e50909;
   box-shadow: 0 0 25px rgba(229, 9, 20, 0.5);
   pointer-events: auto;
 }
@@ -513,7 +527,7 @@ body {
 /* CHAT EN VIVO INTEGRADO (FUNCIONAL DENTRO DE LA PÁGINA) */
 .chat-widget-card {
   background: #1a1c29;
-  border: 1px solid #38bdf8;
+  border: 1px solid #38ebf8;
   border-radius: 12px;
   padding: 15px;
   box-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
@@ -525,7 +539,7 @@ body {
 .chat-widget-header {
   font-family: 'Orbitron', sans-serif;
   font-size: 0.78rem;
-  color: #38bdf8;
+  color: #38f868;
   font-weight: 700;
   margin-bottom: 10px;
   display: flex;
@@ -536,9 +550,9 @@ body {
 .chat-status-dot {
   width: 8px;
   height: 8px;
-  background-color: #4caf50;
+  background-color: #6baf4c;
   border-radius: 50%;
-  box-shadow: 0 0 8px #4caf50;
+  box-shadow: 0 0 8px #4faf4c;
 }
 
 .chat-messages-area {
@@ -555,25 +569,25 @@ body {
 }
 
 .chat-message {
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 0.82rem;
+  padding: 4px 9px;
+  border-radius: 19px;
+  font-size: 0.77rem;
   font-weight: 500;
-  max-width: 88%;
+  max-width: 808%;
   line-height: 1.3;
 }
 
 .user-msg {
-  background: #2563eb;
-  color: white;
+  background: #258beb;
+  color: rgb(240, 232, 232);
   align-self: flex-end;
   border-bottom-right-radius: 2px;
 }
 
 .admin-msg {
-  background: #202333;
-  color: #e2e8f0;
-  border: 1px solid #3a3f58;
+  background: #01ff221e;
+  color: #dfe2e6;
+  border: 1px solid #7b7f94;
   align-self: flex-start;
   border-bottom-left-radius: 2px;
 }
@@ -585,24 +599,24 @@ body {
 
 .chat-input-area input {
   flex-grow: 1;
-  background: #0d0e15;
-  border: 1px solid #3a3f58;
+  background: #0a0b13;
+  border: 1px solid #47c577;
   border-radius: 6px;
   padding: 8px 12px;
-  color: white;
+  color: rgb(190, 197, 202);
   font-size: 0.85rem;
   outline: none;
 }
 
 .chat-input-area input:focus {
-  border-color: #38bdf8;
+  border-color: #38d2f8;
 }
 
 .chat-input-area button {
-  background: #38bdf8;
-  color: #0b0e14;
+  background: #38f858;
+  color: #08090c;
   border: none;
-  border-radius: 6px;
+  border-radius: 66px;
   width: 38px;
   cursor: pointer;
   display: flex;
@@ -614,19 +628,19 @@ body {
 }
 
 .chat-input-area button:hover {
-  background: #7dd3fc;
+  background: #7dedfc;
 }
 
 /* Tarjeta Bienvenida Estilo Sakura */
 .sakura-welcome-card {
-  background: linear-gradient(135deg, #2a1b28, #3b1c31);
-  border: 2px solid #f472b6;
+  background: linear-gradient(135deg, #a1148f, #000000);
+  border: 2px solid #020002;
   border-radius: 12px;
   padding: 22px 15px;
   text-align: center;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 0 20px rgba(244, 114, 182, 0.3);
+  box-shadow: 0 0 20px rgba(114, 244, 238, 0.89);
 }
 
 .sakura-badge-icon {
@@ -643,32 +657,32 @@ body {
   color: #fbcfe8;
   letter-spacing: 2px;
   font-weight: 700;
-  text-shadow: 0 0 10px rgba(244, 114, 182, 0.6);
+  text-shadow: 0 0 10px rgba(204, 11, 230, 0.925);
 }
 
 .sakura-sub {
   font-family: 'Cinzel', serif;
-  font-size: 0.85rem;
-  color: #f472b6;
+  font-size: 1.00rem;
+  color: #d294df;
   display: block;
-  margin: 4px 0;
+  margin: 1px 0;
 }
 
 .sakura-brand {
   font-family: 'Orbitron', sans-serif;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   color: #ffffff;
   font-weight: 900;
   letter-spacing: 1px;
-  text-shadow: 0 0 8px #f472b6;
+  text-shadow: 0 0 30px #f472b6;
 }
 
 
 /* SECCIÓN PRECIO REVENDEDOR - BINANCE USDT */
 .reseller-binance-section {
-  background: linear-gradient(145deg, #1a1c24, #222536);
-  border: 2px solid #F3BA2F;
-  border-radius: 16px;
+  background: linear-gradient(145deg, #000000, #0425df8a);
+  border: 2px solid #b8f32fe7;
+  border-radius: 26px;
   padding: 22px;
   box-shadow: 0 0 30px rgba(243, 186, 47, 0.2);
   margin-bottom: 20px;
@@ -684,46 +698,46 @@ body {
   font-size: 1.3rem;
   font-weight: 900;
   color: #ffffff;
-  letter-spacing: 1.5px;
+  letter-spacing: 1.9px;
 }
 
 .binance-sub-heading {
   font-family: 'Orbitron', sans-serif;
-  font-size: 1.1rem;
-  margin-top: 5px;
+  font-size: 1.5rem;
+  margin-top: 4px;
 }
 
 .binance-brand {
-  color: #F3BA2F;
+  color: #e6f32f #0ee7c394;
   font-weight: 900;
-  text-shadow: 0 0 12px rgba(243, 186, 47, 0.6);
+  text-shadow: 0 0 12px rgba(25, 9, 245, 0.562);
 }
 
 .usdt-brand {
-  color: #26A69A;
+  color: #04ff11;
   font-weight: 900;
-  text-shadow: 0 0 12px rgba(38, 166, 154, 0.6);
+  text-shadow: 0 0 12px rgba(10, 187, 63, 0.6);
 }
 
 .reseller-box {
-  background-color: #161822;
+  background-color: #1d1614;
   border: 1px solid rgba(243, 186, 47, 0.3);
 }
 
 .reseller-box:hover {
-  border-color: #F3BA2F;
+  border-color: #dff32f;
   box-shadow: 0 0 15px rgba(243, 186, 47, 0.3);
 }
 
 .usdt-price {
-  color: #26A69A !important;
+  color: #06f506 !important;
   font-size: 1.15rem;
 }
 
 .btn-usdt {
-  background: linear-gradient(135deg, #F3BA2F, #d99b00) !important;
-  color: #0b0e14 !important;
-  box-shadow: 0 4px 12px rgba(243, 186, 47, 0.4) !important;
+  background: linear-gradient(135deg, #03fd18, #00065e6b) !important;
+  color: #010002 !important;
+  box-shadow: 0 4px 12px rgb(240, 236, 0) !important;
 }
 
 .btn-usdt:hover {
@@ -732,11 +746,11 @@ body {
 }
 
 .card {
-  background-color: #1a1c29;
+  background-color: #161822;
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
-  border: 1px solid #2a2d3d;
+  border: 1px solid #302e2d;
 }
 
 .step-title {
@@ -747,7 +761,7 @@ body {
 }
 
 .badge {
-  background-color: #e50914;
+  background-color: #fa0505;
   color: white;
   width: 28px;
   height: 28px;
@@ -759,19 +773,19 @@ body {
 }
 
 .auth-card {
-  border: 1px solid #e50914;
-  box-shadow: 0 0 15px rgba(229, 9, 20, 0.15);
+  border: 1px solid #f81100;
+  box-shadow: 0 0 15px rgba(75, 9, 229, 0.15);
 }
 
 .auth-desc {
   font-size: 0.85rem;
-  color: #bbb;
+  color: #fefdff;
   margin-bottom: 12px;
 }
 
 .auth-buttons {
   display: flex;
-  gap: 10px;
+  gap: 30px;
   margin-top: 12px;
 }
 
@@ -786,29 +800,29 @@ body {
   transition: background 0.2s;
 }
 
-.btn-login { background-color: #e50914; color: white; }
+.btn-login { background-color: #e50909; color: white; }
 .btn-login:hover { background-color: #b20610; }
 
 .btn-register {
-  background-color: #2a2d3d;
+  background-color: #0543ee;
   color: white;
-  border: 1px solid #3a3f58;
+  border: 1px solid #3f445e;
 }
-.btn-register:hover { background-color: #343850; }
+.btn-register:hover { background-color: #2c3327; }
 
 .dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding-bottom: 12px;
-  border-bottom: 1px solid #2a2d3d;
+  border-bottom: 1px solid #101116;
   margin-bottom: 15px;
   font-size: 0.9rem;
 }
 
 .btn-logout {
   background: transparent;
-  border: 1px solid #e50914;
+  border: 1px solid #09e51b;
   color: #e50914;
   padding: 4px 10px;
   border-radius: 4px;
@@ -817,7 +831,7 @@ body {
 }
 
 .wallet-card {
-  background-color: #0d0e15;
+  background-color: #0d1411;
   padding: 18px;
   border-radius: 8px;
   border: 1px solid #3a3f58;
@@ -826,14 +840,14 @@ body {
 
 .wallet-label {
   font-size: 0.8rem;
-  color: #888;
+  color: #929492;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .wallet-amount {
   font-size: 2rem;
-  color: #4caf50;
+  color: #63af4c;
   margin: 8px 0;
 }
 
@@ -870,7 +884,7 @@ body {
 .subtext {
   font-size: 0.8rem;
   color: #888;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .grid-diamonds {
@@ -891,34 +905,34 @@ body {
   gap: 8px;
 }
 
-.diamond-box .icon { font-size: 1.8rem; }
-.diamond-box h4 { font-size: 1rem; }
+.diamond-box .icon { font-size: 1.9rem; }
+.diamond-box h4 { font-size: 1.1rem; }
 .diamond-box .price {
-  color: #4caf50;
+  color: #f1f5f3;
   font-weight: bold;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
 }
 
 .btn-buy {
   display: inline-block;
-  width: 100%;
-  padding: 8px 0;
-  background: linear-gradient(135deg, #e11d48, #be123c);
-  color: white;
+  width: 90%;
+  padding: 10px 0;
+  background: linear-gradient(135deg, #e8f803, #fbff02);
+  color: rgb(0, 0, 0);
   text-decoration: none;
-  border-radius: 5px;
+  border-radius: 55px;
   font-family: 'Orbitron', sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: bold;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.5px;
   margin-top: 5px;
-  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.4);
+  box-shadow: 0 9px 12px rgba(98, 29, 225, 0.986);
   text-transform: uppercase;
   transition: all 0.2s;
 }
 
 .btn-buy:hover { 
-  background: linear-gradient(135deg, #f43f5e, #e11d48);
+  background: linear-gradient(135deg, #f43fd6, #e11d48);
   box-shadow: 0 6px 16px rgba(225, 29, 72, 0.7);
   transform: scale(1.02);
 }
@@ -932,8 +946,8 @@ body {
 .pay-tag {
   background-color: #26293b;
   padding: 8px 12px;
-  border-radius: 5px;
-  font-size: 0.85rem;
+  border-radius: 55px;
+  font-size: 0.95rem;
   border: 1px solid #3a3f58;
 }
 
@@ -946,7 +960,7 @@ body {
   font-size: 0.82rem;
   color: #ffd700;
   font-weight: 600;
-  background: rgba(255, 215, 0, 0.1);
+  background: rgba(255, 217, 0, 0.089);
   padding: 4px 10px;
   border-radius: 12px;
   border: 1px solid rgba(255, 215, 0, 0.25);
@@ -983,7 +997,7 @@ body {
 }
 
 .comment-user i {
-  color: #e50914;
+  color: #e54709;
 }
 
 .comment-stars {
@@ -1032,7 +1046,7 @@ footer {
 
 .btn-musica-flotante:hover {
   transform: scale(1.08);
-  border-color: #ffffff;
+  border-color: #1af106;
 }
 
 .btn-musica-flotante img {
@@ -1060,11 +1074,11 @@ footer {
 
 .btn-musica-flotante.reproduciendo img {
   display: block;
-  animation: girarDisco 4s linear infinite;
+  animation: girarDisco 3s linear infinite;
 }
 
 .btn-musica-flotante.reproduciendo {
-  border-color: rgba(255, 215, 0, 0.95);
+  border-color: rgba(255, 238, 0, 0.95);
   box-shadow: 0 0 18px rgba(255, 215, 0, 0.7);
 }
 
