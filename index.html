@@ -6,6 +6,52 @@
   <title>Centro de Recargas - Free Fire</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
+
+  <!-- ESTILOS DEL VERIFICADOR DE ID -->
+  <style>
+    .verify-row { display: flex; gap: 10px; align-items: stretch; }
+    .verify-row input { flex: 1; min-width: 0; }
+    .btn-verificar {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 0 18px; border: none; border-radius: 10px; cursor: pointer;
+      font-weight: 700; font-size: 14px; color: #fff; white-space: nowrap;
+      background: linear-gradient(135deg, #ff3b3b, #ff7a18);
+      box-shadow: 0 4px 14px rgba(255, 70, 40, 0.35);
+      transition: transform .15s ease, opacity .15s ease;
+    }
+    .btn-verificar:hover { transform: translateY(-1px); }
+    .btn-verificar:disabled { opacity: .7; cursor: wait; transform: none; }
+
+    .player-card {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 12px; padding: 12px 14px; border-radius: 12px;
+      background: linear-gradient(135deg, rgba(46, 204, 113, .15), rgba(46, 204, 113, .05));
+      border: 1px solid rgba(46, 204, 113, .6);
+      animation: aparecer .35s ease;
+    }
+    .player-card[hidden] { display: none; }
+    .player-avatar {
+      width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #ff3b3b, #ff7a18); color: #fff; font-size: 20px;
+    }
+    .player-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+    .player-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: .7; }
+    .player-name { font-size: 18px; line-height: 1.25; word-break: break-word; }
+    .player-meta { font-size: 12px; opacity: .8; }
+    .player-ok { color: #2ecc71; font-size: 22px; }
+
+    .verify-status { margin: 8px 0 0; font-size: 13px; min-height: 18px; }
+    .verify-status.ok { color: #2ecc71; }
+    .verify-status.error { color: #ff5c5c; }
+    .verify-status.loading { color: #f3ba2f; }
+
+    @keyframes aparecer { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+    @media (max-width: 480px) {
+      .btn-verificar span { display: none; }
+      .btn-verificar { padding: 0 14px; }
+    }
+  </style>
 </head>
 <body>
 
@@ -19,33 +65,22 @@
       </div>
     </div>
     <div class="header-right-group">
-      <div class="region">
-        🇦🇷 Argentina | ES
-      </div>
-      <div class="saldo-usd-badge">
-        <i class="fa-solid fa-wallet"></i> SALDO USD
-      </div>
+      <div class="region">🇦🇷 Argentina | ES</div>
+      <div class="saldo-usd-badge"><i class="fa-solid fa-wallet"></i> SALDO USD</div>
     </div>
   </header>
 
   <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
-  
+
   <aside class="sidebar-menu" id="sidebar-menu">
     <div class="sidebar-header">
-      <div class="sidebar-logo">
-        RECARGAS <span class="garena-red">FF</span> 🔥
-      </div>
-      <button class="close-menu-btn" onclick="toggleMenu()">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+      <div class="sidebar-logo">RECARGAS <span class="garena-red">FF</span> 🔥</div>
+      <button class="close-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-xmark"></i></button>
     </div>
 
     <div class="sidebar-content">
       <div class="sidebar-card user-wallet-box">
-        <div class="wallet-header">
-          <i class="fa-solid fa-wallet"></i>
-          <span>Monedero Virtual</span>
-        </div>
+        <div class="wallet-header"><i class="fa-solid fa-wallet"></i><span>Monedero Virtual</span></div>
         <div class="wallet-id">ID Monedero: <strong id="menu-wallet-id">#REV-84920</strong></div>
         <div class="wallet-balance-row">
           <span>Saldo Disponible:</span>
@@ -79,9 +114,7 @@
       </div>
     </div>
 
-    <div class="sidebar-footer">
-      <p>© Centro de Recargas FF - Argentina</p>
-    </div>
+    <div class="sidebar-footer"><p>© Centro de Recargas FF - Argentina</p></div>
   </aside>
 
   <section class="hero-banner-section">
@@ -141,9 +174,25 @@
             <span class="badge">1</span>
             <h3>Ingresar ID de jugador</h3>
           </div>
-          <div class="input-group">
-            <input type="text" placeholder="Introduce el ID del jugador..." id="player-id">
+
+          <!-- TARJETA DEL JUGADOR (aparece arriba del ID al verificar) -->
+          <div id="player-card" class="player-card" hidden>
+            <div class="player-avatar"><i class="fa-solid fa-user-astronaut"></i></div>
+            <div class="player-info">
+              <span class="player-label">Jugador verificado</span>
+              <strong id="player-name" class="player-name"></strong>
+              <span id="player-meta" class="player-meta"></span>
+            </div>
+            <i class="fa-solid fa-circle-check player-ok"></i>
           </div>
+
+          <div class="input-group verify-row">
+            <input type="text" inputmode="numeric" autocomplete="off" placeholder="Introduce el ID del jugador..." id="player-id">
+            <button type="button" id="btn-verificar" class="btn-verificar" onclick="verificarJugador()">
+              <i class="fa-solid fa-magnifying-glass"></i> <span>Verificar</span>
+            </button>
+          </div>
+          <p id="verify-status" class="verify-status"></p>
           <p class="subtext">⚠️ Verificá bien tu ID antes de enviar el pedido.</p>
         </section>
 
@@ -158,51 +207,45 @@
               <span class="icon">💎</span>
               <h4>110 Diamantes</h4>
               <p class="price">ARS $7.463</p>
-              <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20110%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'ARS $7.463')">Comprar ARS</a>
+              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'ARS $7.463')">Comprar ARS</a>
             </div>
-
             <div class="diamond-box">
               <span class="icon">💎</span>
               <h4>341 Diamantes</h4>
               <p class="price">ARS $4.555</p>
-              <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20341%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'ARS $4.555')">Comprar ARS</a>
+              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'ARS $4.555')">Comprar ARS</a>
             </div>
-
             <div class="diamond-box">
               <span class="icon">💎</span>
               <h4>572 Diamantes</h4>
               <p class="price">ARS $8.059</p>
-              <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20572%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'ARS $8.059')">Comprar ARS</a>
+              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'ARS $8.059')">Comprar ARS</a>
             </div>
-
             <div class="diamond-box">
               <span class="icon">💎</span>
               <h4>1.166 Diamantes</h4>
               <p class="price">ARS $14.690</p>
-              <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%201.166%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'ARS $14.690')">Comprar ARS</a>
+              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'ARS $14.690')">Comprar ARS</a>
             </div>
-
             <div class="diamond-box">
               <span class="icon">💎</span>
               <h4>2.398 Diamantes</h4>
               <p class="price">ARS $27.602</p>
-              <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%202.398%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'ARS $27.602')">Comprar ARS</a>
+              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'ARS $27.602')">Comprar ARS</a>
             </div>
-
             <div class="diamond-box">
               <span class="icon">💎</span>
               <h4>6.160 Diamantes</h4>
               <p class="price">ARS $67.750</p>
-              <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%206.160%20Diamantes.%20Mi%20ID%20es:" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'ARS $67.750')">Comprar ARS</a>
+              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'ARS $67.750')">Comprar ARS</a>
             </div>
           </div>
         </section>
       </div>
 
-      <!-- COLUMNA DERECHA: CHAT EN VIVO INTEGRADO Y BIENVENIDA SAKURA -->
+      <!-- COLUMNA DERECHA: CHAT EN VIVO Y BIENVENIDA SAKURA -->
       <div class="right-widgets-col">
-        
-        <!-- CHAT INTERACTIVO DIRECTO EN LA WEB (SIN APLICACIONES EXTERNAS) -->
+
         <div class="chat-widget-card">
           <div class="chat-widget-header">
             <span><i class="fa-solid fa-comments"></i> CHAT EN VIVO: ALMA ZARELA</span>
@@ -211,62 +254,18 @@
           <div class="chat-messages-area" id="chat-messages-container">
             <div class="chat-message admin-msg">HOLA JUAN, ¿en qué te puedo ayudar hoy?</div>
           </div>
-       <div class="chat-input-area">
-  <!-- Botón de Archivos / Clip a la izquierda -->
-  <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarComprobantePC()">
-  <button type="button" class="btn-attach" onclick="document.getElementById('chat-file-input').click()" title="Adjuntar Comprobante">
-    <i class="fa-solid fa-paperclip"></i>
-  </button>
-
-  <!-- Cuadro para escribir en el medio -->
-  <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí..." onkeydown="if(event.key === 'Enter'){ enviarMensajeDirecto(); }">
-
-  <!-- Botón de Enviar a la derecha con función directa -->
-  <button type="button" class="btn-send" onclick="enviarMensajeDirecto()" title="Enviar mensaje">
-    <i class="fa-solid fa-paper-plane"></i>
-  </button>
-</div>
-
-<script>
-  // Función directa para que el botón de enviar funcione al 100% de inmediato
-  function enviarMensajeDirecto() {
-    const input = document.getElementById('chat-user-input');
-    const mensaje = input.value.trim();
-    if (!mensaje) return;
-
-    // Buscar el área de mensajes del chat
-    const areaMensajes = document.getElementById('chat-messages-container') || document.querySelector('.chat-messages-area');
-    if (areaMensajes) {
-      // Crear burbuja del usuario
-      const msgDiv = document.createElement('div');
-      msgDiv.className = 'chat-message user-msg';
-      msgDiv.textContent = mensaje;
-      areaMensajes.appendChild(msgDiv);
-      
-      // Auto-scroll al final
-      areaMensajes.scrollTop = areaMensajes.scrollHeight;
-    }
-
-    // Limpiar input
-    input.value = '';
-
-    // Simular respuesta automática del sistema/soporte de Zarela después de 1 segundo
-    setTimeout(() => {
-      const areaMensajes = document.getElementById('chat-messages-container') || document.querySelector('.chat-messages-area');
-      if (areaMensajes) {
-        const adminDiv = document.createElement('div');
-        adminDiv.className = 'chat-message admin-msg';
-        adminDiv.textContent = 'hola ¡Mensaje recibido! Alma Zarela te atenderá en breve.';
-        areaMensajes.appendChild(adminDiv);
-        areaMensajes.scrollTop = areaMensajes.scrollHeight;
-      }
-    }, 1000);
-  }
-</script>
-     </div>
+          <div class="chat-input-area">
+            <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarComprobantePC()">
+            <button type="button" class="btn-attach" onclick="document.getElementById('chat-file-input').click()" title="Adjuntar Comprobante">
+              <i class="fa-solid fa-paperclip"></i>
+            </button>
+            <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí..." onkeydown="if(event.key === 'Enter'){ enviarMensajeDirecto(); }">
+            <button type="button" class="btn-send" onclick="enviarMensajeDirecto()" title="Enviar mensaje">
+              <i class="fa-solid fa-paper-plane"></i>
+            </button>
+          </div>
         </div>
 
-        <!-- CUADRO DE BIENVENIDA ESTILO SAKURA -->
         <div class="sakura-welcome-card">
           <div class="sakura-badge-icon">🌸</div>
           <h2 class="sakura-title">BIENVENIDOS</h2>
@@ -291,42 +290,37 @@
           <span class="icon">💎</span>
           <h4>110 Diamantes</h4>
           <p class="price usdt-price">USD 0,86</p>
-          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20110%20Diamantes%20con%20Binance%20USDT.%20Mi%20ID%20es:" target="_blank" class="btn-buy btn-usdt">Comprar USDT</a>
+          <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'USD 0,86 con Binance USDT')">Comprar USDT</a>
         </div>
-
         <div class="diamond-box reseller-box">
           <span class="icon">💎</span>
           <h4>341 Diamantes</h4>
           <p class="price usdt-price">USD 2,45</p>
-          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20341%20Diamantes%20con%20Binance%20USDT.%20Mi%20ID%20es:" target="_blank" class="btn-buy btn-usdt">Comprar USDT</a>
+          <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'USD 2,45 con Binance USDT')">Comprar USDT</a>
         </div>
-
         <div class="diamond-box reseller-box">
           <span class="icon">💎</span>
           <h4>572 Diamantes</h4>
           <p class="price usdt-price">USD 4,16</p>
-          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%20572%20Diamantes%20con%20Binance%20USDT.%20Mi%20ID%20es:" target="_blank" class="btn-buy btn-usdt">Comprar USDT</a>
+          <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'USD 4,16 con Binance USDT')">Comprar USDT</a>
         </div>
-
         <div class="diamond-box reseller-box">
           <span class="icon">💎</span>
           <h4>1.166 Diamantes</h4>
           <p class="price usdt-price">USD 8,27</p>
-          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%201.166%20Diamantes%20con%20Binance%20USDT.%20Mi%20ID%20es:" target="_blank" class="btn-buy btn-usdt">Comprar USDT</a>
+          <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'USD 8,27 con Binance USDT')">Comprar USDT</a>
         </div>
-
         <div class="diamond-box reseller-box">
           <span class="icon">💎</span>
           <h4>2.398 Diamantes</h4>
           <p class="price usdt-price">USD 16,10</p>
-          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%202.398%20Diamantes%20con%20Binance%20USDT.%20Mi%20ID%20es:" target="_blank" class="btn-buy btn-usdt">Comprar USDT</a>
+          <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'USD 16,10 con Binance USDT')">Comprar USDT</a>
         </div>
-
         <div class="diamond-box reseller-box">
           <span class="icon">💎</span>
           <h4>6.160 Diamantes</h4>
           <p class="price usdt-price">USD 40,55</p>
-          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20comprar%206.160%20Diamantes%20con%20Binance%20USDT.%20Mi%20ID%20es:" target="_blank" class="btn-buy btn-usdt">Comprar USDT</a>
+          <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'USD 40,55 con Binance USDT')">Comprar USDT</a>
         </div>
       </div>
     </section>
@@ -349,15 +343,11 @@
         <span class="badge"><i class="fa-solid fa-user-gear"></i></span>
         <h3>Cuenta de Revendedor</h3>
       </div>
-      
+
       <div id="auth-forms" class="auth-box">
         <p class="auth-desc">Iniciá sesión para usar tu saldo o recargar tu monedero mayorista.</p>
-        <div class="input-group">
-          <input type="email" id="auth-email" placeholder="Correo electrónico...">
-        </div>
-        <div class="input-group" style="margin-top: 10px;">
-          <input type="password" id="auth-password" placeholder="Contraseña...">
-        </div>
+        <div class="input-group"><input type="email" id="auth-email" placeholder="Correo electrónico..."></div>
+        <div class="input-group" style="margin-top: 10px;"><input type="password" id="auth-password" placeholder="Contraseña..."></div>
         <div class="auth-buttons">
           <button class="btn-auth btn-login" onclick="iniciarSesionSimulado()">Iniciar Sesión</button>
           <button class="btn-auth btn-register" onclick="registrarseSimulado()">Registrarse</button>
@@ -386,7 +376,6 @@
         <h3>Opiniones de Clientes</h3>
         <span class="rating-overall">⭐ 4.9/5 (1.420+ recargas)</span>
       </div>
-
       <div class="comments-list" id="comments-list">
         <div class="comment-item">
           <div class="comment-header">
@@ -415,76 +404,165 @@
   </button>
 
   <script>
-    function toggleMenu() {
-      const sidebar = document.getElementById('sidebar-menu');
-      const overlay = document.getElementById('menu-overlay');
-      sidebar.classList.toggle('open');
-      overlay.classList.toggle('open');
+    /* ===== CONFIGURACIÓN ===== */
+    // URL de producción (funciona cuando el workflow está publicado en n8n).
+    // Para probar sin publicar, usá: https://almazarela.app.n8n.cloud/webhook-test/free-fire-check
+    const N8N_WEBHOOK_URL = 'https://almazarela.app.n8n.cloud/webhook/free-fire-check';
+    const WHATSAPP_NUMERO = '54911XXXXXXXX';
+
+    /* ===== VERIFICADOR DE ID DE JUGADOR ===== */
+    let jugadorVerificado = null; // { id, nickname }
+
+    function mostrarEstado(texto, tipo) {
+      const el = document.getElementById('verify-status');
+      el.textContent = texto;
+      el.className = 'verify-status ' + (tipo || '');
     }
 
-    function toggleMusica() {
-      var audio = document.getElementById("musica-fondo");
-      var icono = document.getElementById("icono-musica");
-      var boton = document.getElementById("btn-musica");
+    function ocultarJugador() {
+      document.getElementById('player-card').hidden = true;
+      jugadorVerificado = null;
+    }
 
-      if (audio.paused) {
-        icono.className = "fa-solid fa-pause";
-        boton.classList.add("reproduciendo");
-        var playPromise = audio.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(function(error) {
-            console.log("Audio listo para reproducir.");
-          });
+    function mostrarJugador(data) {
+      document.getElementById('player-name').textContent = data.nickname || 'Jugador';
+      const meta = [];
+      if (data.level) meta.push('Nivel ' + data.level);
+      if (data.region) meta.push('Región ' + data.region);
+      meta.push('ID ' + data.playerId);
+      document.getElementById('player-meta').textContent = meta.join(' · ');
+      document.getElementById('player-card').hidden = false;
+    }
+
+    async function verificarJugador() {
+      const input = document.getElementById('player-id');
+      const btn = document.getElementById('btn-verificar');
+      const id = input.value.replace(/\D/g, '');
+      input.value = id;
+
+      if (id.length < 5 || id.length > 13) {
+        ocultarJugador();
+        mostrarEstado('Ingresá un ID válido (solo números).', 'error');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Verificando...</span>';
+      ocultarJugador();
+      mostrarEstado('Buscando jugador...', 'loading');
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 35000);
+
+      try {
+        const res = await fetch(N8N_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerId: id }),
+          signal: controller.signal
+        });
+        const data = await res.json();
+
+        if (data.valid) {
+          jugadorVerificado = { id: id, nickname: data.nickname };
+          mostrarJugador(data);
+          mostrarEstado('✅ ID verificado. Ya podés elegir tu recarga.', 'ok');
+        } else {
+          mostrarEstado('❌ No encontramos ese ID. Revisalo e intentá de nuevo.', 'error');
         }
-      } else {
-        audio.pause();
-        icono.className = "fa-solid fa-play";
-        boton.classList.remove("reproduciendo");
+      } catch (e) {
+        mostrarEstado(
+          e.name === 'AbortError'
+            ? 'El verificador tardó demasiado. Probá de nuevo.'
+            : 'No se pudo conectar con el verificador. Probá de nuevo en unos segundos.',
+          'error'
+        );
+      } finally {
+        clearTimeout(timer);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> <span>Verificar</span>';
       }
     }
 
-    /* FUNCIÓN DE CHAT INTERACTIVO DIRECTO EN LA PÁGINA */
-    function enviarMensajeWeb() {
+    // Si cambian el ID, se borra la verificación anterior
+    document.getElementById('player-id').addEventListener('input', function () {
+      if (jugadorVerificado && this.value.trim() !== jugadorVerificado.id) {
+        ocultarJugador();
+        mostrarEstado('', '');
+      }
+    });
+    document.getElementById('player-id').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') verificarJugador();
+    });
+
+    /* ===== WHATSAPP (incluye ID y nombre verificado) ===== */
+    function actualizarEnlaceWhatsApp(elem, paquete, precio) {
+      const idPlayer = document.getElementById('player-id').value.trim();
+      let msg = 'Hola! Quiero comprar ' + paquete + ' (' + precio + ').';
+      if (idPlayer) msg += ' Mi ID de Jugador es: ' + idPlayer;
+      if (jugadorVerificado && jugadorVerificado.id === idPlayer) {
+        msg += ' (Nombre: ' + jugadorVerificado.nickname + ')';
+      }
+      elem.href = 'https://wa.me/' + WHATSAPP_NUMERO + '?text=' + encodeURIComponent(msg);
+    }
+
+    /* ===== CHAT ===== */
+    function enviarMensajeDirecto() {
       const input = document.getElementById('chat-user-input');
-      const container = document.getElementById('chat-messages-container');
-      const texto = input.value.trim();
+      const mensaje = input.value.trim();
+      if (!mensaje) return;
+      const area = document.getElementById('chat-messages-container');
 
-      if (!texto) return;
-
-      // Mensaje del usuario (Juan)
-      const userMsg = document.createElement('div');
-      userMsg.className = 'chat-message user-msg';
-      userMsg.innerText = texto;
-      container.appendChild(userMsg);
-
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'chat-message user-msg';
+      msgDiv.textContent = mensaje;
+      area.appendChild(msgDiv);
+      area.scrollTop = area.scrollHeight;
       input.value = '';
-      container.scrollTop = container.scrollHeight;
 
-      // Respuesta automática simulada de Alma Zarela desde la web
       setTimeout(() => {
-        const adminMsg = document.createElement('div');
-        adminMsg.className = 'chat-message admin-msg';
-        adminMsg.innerText = "¡Hola! Recibí tu mensaje. Ya te atiendo desde el panel de Alma Zarela.";
-        container.appendChild(adminMsg);
-        container.scrollTop = container.scrollHeight;
+        const adminDiv = document.createElement('div');
+        adminDiv.className = 'chat-message admin-msg';
+        adminDiv.textContent = '¡Mensaje recibido! Alma Zarela te atenderá en breve.';
+        area.appendChild(adminDiv);
+        area.scrollTop = area.scrollHeight;
       }, 1000);
     }
 
-    function handleChatKeyPress(event) {
-      if (event.key === 'Enter') {
-        enviarMensajeWeb();
+    function enviarComprobantePC() {
+      const file = document.getElementById('chat-file-input').files[0];
+      if (!file) return;
+      const area = document.getElementById('chat-messages-container');
+      const div = document.createElement('div');
+      div.className = 'chat-message user-msg';
+      div.textContent = '📎 Comprobante enviado: ' + file.name;
+      area.appendChild(div);
+      area.scrollTop = area.scrollHeight;
+    }
+
+    /* ===== MENÚ Y MÚSICA ===== */
+    function toggleMenu() {
+      document.getElementById('sidebar-menu').classList.toggle('open');
+      document.getElementById('menu-overlay').classList.toggle('open');
+    }
+
+    function toggleMusica() {
+      const audio = document.getElementById('musica-fondo');
+      const icono = document.getElementById('icono-musica');
+      const boton = document.getElementById('btn-musica');
+      if (audio.paused) {
+        icono.className = 'fa-solid fa-pause';
+        boton.classList.add('reproduciendo');
+        const p = audio.play();
+        if (p !== undefined) p.catch(() => console.log('Audio listo para reproducir.'));
+      } else {
+        audio.pause();
+        icono.className = 'fa-solid fa-play';
+        boton.classList.remove('reproduciendo');
       }
     }
 
-    function actualizarEnlaceWhatsApp(elem, paquete, precio) {
-      const idPlayer = document.getElementById('player-id').value.trim();
-      let msg = `Hola! Quiero comprar ${paquete} (${precio}).`;
-      if (idPlayer) {
-        msg += ` Mi ID de Jugador es: ${idPlayer}`;
-      }
-      elem.href = `https://wa.me/54911XXXXXXXX?text=${encodeURIComponent(msg)}`;
-    }
-
+    /* ===== CARRUSEL ===== */
     let slideActual = 1;
     const totalSlides = 5;
     let autoSlideTimer = null;
@@ -493,79 +571,60 @@
       const slides = document.querySelectorAll('.carousel-slide');
       const dots = document.querySelectorAll('.dot');
       if (!slides.length) return;
-
-      slides.forEach((slide, index) => {
+      slides.forEach((slide, i) => {
         slide.className = 'carousel-slide';
-        if (index === slideActual) {
-          slide.classList.add('active');
-        } else if (index === (slideActual - 1 + totalSlides) % totalSlides) {
-          slide.classList.add('prev');
-        } else if (index === (slideActual + 1) % totalSlides) {
-          slide.classList.add('next');
-        } else {
-          slide.classList.add('hidden');
-        }
+        if (i === slideActual) slide.classList.add('active');
+        else if (i === (slideActual - 1 + totalSlides) % totalSlides) slide.classList.add('prev');
+        else if (i === (slideActual + 1) % totalSlides) slide.classList.add('next');
+        else slide.classList.add('hidden');
       });
-
-      dots.forEach((dot, index) => {
-        dot.classList.toggle('active', index === slideActual);
-      });
+      dots.forEach((dot, i) => dot.classList.toggle('active', i === slideActual));
     }
 
-    function moverCarrusel(direccion) {
-      slideActual = (slideActual + direccion + totalSlides) % totalSlides;
+    function moverCarrusel(dir) {
+      slideActual = (slideActual + dir + totalSlides) % totalSlides;
       actualizarCarrusel();
-      reiniciarTimer();
+      iniciarTimer();
     }
 
-    function irASlide(index) {
-      slideActual = index;
+    function irASlide(i) {
+      slideActual = i;
       actualizarCarrusel();
-      reiniciarTimer();
+      iniciarTimer();
     }
 
     function iniciarTimer() {
       clearInterval(autoSlideTimer);
-      autoSlideTimer = setInterval(() => {
-        moverCarrusel(1);
-      }, 4000);
+      autoSlideTimer = setInterval(() => moverCarrusel(1), 4000);
     }
 
-    function reiniciarTimer() {
-      iniciarTimer();
-    }
-
+    /* ===== CUENTA REVENDEDOR (SIMULADO) ===== */
     function iniciarSesionSimulado() {
       const email = document.getElementById('auth-email').value;
-      if(!email) { alert("Ingresá un correo electrónico"); return; }
+      if (!email) { alert('Ingresá un correo electrónico'); return; }
       document.getElementById('user-email-display').innerText = email;
       document.getElementById('auth-forms').style.display = 'none';
       document.getElementById('user-dashboard').style.display = 'block';
     }
-
-    function registrarseSimulado() {
-      iniciarSesionSimulado();
-    }
-
+    function registrarseSimulado() { iniciarSesionSimulado(); }
     function cerrarSesionSimulado() {
       document.getElementById('auth-forms').style.display = 'block';
       document.getElementById('user-dashboard').style.display = 'none';
     }
 
+    /* ===== CONTADOR EN VIVO ===== */
     function iniciarContadorLive() {
       const el = document.getElementById('online-count');
       if (!el) return;
-      let count = Math.floor(Math.random() * (160 - 135 + 1)) + 135;
+      let count = Math.floor(Math.random() * 26) + 135;
       el.innerText = count;
-      
       setInterval(() => {
-        const cambio = Math.floor(Math.random() * 5) - 2;
-        count = Math.max(120, Math.min(190, count + cambio));
+        count = Math.max(120, Math.min(190, count + Math.floor(Math.random() * 5) - 2));
         el.innerText = count;
       }, 3500);
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       actualizarCarrusel();
       iniciarTimer();
       iniciarContadorLive();
@@ -573,3 +632,4 @@
   </script>
 </body>
 </html>
+
