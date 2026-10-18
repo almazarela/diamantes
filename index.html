@@ -1,672 +1,1025 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Centro de Recargas - Free Fire</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css">
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Centro de Recargas - Free Fire</title>
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+ <link rel="stylesheet" href="style.css">
+ 
+ <style>
+ .verify-row { display: flex; gap: 10px; align-items: stretch; }
+ .verify-row input { flex: 1; min-width: 0; }
+ .btn-verificar {
+ display: inline-flex; align-items: center; gap: 8px;
+ padding: 0 18px; border: none; border-radius: 12px; cursor: pointer;
+ font-weight: 700; font-size: 14px; color: #ffffff; white-space: nowrap;
+ background: linear-gradient(135deg, #ff3b3b, #ff7a18);
+ box-shadow: 0 4px 14px rgba(255, 40, 40, 0.568);
+ transition: transform .15s ease, opacity .15s ease;
+ }
+ .btn-verificar:hover { transform: translateY(-1px); }
+ .btn-verificar:disabled { opacity: .7; cursor: wait; transform: none; }
+ 
+ .player-card {
+ display: flex; align-items: center; gap: 14px;
+ margin-bottom: 12px; padding: 12px 14px; border-radius: 12px;
+ background: linear-gradient(135deg, rgba(46, 154, 204, 0.349), rgba(46, 204, 113, .05));
+ border: 1px solid rgba(46, 204, 113, .6);
+ animation: aparecer .35s ease;
+ position: relative; overflow: hidden; min-height: 76px;
+ background-size: cover; background-position: center;
+ }
+ .player-card.con-banner {
+ background-image: linear-gradient(90deg, rgba(10, 12, 20, .55), rgba(10, 12, 20, .25)), var(--banner);
+ text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
+ }
+ .player-card > * { position: relative; z-index: 1; }
+ .player-card[hidden] { display: none; }
+ .player-avatar {
+ width: 56px; height: 56px; border-radius: 10px; flex-shrink: 0; overflow: hidden;
+ display: flex; align-items: center; justify-content: center;
+ background: linear-gradient(135deg, #ff3b3b, #ff7a18); color: #fff; font-size: 22px;
+ border: 2px solid rgba(255, 255, 255, .85); box-shadow: 0 2px 8px rgba(0, 0, 0, .6);
+ }
+ .player-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+ .player-avatar img[hidden] { display: none !important; }
+ .player-avatar.con-img { background: none; }
+ .player-avatar.con-img i { display: none !important; }
+ .player-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+ .player-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: .7; }
+ .player-name { font-size: 18px; line-height: 1.25; word-break: break-word; }
+ .player-meta { font-size: 12px; opacity: .8; }
+ .player-ok { color: #2ecc71; font-size: 22px; }
+ 
+ .verify-status { margin: 8px 0 0; font-size: 13px; min-height: 18px; }
+ .verify-status.ok { color: #2ecc70; }
+ .verify-status.error { color: #ff5c5c; }
+ .verify-status.loading { color: #f3ba2f; }
 
-  <!-- ESTILOS DEL VERIFICADOR DE ID -->
-  <style>
-    .verify-row { display: flex; gap: 10px; align-items: stretch; }
-    .verify-row input { flex: 1; min-width: 0; }
-    .btn-verificar {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 0 18px; border: none; border-radius: 12px; cursor: pointer;
-      font-weight: 700; font-size: 14px; color: #ffffff; white-space: nowrap;
-      background: linear-gradient(135deg, #ff3b3b, #ff7a18);
-      box-shadow: 0 4px 14px rgba(255, 40, 40, 0.568);
-      transition: transform .15s ease, opacity .15s ease;
-    }
-    .btn-verificar:hover { transform: translateY(-1px); }
-    .btn-verificar:disabled { opacity: .7; cursor: wait; transform: none; }
+ /* TARJETAS ESTILO BONOXS LADO A LADO */
+ .bonoxs-method-selector {
+   display: grid;
+   grid-template-columns: 1fr 1fr;
+   gap: 15px;
+   margin-bottom: 20px;
+ }
+ .bonoxs-card {
+   background: #0e0f16;
+   border: 2px solid #2b3544;
+   border-radius: 14px;
+   padding: 18px 15px;
+   text-align: center;
+   cursor: pointer;
+   position: relative;
+   transition: all 0.25s ease;
+ }
+ .bonoxs-card:hover { transform: translateY(-3px); border-color: #ff3b3b; }
+ .bonoxs-card.active {
+   border-color: #ff3b3b;
+   background: linear-gradient(180deg, rgba(255, 59, 59, 0.15) 0%, rgba(14, 15, 22, 1) 100%);
+   box-shadow: 0 0 15px rgba(255, 59, 59, 0.3);
+ }
+ .bonoxs-card#card-binance.active {
+   border-color: #f3ba2f;
+   background: linear-gradient(180deg, rgba(243, 186, 47, 0.15) 0%, rgba(14, 15, 22, 1) 100%);
+   box-shadow: 0 0 15px rgba(243, 186, 47, 0.3);
+ }
+ .bonoxs-card-badge {
+   position: absolute;
+   top: 10px; right: 10px;
+   background: #009ee3; color: #fff;
+   font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 10px;
+ }
+ .bonoxs-card-badge.usdt-badge { background: #f3ba2f; color: #000; }
+ .bonoxs-card-icon { font-size: 28px; color: #009ee3; margin-bottom: 8px; }
+ .bonoxs-card-icon.binance-icon { color: #f3ba2f; }
+ .bonoxs-card h4 { font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+ .bonoxs-card p { font-size: 11px; color: #aaa; margin-bottom: 12px; }
+ .btn-bonoxs-select {
+   display: inline-block; font-size: 11px; font-weight: 700; color: #fff;
+   background: #1f2833; padding: 6px 14px; border-radius: 6px; border: 1px solid #45a29e;
+ }
+ .bonoxs-card.active .btn-bonoxs-select { background: #ff3b3b; border-color: #ff3b3b; }
+ .bonoxs-card#card-binance.active .btn-bonoxs-select { background: #f3ba2f; border-color: #f3ba2f; color: #000; }
 
-    .player-card {
-      display: flex; align-items: center; gap: 14px;
-      margin-bottom: 12px; padding: 12px 14px; border-radius: 12px;
-      background: linear-gradient(135deg, rgba(46, 154, 204, 0.349), rgba(46, 204, 113, .05));
-      border: 1px solid rgba(46, 204, 113, .6);
-      animation: aparecer .35s ease;
-      position: relative; overflow: hidden; min-height: 76px;
-      background-size: cover; background-position: center;
-    }
-    .player-card.con-banner {
-      background-image: linear-gradient(90deg, rgba(10, 12, 20, .55), rgba(10, 12, 20, .25)), var(--banner);
-      text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
-    }
-    .player-card > * { position: relative; z-index: 1; }
-    .player-card[hidden] { display: none; }
-    .player-avatar {
-      width: 56px; height: 56px; border-radius: 10px; flex-shrink: 0; overflow: hidden;
-      display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(135deg, #ff3b3b, #ff7a18); color: #fff; font-size: 22px;
-      border: 2px solid rgba(255, 255, 255, .85); box-shadow: 0 2px 8px rgba(0, 0, 0, .6);
-    }
-    .player-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .player-avatar img[hidden] { display: none !important; }
-    .player-avatar.con-img { background: none; }
-    .player-avatar.con-img i { display: none !important; }
-    .player-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-    .player-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: .7; }
-    .player-name { font-size: 18px; line-height: 1.25; word-break: break-word; }
-    .player-meta { font-size: 12px; opacity: .8; }
-    .player-ok { color: #2ecc71; font-size: 22px; }
+ .expanded-box-header {
+   background: #0b0c10; border: 1px solid #009ee3; color: #009ee3;
+   padding: 10px 15px; border-radius: 8px; font-weight: bold; font-size: 13px;
+   margin-bottom: 15px; display: flex; align-items: center; gap: 8px;
+ }
+ .expanded-box-header.binance-header { border-color: #f3ba2f; color: #f3ba2f; }
 
-    .verify-status { margin: 8px 0 0; font-size: 13px; min-height: 18px; }
-    .verify-status.ok { color: #2ecc70; }
-    .verify-status.error { color: #ff5c5c; }
-    .verify-status.loading { color: #f3ba2f; }
+ .btn-google-login {
+ background: #ffffff; color: #333; border: none; border-radius: 8px;
+ padding: 10px 16px; font-weight: 600; display: inline-flex; align-items: center;
+ gap: 10px; cursor: pointer; transition: background 0.2s; font-size: 14px;
+ width: 100%; justify-content: center; margin-top: 10px;
+ }
+ .btn-google-login:hover { background: #e6e6e6; }
 
-    @keyframes aparecer { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-    @media (max-width: 480px) {
-      .btn-verificar span { display: none; }
-      .btn-verificar { padding: 0 14px; }
-    }
-  </style>
+ .admin-panel-card {
+ background: #1a1d2e; border: 2px solid #f3ba2f; border-radius: 14px;
+ padding: 18px; margin-top: 20px; box-shadow: 0 0 20px rgba(243, 186, 47, 0.2);
+ }
+ 
+ @keyframes aparecer { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+ @media (max-width: 480px) {
+ .btn-verificar span { display: none; }
+ .btn-verificar { padding: 0 14px; }
+ .bonoxs-method-selector { grid-template-columns: 1fr; }
+ }
+ </style>
 </head>
 <body>
 
-  <header class="navbar">
-    <div class="nav-left">
-      <button class="menu-toggle-btn" onclick="toggleMenu()" aria-label="Abrir Menú">
-        <i class="fa-solid fa-bars"></i>
-      </button>
-      <div class="logo">
-        Zarela <span class="garena-red"></span> 🔥
-      </div>
-    </div>
-    <div class="header-right-group">
-      <div class="region">🇦🇷 Argentina | ES</div>
-      <div class="saldo-usd-badge"><i class="fa-solid fa-wallet"></i> SALDO USD</div>
-    </div>
-  </header>
+ <header class="navbar">
+ <div class="nav-left">
+ <button class="menu-toggle-btn" onclick="toggleMenu()" aria-label="Abrir Menú">
+ <i class="fa-solid fa-bars"></i>
+ </button>
+ <div class="logo">
+ Zarela <span class="garena-red"></span> 🔥
+ </div>
+ </div>
+ <div class="header-right-group">
+ <div class="region">🇦🇷 Argentina | ES</div>
+ <div class="header-wallet-container" style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+ <div class="saldo-usd-badge"><i class="fa-solid fa-wallet"></i> SALDO USD <span id="header-balance-amount" style="margin-left: 5px; font-weight: 900;">$0.00</span></div>
+ <a href="javascript:void(0)" onclick="abrirModalBinance()" style="font-size: 0.75rem; color: #4ef38d; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;"><i class="fa-solid fa-plus-circle"></i> Cargar Saldo</a>
+ </div>
+ </div>
+ </header>
 
-  <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
+ <!-- MODAL SEGURO DE CARGA BINANCE -->
+ <div id="modal-binance" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
+   <div style="background:#161822; border:1px solid #f3ba2f; border-radius:16px; padding:24px; width:90%; max-width:380px; text-align:center; box-shadow:0 0 25px rgba(243,186,47,0.3); position:relative;">
+     <button onclick="cerrarModalBinance()" style="position:absolute; top:12px; right:15px; background:none; border:none; color:#aaa; font-size:18px; cursor:pointer;">✕</button>
+     <i class="fa-brands fa-bitcoin" style="font-size:40px; color:#f3ba2f; margin-bottom:10px;"></i>
+     <h3 style="color:#fff; font-family:'Orbitron', sans-serif; margin-bottom:8px;">Cargar Saldo con Binance</h3>
+     <p style="color:#aaa; font-size:13px; margin-bottom:15px;">1. Realizá el pago en tu enlace de Binance.<br>2. Envianos el comprobante por el chat para acreditarte.</p>
+     <input type="number" id="monto-usdt" placeholder="Monto aproximado en USD" style="width:100%; padding:12px; border-radius:8px; border:1px solid #3a3f58; background:#0e0f16; color:#fff; font-size:16px; text-align:center; margin-bottom:15px; outline:none;">
+     <button onclick="procesarPagoBinanceSeguro()" style="width:100%; padding:12px; background:linear-gradient(135deg, #f3ba2f, #f0a500); border:none; border-radius:8px; color:#000; font-weight:bold; font-size:15px; cursor:pointer;">
+       Ir a pagar en Binance <i class="fa-solid fa-arrow-up-right-from-square"></i>
+     </button>
+   </div>
+ </div>
 
-  <aside class="sidebar-menu" id="sidebar-menu">
-    <div class="sidebar-header">
-      <div class="sidebar-logo">Zarela <span class="garena-red"></span> </div>
-      <button class="close-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-xmark"></i></button>
-    </div>
+ <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
 
-    <div class="sidebar-content">
-      <div class="sidebar-card user-wallet-box">
-        <div class="wallet-header"><i class="fa-solid fa-wallet"></i><span>billetera Virtual</span></div>
-        <div class="wallet-id">ID Monedero: <strong id="menu-wallet-id">#REV-84920</strong></div>
-        <div class="wallet-balance-row">
-          <span>Saldo Disponible:</span>
-          <strong class="balance-text" id="menu-wallet-balance">$0 ARS</strong>
-        </div>
-      </div>
+ <aside class="sidebar-menu" id="sidebar-menu">
+ <div class="sidebar-header">
+ <div class="sidebar-logo">Zarela <span class="garena-red"></span> </div>
+ <button class="close-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-xmark"></i></button>
+ </div>
 
-      <div class="sidebar-section">
-        <h4><i class="fa-solid fa-user-gear"></i> Revendedores</h4>
-        <a href="#auth-section" class="menu-link" onclick="toggleMenu()">
-          <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión / Registro
-        </a>
-        <div class="info-badge-box">
-          <p><strong>Beneficios Revendedor:</strong> Accedé a precios mayoristas con acreditación automática en segundos.</p>
-        </div>
-      </div>
+ <div class="sidebar-content">
+ <div class="sidebar-card user-wallet-box">
+ <div class="wallet-header"><i class="fa-solid fa-wallet"></i><span>billetera Virtual</span></div>
+ <div class="wallet-id">ID Monedero: <strong id="menu-wallet-id">#REV-84920</strong></div>
+ <div class="wallet-balance-row">
+ <span>Saldo Disponible:</span>
+ <strong class="balance-text" id="menu-wallet-balance">$0.00 USD</strong>
+ </div>
+ </div>
 
-      <div class="sidebar-section">
-        <h4><i class="fa-solid fa-headset"></i> Soporte & Contacto</h4>
-        <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Tengo%20una%20consulta%20sobre%20las%20recargas." target="_blank" class="menu-link whatsapp-link">
-          <i class="fa-brands fa-whatsapp"></i> Atención por WhatsApp
-        </a>
-      </div>
+ <div class="sidebar-section">
+ <h4><i class="fa-solid fa-user-gear"></i> Revendedores</h4>
+ <div id="sidebar-auth-btn-area">
+   <button class="btn-google-login" onclick="loginConGoogle()">
+     <i class="fa-brands fa-google" style="color: #ea4335;"></i> Iniciar Sesión con Google
+   </button>
+ </div>
+ </div>
 
-      <div class="sidebar-section">
-        <h4><i class="fa-solid fa-circle-info"></i> Estado del Sistema</h4>
-        <div class="status-indicator">
-          <span class="status-dot online"></span>
-          <span>Servidores de Recarga: <b>ONLINE</b></span>
-        </div>
-      </div>
-    </div>
+ <div class="sidebar-section">
+ <h4><i class="fa-solid fa-headset"></i> Soporte & Contacto</h4>
+ <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Tengo%20una%20consulta%20sobre%20las%20recargas." target="_blank" class="menu-link whatsapp-link">
+ <i class="fa-brands fa-whatsapp"></i> Atención por WhatsApp
+ </a>
+ </div>
 
-    <div class="sidebar-footer"><p>© Centro de Recargas FF - Argentina</p></div>
-  </aside>
+ <div class="sidebar-section">
+ <h4><i class="fa-solid fa-circle-info"></i> Estado del Sistema</h4>
+ <div class="status-indicator">
+ <span class="status-dot online"></span>
+ <span>Servidores de Recarga: <b>ONLINE</b></span>
+ </div>
+ </div>
+ </div>
 
-  <section class="hero-banner-section">
-    <div class="live-counter-badge">
-      <span class="live-green-dot"></span>
-      <span class="live-counter-text"><strong id="online-count">148</strong> Clientes Online</span>
-    </div>
+ <div class="sidebar-footer"><p>© Centro de Recargas FF - Argentina</p></div>
+ </aside>
 
-    <div class="carousel-wrapper" id="carousel-wrapper">
-      <button class="carousel-btn prev-btn" onclick="moverCarrusel(-1)" aria-label="Anterior">
-        <i class="fa-solid fa-chevron-left"></i>
-      </button>
+ <section class="hero-banner-section">
+ <div class="live-counter-badge">
+ <span class="live-green-dot"></span>
+ <span class="live-counter-text"><strong id="online-count">148</strong> Clientes Online</span>
+ </div>
 
-      <div class="carousel-track-container">
-        <div class="carousel-track" id="carousel-track">
-          <div class="carousel-slide prev">
-            <img src="banner1.jpg" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop';" alt="Promoción 1">
-          </div>
-          <div class="carousel-slide active">
-            <img src="banner2.jpg" onerror="this.onerror=null; this.src='https://i.supaimg.com/d720aa86-6d33-4180-8339-caf8d59e6a66/c4716906-2102-4bfb-9b7f-e0b5c5b33502.jpg';" alt="Promoción 2">
-          </div>
-          <div class="carousel-slide next">
-            <img src="banner3.jpg" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=800&auto=format&fit=crop';" alt="Promoción 3">
-          </div>
-          <div class="carousel-slide hidden">
-            <img src="banner4.gif" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop';" alt="Promoción 4">
-          </div>
-          <div class="carousel-slide hidden">
-            <img src="banner5.jpg" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=800&auto=format&fit=crop';" alt="Promoción 5">
-          </div>
-        </div>
-      </div>
+ <div class="carousel-wrapper" id="carousel-wrapper">
+ <button class="carousel-btn prev-btn" onclick="moverCarrusel(-1)" aria-label="Anterior">
+ <i class="fa-solid fa-chevron-left"></i>
+ </button>
 
-      <button class="carousel-btn next-btn" onclick="moverCarrusel(1)" aria-label="Siguiente">
-        <i class="fa-solid fa-chevron-right"></i>
-      </button>
-    </div>
+ <div class="carousel-track-container">
+ <div class="carousel-track" id="carousel-track">
+ <div class="carousel-slide prev">
+ <img src="banner1.jpg" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop';" alt="Promoción 1">
+ </div>
+ <div class="carousel-slide active">
+ <img src="banner2.jpg" onerror="this.onerror=null; this.src='https://i.supaimg.com/d720aa86-6d33-4180-8339-caf8d59e6a66/c4716906-2102-4bfb-9b7f-e0b5c5b33502.jpg';" alt="Promoción 2">
+ </div>
+ <div class="carousel-slide next">
+ <img src="banner3.jpg" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=800&auto=format&fit=crop';" alt="Promoción 3">
+ </div>
+ <div class="carousel-slide hidden">
+ <img src="banner4.gif" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop';" alt="Promoción 4">
+ </div>
+ <div class="carousel-slide hidden">
+ <img src="banner5.jpg" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=800&auto=format&fit=crop';" alt="Promoción 5">
+ </div>
+ </div>
+ </div>
 
-    <div class="carousel-dots" id="carousel-dots">
-      <span class="dot" onclick="irASlide(0)"></span>
-      <span class="dot active" onclick="irASlide(1)"></span>
-      <span class="dot" onclick="irASlide(2)"></span>
-      <span class="dot" onclick="irASlide(3)"></span>
-      <span class="dot" onclick="irASlide(4)"></span>
-    </div>
-  </section>
+ <button class="carousel-btn next-btn" onclick="moverCarrusel(1)" aria-label="Siguiente">
+ <i class="fa-solid fa-chevron-right"></i>
+ </button>
+ </div>
 
-  <div class="container">
+ <div class="carousel-dots" id="carousel-dots">
+ <span class="dot" onclick="irASlide(0)"></span>
+ <span class="dot active" onclick="irASlide(1)"></span>
+ <span class="dot" onclick="irASlide(2)"></span>
+ <span class="dot" onclick="irASlide(3)"></span>
+ <span class="dot" onclick="irASlide(4)"></span>
+ </div>
+ </section>
 
-    <!-- GRILLA PRINCIPAL EN 2 COLUMNAS -->
-    <div class="main-layout-grid">
+ <div class="container">
 
-      <!-- COLUMNA IZQUIERDA -->
-      <div class="left-content-col">
-        <section class="card">
-          <div class="step-title">
-            <span class="badge">1</span>
-            <h3>Ingresar ID de jugador</h3>
-          </div>
+ <div class="main-layout-grid">
 
-          <!-- TARJETA DEL JUGADOR (aparece arriba del ID al verificar) -->
-          <div id="player-card" class="player-card" hidden>
-            <div class="player-avatar"><img id="player-avatar-img" alt="Avatar" hidden><i id="player-avatar-icon" class="fa-solid fa-user-astronaut"></i></div>
-            <div class="player-info">
-              <span class="player-label">Jugador verificado</span>
-              <strong id="player-name" class="player-name"></strong>
-              <span id="player-meta" class="player-meta"></span>
-            </div>
-            <i class="fa-solid fa-circle-check player-ok"></i>
-          </div>
+ <!-- COLUMNA IZQUIERDA -->
+ <div class="left-content-col">
+ 
+ <!-- PASO 1: ID DE JUGADOR -->
+ <section class="card">
+ <div class="step-title">
+ <span class="badge">1</span>
+ <h3>Ingresar ID de jugador</h3>
+ </div>
 
-          <div class="input-group verify-row">
-            <input type="text" inputmode="numeric" autocomplete="off" placeholder="Introduce el ID del jugador..." id="player-id">
-            <button type="button" id="btn-verificar" class="btn-verificar" onclick="verificarJugador()">
-              <i class="fa-solid fa-magnifying-glass"></i> <span>Verificar</span>
-            </button>
-          </div>
-          <p id="verify-status" class="verify-status"></p>
-          <p class="subtext">⚠️ Verificá bien tu ID antes de enviar el pedido.</p>
-        </section>
+ <div id="player-card" class="player-card" hidden>
+ <div class="player-avatar"><img id="player-avatar-img" alt="Avatar" hidden><i id="player-avatar-icon" class="fa-solid fa-user-astronaut"></i></div>
+ <div class="player-info">
+ <span class="player-label">Jugador verificado</span>
+ <strong id="player-name" class="player-name"></strong>
+ <span id="player-meta" class="player-meta"></span>
+ </div>
+ <i class="fa-solid fa-circle-check player-ok"></i>
+ </div>
 
-        <section class="card">
-          <div class="step-title">
-            <span class="badge">2</span>
-            <h3>Monto de recarga</h3>
-          </div>
+ <div class="input-group verify-row">
+ <input type="text" inputmode="numeric" autocomplete="off" placeholder="Introduce el ID del jugador..." id="player-id">
+ <button type="button" id="btn-verificar" class="btn-verificar" onclick="verificarJugador()">
+ <i class="fa-solid fa-magnifying-glass"></i> <span>Verificar</span>
+ </button>
+ </div>
+ <p id="verify-status" class="verify-status"></p>
+ <p class="subtext">⚠️ Verificá bien tu ID antes de enviar el pedido.</p>
+ </section>
 
-          <div class="grid-diamonds">
-            <div class="diamond-box">
-              <span class="icon">💎</span>
-              <h4>110 Diamantes</h4> 
-              <p class="price">ARS $1.463</p>
-              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'ARS $7.463')">mercado pago
-              </a>
-            </div>
-            <div class="diamond-box">
-              <span class="icon">💎</span>
-              <h4>341 Diamantes</h4>
-              <p class="price">ARS $4.555</p>
-              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'ARS $4.555')">mercado pago</a>
-            </div>
-            <div class="diamond-box">
-              <span class="icon">💎</span>
-              <h4>572 Diamantes</h4>
-              <p class="price">ARS $8.059</p>
-              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'ARS $8.059')">mercado pago</a>
-            </div>
-            <div class="diamond-box">
-              <span class="icon">💎</span>
-              <h4>1.166 Diamantes</h4>
-              <p class="price">ARS $14.690</p>
-              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'ARS $14.690')">mercado pago</a>
-            </div>
-            <div class="diamond-box">
-              <span class="icon">💎</span>
-              <h4>2.398 Diamantes</h4>
-              <p class="price">ARS $27.602</p>
-              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'ARS $27.602')">mercado pago</a>
-            </div>
-            <div class="diamond-box">
-              <span class="icon">💎</span>
-              <h4>6.160 Diamantes</h4>
-              <p class="price">ARS $67.750</p>
-              <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'ARS $67.750')">mercado pago</a>
-            </div>
-          </div>
-        </section>
-      </div>
+ <!-- PASO 2: MÉTODOS COMPRIMIDOS ESTILO BONOXS (MERCADO PAGO Y BINANCE) -->
+ <section class="card">
+ <div class="step-title">
+ <span class="badge">2</span>
+ <h3>Seleccionar Medio de Pago</h3>
+ </div>
 
-      <!-- COLUMNA DERECHA: CHAT EN VIVO Y BIENVENIDA SAKURA -->
-      <div class="right-widgets-col">
+ <div class="bonoxs-method-selector">
+   <!-- TARJETA MERCADO PAGO -->
+   <div class="bonoxs-card active" id="card-mp" onclick="seleccionarMetodo('mp')">
+     <div class="bonoxs-card-badge">ARS</div>
+     <div class="bonoxs-card-icon"><i class="fa-solid fa-wallet"></i></div>
+     <h4>MERCADO PAGO</h4>
+     <p>Acreditación Directa</p>
+     <span class="btn-bonoxs-select"><i class="fa-solid fa-chevron-down"></i> Ver Paquetes ARS</span>
+   </div>
 
-        <div class="chat-widget-card">
-          <div class="chat-widget-header">
-            <span><i class="fa-solid fa-comments"></i> CHAT EN VIVO: ALMA ZARELA</span>
-            <span class="chat-status-dot"></span>
-          </div>
-          <div class="chat-messages-area" id="chat-messages-container">
-            <div class="chat-message admin-msg">HOLA, ¿en qué te puedo ayudar hoy?</div>
-          </div>
-          <div class="chat-input-area">
-            <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarComprobantePC()">
-            <button type="button" class="btn-attach" onclick="document.getElementById('chat-file-input').click()" title="Adjuntar Comprobante">
-              <i class="fa-solid fa-paperclip"></i>
-            </button>
-            <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí..." onkeydown="if(event.key === 'Enter'){ enviarMensajeDirecto(); }">
-            <button type="button" class="btn-send" onclick="enviarMensajeDirecto()" title="Enviar mensaje">
-              <i class="fa-solid fa-paper-plane"></i>
-            </button>
-          </div>
-        </div>
+   <!-- TARJETA BINANCE USDT -->
+   <div class="bonoxs-card" id="card-binance" onclick="seleccionarMetodo('binance')">
+     <div class="bonoxs-card-badge usdt-badge">USDT</div>
+     <div class="bonoxs-card-icon binance-icon"><i class="fa-brands fa-bitcoin"></i></div>
+     <h4>BINANCE USDT</h4>
+     <p>Precio Revendedor</p>
+     <span class="btn-bonoxs-select"><i class="fa-solid fa-chevron-down"></i> Ver Paquetes USD</span>
+   </div>
+ </div>
 
-        <div class="sakura-welcome-card">
-          <div class="sakura-badge-icon">🌸</div>
-          <h2 class="sakura-title">BIENVENIDOS</h2>
-          <span class="sakura-sub">A</span>
-          <h3 class="sakura-brand">RECARGAS ZARELA</h3>
-        </div>
-      </div>
+ <!-- CONTENEDOR EXPANDIDO: MERCADO PAGO -->
+ <div id="grid-mp" class="diamonds-grid-container">
+   <div class="expanded-box-header">
+     <i class="fa-solid fa-bolt" style="color: #009ee3;"></i> <span>Paquetes Mercado Pago (ARS)</span>
+   </div>
+   <div class="grid-diamonds">
+     <div class="diamond-box">
+       <span class="icon">💎</span>
+       <h4>110 Diamantes</h4> 
+       <p class="price">ARS $1.463</p>
+       <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'ARS $1.463')">Mercado Pago</a>
+     </div>
+     <div class="diamond-box">
+       <span class="icon">💎</span>
+       <h4>341 Diamantes</h4>
+       <p class="price">ARS $4.555</p>
+       <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'ARS $4.555')">Mercado Pago</a>
+     </div>
+     <div class="diamond-box">
+       <span class="icon">💎</span>
+       <h4>572 Diamantes</h4>
+       <p class="price">ARS $8.059</p>
+       <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'ARS $8.059')">Mercado Pago</a>
+     </div>
+     <div class="diamond-box">
+       <span class="icon">💎</span>
+       <h4>1.166 Diamantes</h4>
+       <p class="price">ARS $14.690</p>
+       <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'ARS $14.690')">Mercado Pago</a>
+     </div>
+     <div class="diamond-box">
+       <span class="icon">💎</span>
+       <h4>2.398 Diamantes</h4>
+       <p class="price">ARS $27.602</p>
+       <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'ARS $27.602')">Mercado Pago</a>
+     </div>
+     <div class="diamond-box">
+       <span class="icon">💎</span>
+       <h4>6.160 Diamantes</h4>
+       <p class="price">ARS $67.750</p>
+       <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'ARS $67.750')">Mercado Pago</a>
+     </div>
+   </div>
+ </div>
 
-    </div>
+ <!-- CONTENEDOR EXPANDIDO: BINANCE USDT (OCULTO POR DEFECTO) -->
+ <div id="grid-binance" class="diamonds-grid-container" style="display: none;">
+   <div class="expanded-box-header binance-header">
+     <i class="fa-brands fa-bitcoin" style="color: #f3ba2f;"></i> <span>Paquetes Binance USDT (USD)</span>
+   </div>
+   <div class="grid-diamonds">
+     <div class="diamond-box reseller-box">
+       <span class="icon">💎</span>
+       <h4>110 Diamantes</h4>
+       <p class="price usdt-price">USD 0,86</p>
+       <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'USD 0,86 con Binance USDT')">Comprar USDT</a>
+     </div>
+     <div class="diamond-box reseller-box">
+       <span class="icon">💎</span>
+       <h4>341 Diamantes</h4>
+       <p class="price usdt-price">USD 2,45</p>
+       <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'USD 2,45 con Binance USDT')">Comprar USDT</a>
+     </div>
+     <div class="diamond-box reseller-box">
+       <span class="icon">💎</span>
+       <h4>572 Diamantes</h4>
+       <p class="price usdt-price">USD 4,16</p>
+       <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'USD 4,16 con Binance USDT')">Comprar USDT</a>
+     </div>
+     <div class="diamond-box reseller-box">
+       <span class="icon">💎</span>
+       <h4>1.166 Diamantes</h4>
+       <p class="price usdt-price">USD 8,27</p>
+       <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'USD 8,27 con Binance USDT')">Comprar USDT</a>
+     </div>
+     <div class="diamond-box reseller-box">
+       <span class="icon">💎</span>
+       <h4>2.398 Diamantes</h4>
+       <p class="price usdt-price">USD 16,10</p>
+       <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'USD 16,10 con Binance USDT')">Comprar USDT</a>
+     </div>
+     <div class="diamond-box reseller-box">
+       <span class="icon">💎</span>
+       <h4>6.160 Diamantes</h4>
+       <p class="price usdt-price">USD 40,55</p>
+       <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'USD 40,55 con Binance USDT')">Comprar USDT</a>
+     </div>
+   </div>
+ </div>
 
-    <!-- SECCIÓN PRECIO REVENDEDOR - BINANCE USDT -->
-    <section class="reseller-binance-section">
-      <div class="binance-title-header">
-        <h3 class="reseller-main-title">PRECIO REVENDEDOR</h3>
-        <p class="binance-sub-heading">
-          <span class="binance-brand">BINANCE</span> <span class="usdt-brand">USDT</span>
-        </p>
-      </div>
+ </section>
+ </div>
 
-      <div class="grid-diamonds">
-        <div class="diamond-box reseller-box">
-          <span class="icon">💎</span>
-          <h4>110 Diamantes</h4>
-          <p class="price usdt-price">USD 0,86</p>
-          <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'USD 0,86 con Binance USDT')">Comprar USDT</a>
-        </div>
-        <div class="diamond-box reseller-box">
-          <span class="icon">💎</span>
-          <h4>341 Diamantes</h4>
-          <p class="price usdt-price">USD 2,45</p>
-          <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'USD 2,45 con Binance USDT')">Comprar USDT</a>
-        </div>
-        <div class="diamond-box reseller-box">
-          <span class="icon">💎</span>
-          <h4>572 Diamantes</h4>
-          <p class="price usdt-price">USD 4,16</p>
-          <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'USD 4,16 con Binance USDT')">Comprar USDT</a>
-        </div>
-        <div class="diamond-box reseller-box">
-          <span class="icon">💎</span>
-          <h4>1.166 Diamantes</h4>
-          <p class="price usdt-price">USD 8,27</p>
-          <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'USD 8,27 con Binance USDT')">Comprar USDT</a>
-        </div>
-        <div class="diamond-box reseller-box">
-          <span class="icon">💎</span>
-          <h4>2.398 Diamantes</h4>
-          <p class="price usdt-price">USD 16,10</p>
-          <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'USD 16,10 con Binance USDT')">Comprar USDT</a>
-        </div>
-        <div class="diamond-box reseller-box">
-          <span class="icon">💎</span>
-          <h4>6.160 Diamantes</h4>
-          <p class="price usdt-price">USD 40,55</p>
-          <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'USD 40,55 con Binance USDT')">Comprar USDT</a>
-        </div>
-      </div>
-    </section>
+ <!-- COLUMNA DERECHA: CHAT EN VIVO Y BIENVENIDA -->
+ <div class="right-widgets-col">
 
-    <section class="card">
-      <div class="step-title">
-        <span class="badge">3</span>
-        <h3>Medios de pago aceptados</h3>
-      </div>
-      <div class="payment-methods">
-        <span class="pay-tag">Mercado Pago</span>
-        <span class="pay-tag">Transferencia Bancaria</span>
-        <span class="pay-tag" style="background: rgba(74, 70, 87, 0.26); color: #f3ba2f; border: 1px solid #ceb577;">Binance USDT</span>
-      </div>
-    </section>
+ <div class="chat-widget-card">
+ <div class="chat-widget-header">
+ <span><i class="fa-solid fa-comments"></i> CHAT EN VIVO: ALMA ZARELA</span>
+ <span class="chat-status-dot"></span>
+ </div>
+ <div class="chat-messages-area" id="chat-messages-container">
+ <div class="chat-message admin-msg">HOLA, ¿en qué te puedo ayudar hoy? Iniciá sesión con Google para guardar tu historial de compras.</div>
+ </div>
+ <div class="chat-input-area">
+ <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarComprobanteFirebase()">
+ <button type="button" class="btn-attach" onclick="document.getElementById('chat-file-input').click()" title="Adjuntar Comprobante">
+ <i class="fa-solid fa-paperclip"></i>
+ </button>
+ <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí..." onkeydown="if(event.key === 'Enter'){ enviarMensajeFirebase(); }">
+ <button type="button" class="btn-send" onclick="enviarMensajeFirebase()" title="Enviar mensaje">
+ <i class="fa-solid fa-paper-plane"></i>
+ </button>
+ </div>
+ </div>
 
-    <section class="card auth-card" id="auth-section">
-      <div class="step-title">
-        <span class="badge"><i class="fa-solid fa-user-gear"></i></span>
-        <h3>Cuenta Revendedor</h3>
-      </div>
+ <div class="sakura-welcome-card">
+ <div class="sakura-badge-icon">🌸</div>
+ <h2 class="sakura-title">BIENVENIDOS</h2>
+ <span class="sakura-sub">A</span>
+ <h3 class="sakura-brand">RECARGAS ZARELA</h3>
+ </div>
+ </div>
 
-      <div id="auth-forms" class="auth-box">
-        <p class="auth-desc">Iniciá sesión para usar tu saldo o recargar tu monedero mayorista.</p>
-        <div class="input-group"><input type="email" id="auth-email" placeholder="Correo electrónico..."></div>
-        <div class="input-group" style="margin-top: 10px;"><input type="password" id="auth-password" placeholder="Contraseña..."></div>
-        <div class="auth-buttons">
-          <button class="btn-auth btn-login" onclick="iniciarSesionSimulado()">Iniciar Sesión</button>
-          <button class="btn-auth btn-register" onclick="registrarseSimulado()">Registrarse</button>
-        </div>
-      </div>
+ </div>
 
-      <div id="user-dashboard" class="dashboard-box" style="display: none;">
-        <div class="dashboard-header">
-          <span>Bienvenido, <b id="user-email-display">revendedor@freefire.com</b></span>
-          <button class="btn-logout" onclick="cerrarSesionSimulado()">Cerrar Sesión</button>
-        </div>
-        <div class="wallet-card">
-          <span class="wallet-label">Tu Saldo Virtual</span>
-          <h2 class="wallet-amount" id="user-balance">$0 ARS</h2>
-          <p class="wallet-subtext">El saldo se descontará automáticamente al realizar recargas.</p>
-          <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Quiero%20cargar%20saldo%20a%20mi%20cuenta%20de%20revendedor." target="_blank" class="btn-add-funds">
-            <i class="fa-solid fa-plus-circle"></i> Cargar Saldo por WhatsApp
-          </a>
-        </div>
-      </div>
-    </section>
+ <section class="card">
+ <div class="step-title">
+ <span class="badge">3</span>
+ <h3>Medios de pago aceptados</h3>
+ </div>
+ <div class="payment-methods">
+ <span class="pay-tag">Mercado Pago</span>
+ <span class="pay-tag">Transferencia Bancaria</span>
+ <span class="pay-tag" style="background: rgba(74, 70, 87, 0.26); color: #f3ba2f; border: 1px solid #ceb577;">Binance USDT</span>
+ </div>
+ </section>
 
-    <section class="card comments-section">
-      <div class="step-title">
-        <span class="badge"><i class="fa-solid fa-comments"></i></span>
-        <h3>Opiniones de Clientes</h3>
-        <span class="rating-overall">⭐ 4.9/5 (+73.520 recargas)</span>
-      </div>
-      <div class="comments-list" id="comments-list">
-        <div class="comment-item">
-          <div class="comment-header">
-            <span class="comment-user"><i class="fa-solid fa-circle-user"></i> Matias_FF</span>
-            <span class="comment-stars">⭐⭐⭐⭐⭐</span>
-            <span class="comment-time">Hace 3 semanas</span>
-          </div>
-          <p class="comment-body">10/10 súper rápido! Cargué 520 diamantes con Mercado Pago y llegaron al toque a mi ID 🔥</p>
-        </div>
-      </div>
-    </section>
+ <section class="card auth-card" id="auth-section">
+ <div class="step-title">
+ <span class="badge"><i class="fa-solid fa-user-gear"></i></span>
+ <h3>Cuenta Revendedor</h3>
+ </div>
 
-  </div>
+ <div id="auth-forms" class="auth-box">
+ <p class="auth-desc">Iniciá sesión con tu cuenta de Google para gestionar tu monedero y chatear con soporte.</p>
+ <button class="btn-google-login" onclick="loginConGoogle()">
+   <i class="fa-brands fa-google" style="color: #ea4335;"></i> Iniciar Sesión con Google
+ </button>
+ </div>
 
-  <footer>
-    <p>© Tienda de Recargas Independiente. Todos los derechos reservados.</p>
-  </footer>
+ <div id="user-dashboard" class="dashboard-box" style="display: none;">
+ <div class="dashboard-header">
+ <span>Bienvenido, <b id="user-email-display">usuario@gmail.com</b></span>
+ <button class="btn-logout" onclick="logoutGoogle()">Cerrar Sesión</button>
+ </div>
+ <div class="wallet-card">
+ <span class="wallet-label">Tu Saldo Virtual</span>
+ <h2 class="wallet-amount" id="user-balance">$0.00 USD</h2>
+ <p class="wallet-subtext">El saldo se descontará automáticamente al realizar recargas.</p>
+ <a href="javascript:void(0)" onclick="abrirModalBinance()" class="btn-add-funds" style="display:inline-flex; align-items:center; gap:6px; justify-content:center; text-decoration:none;">
+ <i class="fa-solid fa-plus-circle"></i> Cargar Saldo con Binance
+ </a>
+ </div>
+ </div>
+ </section>
 
-  <audio id="musica-fondo" loop preload="auto">
-    <source src="musica.mp3" type="audio/mpeg">
-  </audio>
+ <!-- PANEL DE ADMINISTRADOR DE CHATS Y COMPROBANTES (SOLO VISIBLE PARA ADMIN) -->
+ <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
+   <div class="step-title">
+     <span class="badge" style="background: #f3ba2f; color:#000;"><i class="fa-solid fa-shield-halved"></i></span>
+     <h3 style="color: #f3ba2f;">PANEL ADMINISTRADOR - MENSAJES Y SALDOS</h3>
+   </div>
+   <p style="font-size: 13px; color: #aaa; margin-bottom: 12px;">Seleccioná un cliente para ver sus comprobantes y acreditarle saldo:</p>
+   <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+     <div style="flex: 1; min-width: 200px; background: #0e0f16; border-radius: 8px; padding: 10px; height: 200px; overflow-y: auto;" id="admin-users-list">
+       <p style="font-size: 12px; color: #666;">Cargando lista de clientes...</p>
+     </div>
+     <div style="flex: 2; min-width: 250px; background: #0e0f16; border-radius: 8px; padding: 12px; display: flex; flex-direction: column;" id="admin-chat-view">
+       <p style="font-size: 13px; color: #888; text-align: center; margin-auto;">Seleccioná un usuario de la izquierda</p>
+     </div>
+   </div>
+ </section>
 
-  <button id="btn-musica" class="btn-musica-flotante" onclick="toggleMusica()" aria-label="Reproducir Música">
-    <img src="disco.jpg" id="imagen-disco" alt="Disco de Música" onerror="this.style.opacity='0';">
-    <i id="icono-musica" class="fa-solid fa-play"></i>
-  </button>
+ <section class="card comments-section">
+ <div class="step-title">
+ <span class="badge"><i class="fa-solid fa-comments"></i></span>
+ <h3>Opiniones de Clientes</h3>
+ <span class="rating-overall">⭐ 4.9/5 (+73.520 recargas)</span>
+ </div>
+ <div class="comments-list" id="comments-list">
+ <div class="comment-item">
+ <div class="comment-header">
+ <span class="comment-user"><i class="fa-solid fa-circle-user"></i> Matias_FF</span>
+ <span class="comment-stars">⭐⭐⭐⭐⭐</span>
+ <span class="comment-time">Hace 3 semanas</span>
+ </div>
+ <p class="comment-body">10/10 súper rápido! Cargué 520 diamantes con Mercado Pago y llegaron al toque a mi ID 🔥</p>
+ </div>
+ </div>
+ </section>
 
-  <script>
-    /* ===== CONFIGURACIÓN ===== */
-    // URL de producción (funciona cuando el workflow está publicado en n8n).
-    // Para probar sin publicar, usá: https://almazarela.app.n8n.cloud/webhook-test/free-fire-check
-    const N8N_WEBHOOK_URL = 'https://almazarela.app.n8n.cloud/webhook/free-fire-check';
-    const WHATSAPP_NUMERO = '54911XXXXXXXX';
+ </div>
 
-    /* ===== VERIFICADOR DE ID DE JUGADOR ===== */
-    let jugadorVerificado = null; // { id, nickname }
+ <footer>
+ <p>© Tienda de Recargas Independiente. Todos los derechos reservados.</p>
+ </footer>
 
-    function mostrarEstado(texto, tipo) {
-      const el = document.getElementById('verify-status');
-      el.textContent = texto;
-      el.className = 'verify-status ' + (tipo || '');
+ <audio id="musica-fondo" loop preload="auto">
+ <source src="musica.mp3" type="audio/mpeg">
+ </audio>
+
+ <button id="btn-musica" class="btn-musica-flotante" onclick="toggleMusica()" aria-label="Reproducir Música">
+ <img src="disco.jpg" id="imagen-disco" alt="Disco de Música" onerror="this.style.opacity='0';">
+ <i id="icono-musica" class="fa-solid fa-play"></i>
+ </button>
+
+ <!-- Carga SDK de Firebase Modular desde CDN -->
+ <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  // CREDENCIALES REALES DE TU PROYECTO FIREBASE (zarela-4c939)
+  const firebaseConfig = {
+    apiKey: "AIzaSyBro_YXlV6MFA5OMwgTiK9KKZ16EsiwPIU",
+    authDomain: "zarela-4c939.firebaseapp.com",
+    projectId: "zarela-4c939",
+    storageBucket: "zarela-4c939.firebasestorage.app",
+    messagingSenderId: "28824081083",
+    appId: "1:28824081083:web:89a8dae9aa4575abe2cf9e",
+    measurementId: "G-RYS9P9K8D7"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+
+  let usuarioActual = null;
+  let unsubscribeChat = null;
+  let adminSelectedUser = null;
+
+  // LOGIN GOOGLE
+  window.loginConGoogle = async function() {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      console.log("Logueado con éxito:", result.user);
+    } catch (error) {
+      console.error("Error al iniciar sesión:", error);
+      alert("No se pudo completar el inicio de sesión con Google.");
     }
+  };
 
-    function ocultarJugador() {
-      document.getElementById('player-card').hidden = true;
-      jugadorVerificado = null;
-    }
+  window.logoutGoogle = function() {
+    signOut(auth);
+  };
 
-    function mostrarJugador(data) {
-      document.getElementById('player-name').textContent = data.nickname || 'Jugador';
-      const meta = [];
-      if (data.level) meta.push('Nivel ' + data.level);
-      if (data.rank) meta.push(data.rank);
-      if (data.region) meta.push('Región ' + data.region);
-      meta.push('ID ' + data.playerId);
-      document.getElementById('player-meta').textContent = meta.join(' · ');
-
-      // Icono de Free Fire (si no carga, queda el icono por defecto)
-      const img = document.getElementById('player-avatar-img');
-      const icono = document.getElementById('player-avatar-icon');
-      const caja = img.parentElement;
-      img.hidden = true; caja.classList.remove('con-img');
-      if (data.avatar) {
-        img.onload = function () { img.hidden = false; caja.classList.add('con-img'); };
-        img.onerror = function () { img.hidden = true; caja.classList.remove('con-img'); };
-        img.src = data.avatar;
-      }
-
-      // Fondo (banner) de Free Fire
-      const card = document.getElementById('player-card');
-      card.classList.remove('con-banner');
-      card.style.removeProperty('--banner');
-      if (data.banner) {
-        const pre = new Image();
-        pre.onload = function () {
-          card.style.setProperty('--banner', 'url("' + data.banner + '")');
-          card.classList.add('con-banner');
-        };
-        pre.src = data.banner;
-      }
-      card.hidden = false;
-    }
-
-    async function verificarJugador() {
-      const input = document.getElementById('player-id');
-      const btn = document.getElementById('btn-verificar');
-      const id = input.value.replace(/\D/g, '');
-      input.value = id;
-
-      if (id.length < 5 || id.length > 13) {
-        ocultarJugador();
-        mostrarEstado('Ingresá un ID válido (solo números).', 'error');
-        return;
-      }
-
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Verificando...</span>';
-      ocultarJugador();
-      mostrarEstado('Buscando jugador...', 'loading');
-
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 35000);
-
-      try {
-        const res = await fetch(N8N_WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ playerId: id }),
-          signal: controller.signal
-        });
-        const data = await res.json();
-
-        if (data.valid) {
-          jugadorVerificado = { id: id, nickname: data.nickname };
-          mostrarJugador(data);
-          mostrarEstado('✅ ID verificado. Ya podés elegir tu recarga.', 'ok');
-        } else {
-          mostrarEstado('❌ No encontramos ese ID. Revisalo e intentá de nuevo.', 'error');
-        }
-      } catch (e) {
-        mostrarEstado(
-          e.name === 'AbortError'
-            ? 'El verificador tardó demasiado. Probá de nuevo.'
-            : 'No se pudo conectar con el verificador. Probá de nuevo en unos segundos.',
-          'error'
-        );
-      } finally {
-        clearTimeout(timer);
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> <span>Verificar</span>';
-      }
-    }
-
-    // Si cambian el ID, se borra la verificación anterior
-    document.getElementById('player-id').addEventListener('input', function () {
-      if (jugadorVerificado && this.value.trim() !== jugadorVerificado.id) {
-        ocultarJugador();
-        mostrarEstado('', '');
-      }
-    });
-    document.getElementById('player-id').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') verificarJugador();
-    });
-
-    /* ===== WHATSAPP (incluye ID y nombre verificado) ===== */
-    function actualizarEnlaceWhatsApp(elem, paquete, precio) {
-      const idPlayer = document.getElementById('player-id').value.trim();
-      let msg = 'Hola! Quiero comprar ' + paquete + ' (' + precio + ').';
-      if (idPlayer) msg += ' Mi ID de Jugador es: ' + idPlayer;
-      if (jugadorVerificado && jugadorVerificado.id === idPlayer) {
-        msg += ' (Nombre: ' + jugadorVerificado.nickname + ')';
-      }
-      elem.href = 'https://wa.me/' + WHATSAPP_NUMERO + '?text=' + encodeURIComponent(msg);
-    }
-
-    /* ===== CHAT ===== */
-    function enviarMensajeDirecto() {
-      const input = document.getElementById('chat-user-input');
-      const mensaje = input.value.trim();
-      if (!mensaje) return;
-      const area = document.getElementById('chat-messages-container');
-
-      const msgDiv = document.createElement('div');
-      msgDiv.className = 'chat-message user-msg';
-      msgDiv.textContent = mensaje;
-      area.appendChild(msgDiv);
-      area.scrollTop = area.scrollHeight;
-      input.value = '';
-
-      setTimeout(() => {
-        const adminDiv = document.createElement('div');
-        adminDiv.className = 'chat-message admin-msg';
-        adminDiv.textContent = '¡Mensaje recibido! Alma Zarela te atenderá en breve.';
-        area.appendChild(adminDiv);
-        area.scrollTop = area.scrollHeight;
-      }, 1000);
-    }
-
-    function enviarComprobantePC() {
-      const file = document.getElementById('chat-file-input').files[0];
-      if (!file) return;
-      const area = document.getElementById('chat-messages-container');
-      const div = document.createElement('div');
-      div.className = 'chat-message user-msg';
-      div.textContent = '📎 Comprobante enviado: ' + file.name;
-      area.appendChild(div);
-      area.scrollTop = area.scrollHeight;
-    }
-
-    /* ===== MENÚ Y MÚSICA ===== */
-    function toggleMenu() {
-      document.getElementById('sidebar-menu').classList.toggle('open');
-      document.getElementById('menu-overlay').classList.toggle('open');
-    }
-
-    function toggleMusica() {
-      const audio = document.getElementById('musica-fondo');
-      const icono = document.getElementById('icono-musica');
-      const boton = document.getElementById('btn-musica');
-      if (audio.paused) {
-        icono.className = 'fa-solid fa-pause';
-        boton.classList.add('reproduciendo');
-        const p = audio.play();
-        if (p !== undefined) p.catch(() => console.log('Audio listo para reproducir.'));
-      } else {
-        audio.pause();
-        icono.className = 'fa-solid fa-play';
-        boton.classList.remove('reproduciendo');
-      }
-    }
-
-    /* ===== CARRUSEL ===== */
-    let slideActual = 1;
-    const totalSlides = 5;
-    let autoSlideTimer = null;
-
-    function actualizarCarrusel() {
-      const slides = document.querySelectorAll('.carousel-slide');
-      const dots = document.querySelectorAll('.dot');
-      if (!slides.length) return;
-      slides.forEach((slide, i) => {
-        slide.className = 'carousel-slide';
-        if (i === slideActual) slide.classList.add('active');
-        else if (i === (slideActual - 1 + totalSlides) % totalSlides) slide.classList.add('prev');
-        else if (i === (slideActual + 1) % totalSlides) slide.classList.add('next');
-        else slide.classList.add('hidden');
-      });
-      dots.forEach((dot, i) => dot.classList.toggle('active', i === slideActual));
-    }
-
-    function moverCarrusel(dir) {
-      slideActual = (slideActual + dir + totalSlides) % totalSlides;
-      actualizarCarrusel();
-      iniciarTimer();
-    }
-
-    function irASlide(i) {
-      slideActual = i;
-      actualizarCarrusel();
-      iniciarTimer();
-    }
-
-    function iniciarTimer() {
-      clearInterval(autoSlideTimer);
-      autoSlideTimer = setInterval(() => moverCarrusel(1), 4000);
-    }
-
-    /* ===== CUENTA REVENDEDOR (SIMULADO) ===== */
-    function iniciarSesionSimulado() {
-      const email = document.getElementById('auth-email').value;
-      if (!email) { alert('Ingresá un correo electrónico'); return; }
-      document.getElementById('user-email-display').innerText = email;
+  // OBSERVAR ESTADO DE AUTENTICACIÓN
+  onAuthStateChanged(auth, async (user) => {
+    usuarioActual = user;
+    if (user) {
       document.getElementById('auth-forms').style.display = 'none';
       document.getElementById('user-dashboard').style.display = 'block';
-    }
-    function registrarseSimulado() { iniciarSesionSimulado(); }
-    function cerrarSesionSimulado() {
+      document.getElementById('user-email-display').innerText = user.email;
+
+      // Cargar o crear datos de usuario en Firestore
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+      
+      if (!userSnap.exists()) {
+        await setDoc(userRef, {
+          email: user.email,
+          displayName: user.displayName || 'Cliente',
+          saldoUSD: 0.00
+        });
+      } else {
+        const data = userSnap.data();
+        window.saldoActualUSD = data.saldoUSD || 0.00;
+        window.actualizarPantallaSaldo();
+      }
+
+      escucharMensajesFirebase(user.uid);
+
+      // Verificación de Administrador (Tu cuenta)
+      if (user.email === 'almita.zarela@gmail.com' || user.email.includes('admin')) {
+        document.getElementById('admin-panel-section').style.display = 'block';
+        cargarListaClientesAdmin();
+      }
+
+    } else {
       document.getElementById('auth-forms').style.display = 'block';
       document.getElementById('user-dashboard').style.display = 'none';
+      document.getElementById('admin-panel-section').style.display = 'none';
+      if (unsubscribeChat) unsubscribeChat();
     }
-/* ===== por si acaso no dar bola a este comentario===== */
-    /* ===== CONTADOR EN VIVO ===== */
-    function iniciarContadorLive() {
-      const el = document.getElementById('online-count');
-      if (!el) return;
-      let count = Math.floor(Math.random() * 26) + 135;
-      el.innerText = count;
-      setInterval(() => {
-        count = Math.max(120, Math.min(190, count + Math.floor(Math.random() * 5) - 2));
-        el.innerText = count;
-      }, 3500);
+  });
+
+  // ENVIAR MENSAJE AL CHAT DE FIREBASE
+  window.enviarMensajeFirebase = async function() {
+    const input = document.getElementById('chat-user-input');
+    const texto = input.value.trim();
+    if (!texto) return;
+
+    if (!usuarioActual) {
+      alert("Por favor iniciá sesión con Google para enviar mensajes.");
+      window.loginConGoogle();
+      return;
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
-      actualizarCarrusel();
-      iniciarTimer();
-      iniciarContadorLive();
+    try {
+      await addDoc(collection(db, "chats", usuarioActual.uid, "messages"), {
+        sender: usuarioActual.email,
+        text: texto,
+        timestamp: new Date()
+      });
+      input.value = '';
+    } catch (e) {
+      console.error("Error enviando mensaje: ", e);
+    }
+  };
+
+  // ENVIAR COMPROBANTE DE PAGO
+  window.enviarComprobanteFirebase = async function() {
+    const file = document.getElementById('chat-file-input').files[0];
+    if (!file) return;
+
+    if (!usuarioActual) {
+      alert("Iniciá sesión con Google para adjuntar comprobantes.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      const base64Image = e.target.result;
+      await addDoc(collection(db, "chats", usuarioActual.uid, "messages"), {
+        sender: usuarioActual.email,
+        text: '📎 Comprobante adjunto: ' + file.name,
+        image: base64Image,
+        timestamp: new Date()
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // ESCUCHAR MENSAJES EN TIEMPO REAL
+  function escucharMensajesFirebase(uid) {
+    if (unsubscribeChat) unsubscribeChat();
+    const q = query(collection(db, "chats", uid, "messages"), orderBy("timestamp", "asc"));
+    
+    unsubscribeChat = onSnapshot(q, (snapshot) => {
+      const area = document.getElementById('chat-messages-container');
+      area.innerHTML = '';
+      snapshot.forEach((docSnap) => {
+        const msg = docSnap.data();
+        const div = document.createElement('div');
+        div.className = msg.sender === 'almita.zarela@gmail.com' ? 'chat-message admin-msg' : 'chat-message user-msg';
+        div.textContent = msg.text;
+        if (msg.image) {
+          const img = document.createElement('img');
+          img.src = msg.image;
+          img.style.maxWidth = '100%';
+          img.style.borderRadius = '8px';
+          img.style.marginTop = '6px';
+          div.appendChild(img);
+        }
+        area.appendChild(div);
+      });
+      area.scrollTop = area.scrollHeight;
     });
+  }
+
+  // FUNCIONES PANEL ADMINISTRADOR
+  function cargarListaClientesAdmin() {
+    onSnapshot(collection(db, "users"), (snapshot) => {
+      const container = document.getElementById('admin-users-list');
+      container.innerHTML = '';
+      snapshot.forEach((docSnap) => {
+        const u = docSnap.data();
+        const id = docSnap.id;
+        const div = document.createElement('div');
+        div.style.padding = '8px';
+        div.style.borderBottom = '1px solid #222';
+        div.style.cursor = 'pointer';
+        div.style.fontSize = '12px';
+        div.innerHTML = `<b>${u.displayName || u.email}</b><br><span style="color:#4ef38d;">Saldo: $${(u.saldoUSD||0).toFixed(2)} USD</span>`;
+        div.onclick = () => abrirChatAdmin(id, u);
+        container.appendChild(div);
+      });
+    });
+  }
+
+  function abrirChatAdmin(uid, userObj) {
+    adminSelectedUser = uid;
+    const view = document.getElementById('admin-chat-view');
+    view.innerHTML = `
+      <div style="border-bottom:1px solid #333; padding-bottom:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:13px; color:#fff;">Chat con: <b>${userObj.email}</b></span>
+        <button onclick="acreditarSaldoAdmin('${uid}')" style="background:#2ecc71; border:none; border-radius:4px; padding:4px 8px; font-weight:bold; cursor:pointer;">+ Cargar Saldo</button>
+      </div>
+      <div id="admin-msg-box" style="flex:1; overflow-y:auto; font-size:12px; margin-bottom:8px;"></div>
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="admin-input-reply" placeholder="Responder al cliente..." style="flex:1; padding:6px; border-radius:4px; border:1px solid #333; background:#161822; color:#fff;">
+        <button onclick="enviarRespuestaAdmin('${uid}')" style="background:#f3ba2f; border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">Enviar</button>
+      </div>
+    `;
+
+    const q = query(collection(db, "chats", uid, "messages"), orderBy("timestamp", "asc"));
+    onSnapshot(q, (snapshot) => {
+      const box = document.getElementById('admin-msg-box');
+      if (!box) return;
+      box.innerHTML = '';
+      snapshot.forEach((docSnap) => {
+        const m = docSnap.data();
+        const d = document.createElement('div');
+        d.style.margin = '4px 0';
+        d.style.color = m.sender === 'almita.zarela@gmail.com' ? '#f3ba2f' : '#fff';
+        d.innerHTML = `<b>${m.sender}:</b> ${m.text}`;
+        if (m.image) {
+          const img = document.createElement('img');
+          img.src = m.image;
+          img.style.maxWidth = '150px';
+          img.style.display = 'block';
+          d.appendChild(img);
+        }
+        box.appendChild(d);
+      });
+      box.scrollTop = box.scrollHeight;
+    });
+  }
+
+  window.enviarRespuestaAdmin = async function(uid) {
+    const inp = document.getElementById('admin-input-reply');
+    const val = inp.value.trim();
+    if (!val) return;
+    await addDoc(collection(db, "chats", uid, "messages"), {
+      sender: 'almita.zarela@gmail.com',
+      text: val,
+      timestamp: new Date()
+    });
+    inp.value = '';
+  };
+
+  window.acreditarSaldoAdmin = async function(uid) {
+    const monto = parseFloat(prompt("Ingresá el monto en USD a acreditar al cliente:"));
+    if (monto && monto > 0) {
+      const userRef = doc(db, "users", uid);
+      const snap = await getDoc(userRef);
+      const actual = snap.exists() ? (snap.data().saldoUSD || 0) : 0;
+      await setDoc(userRef, { saldoUSD: actual + monto }, { merge: true });
+      alert("¡Saldo acreditado con éxito!");
+    }
+  };
+
+  </script>
+
+  <script>
+  /* ===== CONFIGURACIÓN Y FUNCIONES GENERALES ===== */
+  const N8N_WEBHOOK_URL = 'https://almazarela.app.n8n.cloud/webhook/free-fire-check';
+  const WHATSAPP_NUMERO = '54911XXXXXXXX';
+  const BINANCE_PAY_LINK = 'https://www.binance.com';
+
+  window.saldoActualUSD = parseFloat(localStorage.getItem('saldoUSD')) || 0.00;
+
+  window.actualizarPantallaSaldo = function() {
+    const badgeHeader = document.getElementById('header-balance-amount');
+    if (badgeHeader) badgeHeader.innerText = '$' + window.saldoActualUSD.toFixed(2);
+    
+    const balanceSidebar = document.getElementById('menu-wallet-balance');
+    if (balanceSidebar) balanceSidebar.innerText = '$' + window.saldoActualUSD.toFixed(2) + ' USD';
+
+    const userBalance = document.getElementById('user-balance');
+    if (userBalance) userBalance.innerText = '$' + window.saldoActualUSD.toFixed(2) + ' USD';
+  };
+
+  window.seleccionarMetodo = function(metodo) {
+    const cardMp = document.getElementById('card-mp');
+    const cardBinance = document.getElementById('card-binance');
+    const gridMp = document.getElementById('grid-mp');
+    const gridBinance = document.getElementById('grid-binance');
+
+    if (metodo === 'mp') {
+      cardMp.classList.add('active');
+      cardBinance.classList.remove('active');
+      gridMp.style.display = 'block';
+      gridBinance.style.display = 'none';
+    } else {
+      cardBinance.classList.add('active');
+      cardMp.classList.remove('active');
+      gridBinance.style.display = 'block';
+      gridMp.style.display = 'none';
+    }
+  };
+
+  window.abrirModalBinance = function() {
+    document.getElementById('modal-binance').style.display = 'flex';
+  };
+
+  window.cerrarModalBinance = function() {
+    document.getElementById('modal-binance').style.display = 'none';
+  };
+
+  window.procesarPagoBinanceSeguro = function() {
+    const montoInput = parseFloat(document.getElementById('monto-usdt').value);
+    if (!montoInput || montoInput <= 0) {
+      alert('Por favor ingresá un monto válido.');
+      return;
+    }
+
+    window.open(BINANCE_PAY_LINK, '_blank');
+    window.cerrarModalBinance();
+    alert('Redirigiendo a Binance...\n\n⚠️ ATENCIÓN: El saldo se acreditará en tu cuenta una vez que adjuntes el comprobante en el chat.');
+  };
+  
+  /* ===== VERIFICADOR DE ID DE JUGADOR ===== */
+  let jugadorVerificado = null;
+  
+  function mostrarEstado(texto, tipo) {
+  const el = document.getElementById('verify-status');
+  el.textContent = texto;
+  el.className = 'verify-status ' + (tipo || '');
+  }
+  
+  function ocultarJugador() {
+  document.getElementById('player-card').hidden = true;
+  jugadorVerificado = null;
+  }
+  
+  function mostrarJugador(data) {
+  document.getElementById('player-name').textContent = data.nickname || 'Jugador';
+  const meta = [];
+  if (data.level) meta.push('Nivel ' + data.level);
+  if (data.rank) meta.push(data.rank);
+  if (data.region) meta.push('Región ' + data.region);
+  meta.push('ID ' + data.playerId);
+  document.getElementById('player-meta').textContent = meta.join(' · ');
+  
+  const img = document.getElementById('player-avatar-img');
+  const caja = img.parentElement;
+  img.hidden = true; caja.classList.remove('con-img');
+  if (data.avatar) {
+  img.onload = function () { img.hidden = false; caja.classList.add('con-img'); };
+  img.onerror = function () { img.hidden = true; caja.classList.remove('con-img'); };
+  img.src = data.avatar;
+  }
+  
+  const card = document.getElementById('player-card');
+  card.classList.remove('con-banner');
+  card.style.removeProperty('--banner');
+  if (data.banner) {
+  const pre = new Image();
+  pre.onload = function () {
+  card.style.setProperty('--banner', 'url("' + data.banner + '")');
+  card.classList.add('con-banner');
+  };
+  pre.src = data.banner;
+  }
+  card.hidden = false;
+  }
+  
+  async function verificarJugador() {
+  const input = document.getElementById('player-id');
+  const btn = document.getElementById('btn-verificar');
+  const id = input.value.replace(/\D/g, '');
+  input.value = id;
+  
+  if (id.length < 5 || id.length > 13) {
+  ocultarJugador();
+  mostrarEstado('Ingresá un ID válido (solo números).', 'error');
+  return;
+  }
+  
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Verificando...</span>';
+  ocultarJugador();
+  mostrarEstado('Buscando jugador...', 'loading');
+  
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 35000);
+  
+  try {
+  const res = await fetch(N8N_WEBHOOK_URL, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ playerId: id }),
+  signal: controller.signal
+  });
+  const data = await res.json();
+  
+  if (data.valid) {
+  jugadorVerificado = { id: id, nickname: data.nickname };
+  mostrarJugador(data);
+  mostrarEstado('✅ ID verificado. Ya podés elegir tu recarga.', 'ok');
+  } else {
+  mostrarEstado('❌ No encontramos ese ID. Revisalo e intentá de nuevo.', 'error');
+  }
+  } catch (e) {
+  mostrarEstado(
+  e.name === 'AbortError'
+  ? 'El verificador tardó demasiado. Probá de nuevo.'
+  : 'No se pudo conectar con el verificador. Probá de nuevo en unos segundos.',
+  'error'
+  );
+  } finally {
+  clearTimeout(timer);
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> <span>Verificar</span>';
+  }
+  }
+  
+  document.getElementById('player-id').addEventListener('input', function () {
+  if (jugadorVerificado && this.value.trim() !== jugadorVerificado.id) {
+  ocultarJugador();
+  mostrarEstado('', '');
+  }
+  });
+  document.getElementById('player-id').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') verificarJugador();
+  });
+  
+  function actualizarEnlaceWhatsApp(elem, paquete, precio) {
+  const idPlayer = document.getElementById('player-id').value.trim();
+  let msg = 'Hola! Quiero comprar ' + paquete + ' (' + precio + ').';
+  if (idPlayer) msg += ' Mi ID de Jugador es: ' + idPlayer;
+  if (jugadorVerificado && jugadorVerificado.id === idPlayer) {
+  msg += ' (Nombre: ' + jugadorVerificado.nickname + ')';
+  }
+  elem.href = 'https://wa.me/' + WHATSAPP_NUMERO + '?text=' + encodeURIComponent(msg);
+  }
+  
+  function toggleMenu() {
+  document.getElementById('sidebar-menu').classList.toggle('open');
+  document.getElementById('menu-overlay').classList.toggle('open');
+  }
+  
+  function toggleMusica() {
+  const audio = document.getElementById('musica-fondo');
+  const icono = document.getElementById('icono-musica');
+  const boton = document.getElementById('btn-musica');
+  if (audio.paused) {
+  icono.className = 'fa-solid fa-pause';
+  boton.classList.add('reproduciendo');
+  const p = audio.play();
+  if (p !== undefined) p.catch(() => console.log('Audio listo para reproducir.'));
+  } else {
+  audio.pause();
+  icono.className = 'fa-solid fa-play';
+  boton.classList.remove('reproduciendo');
+  }
+  }
+  
+  let slideActual = 1;
+  const totalSlides = 5;
+  let autoSlideTimer = null;
+  
+  function actualizarCarrusel() {
+  const slides = document.querySelectorAll('.carousel-slide');
+  const dots = document.querySelectorAll('.dot');
+  if (!slides.length) return;
+  slides.forEach((slide, i) => {
+  slide.className = 'carousel-slide';
+  if (i === slideActual) slide.classList.add('active');
+  else if (i === (slideActual - 1 + totalSlides) % totalSlides) slide.classList.add('prev');
+  else if (i === (slideActual + 1) % totalSlides) slide.classList.add('next');
+  else slide.classList.add('hidden');
+  });
+  dots.forEach((dot, i) => dot.classList.toggle('active', i === slideActual));
+  }
+  
+  function moverCarrusel(dir) {
+  slideActual = (slideActual + dir + totalSlides) % totalSlides;
+  actualizarCarrusel();
+  iniciarTimer();
+  }
+  
+  function irASlide(i) {
+  slideActual = i;
+  actualizarCarrusel();
+  iniciarTimer();
+  }
+  
+  function iniciarTimer() {
+  clearInterval(autoSlideTimer);
+  autoSlideTimer = setInterval(() => moverCarrusel(1), 4000);
+  }
+  
+  function iniciarContadorLive() {
+  const el = document.getElementById('online-count');
+  if (!el) return;
+  let count = Math.floor(Math.random() * 26) + 135;
+  el.innerText = count;
+  setInterval(() => {
+  count = Math.max(120, Math.min(190, count + Math.floor(Math.random() * 5) - 2));
+  el.innerText = count;
+  }, 3500);
+  }
+  
+  document.addEventListener('DOMContentLoaded', function () {
+  actualizarCarrusel();
+  iniciarTimer();
+  iniciarContadorLive();
+  window.actualizarPantallaSaldo();
+  });
   </script>
 </body>
 </html>
-
