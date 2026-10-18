@@ -146,12 +146,31 @@
  <div class="region">🇦🇷 Argentina | ES</div>
  <div class="header-wallet-container" style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
  <div class="saldo-usd-badge"><i class="fa-solid fa-wallet"></i> SALDO USD <span id="header-balance-amount" style="margin-left: 5px; font-weight: 900;">$0.00</span></div>
- <a href="javascript:void(0)" onclick="abrirModalBinance()" style="font-size: 0.75rem; color: #4ef38d; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;"><i class="fa-solid fa-plus-circle"></i> Cargar Saldo</a>
+ <a href="javascript:void(0)" onclick="abrirModalSeleccionCarga()" style="font-size: 0.75rem; color: #4ef38d; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;"><i class="fa-solid fa-plus-circle"></i> Cargar Saldo</a>
  </div>
  </div>
  </header>
 
- <!-- MODAL SEGURO DE CARGA BINANCE -->
+ <!-- MODAL GENERAL DE SELECCIÓN DE CARGA DE SALDO (BINANCE O MERCADO PAGO) -->
+ <div id="modal-seleccion-carga" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
+   <div style="background:#161822; border:1px solid #f3ba2f; border-radius:16px; padding:24px; width:90%; max-width:400px; text-align:center; box-shadow:0 0 25px rgba(243,186,47,0.3); position:relative;">
+     <button onclick="cerrarModalSeleccionCarga()" style="position:absolute; top:12px; right:15px; background:none; border:none; color:#aaa; font-size:18px; cursor:pointer;">✕</button>
+     <i class="fa-solid fa-wallet" style="font-size:36px; color:#f3ba2f; margin-bottom:8px;"></i>
+     <h3 style="color:#fff; font-family:'Orbitron', sans-serif; margin-bottom:6px;">Elegí método para Cargar Saldo</h3>
+     <p style="color:#aaa; font-size:12px; margin-bottom:15px;">Seleccioná con qué medio de pago deseas acreditar saldo en tu cuenta.</p>
+     
+     <div style="display:flex; flex-direction:column; gap:10px;">
+       <button onclick="abrirModalBinance()" style="width:100%; padding:12px; background:linear-gradient(135deg, #f3ba2f, #f0a500); border:none; border-radius:8px; color:#000; font-weight:bold; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+         <i class="fa-brands fa-bitcoin"></i> Cargar con Binance (USDT)
+       </button>
+       <button onclick="abrirModalMercadoPagoSaldo()" style="width:100%; padding:12px; background:linear-gradient(135deg, #009ee3, #0073a8); border:none; border-radius:8px; color:#fff; font-weight:bold; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+         <i class="fa-solid fa-bolt"></i> Cargar con Mercado Pago (ARS)
+       </button>
+     </div>
+   </div>
+ </div>
+
+ <!-- MODAL ESPECÍFICO DE CARGA BINANCE -->
  <div id="modal-binance" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
    <div style="background:#161822; border:1px solid #f3ba2f; border-radius:16px; padding:24px; width:90%; max-width:380px; text-align:center; box-shadow:0 0 25px rgba(243,186,47,0.3); position:relative;">
      <button onclick="cerrarModalBinance()" style="position:absolute; top:12px; right:15px; background:none; border:none; color:#aaa; font-size:18px; cursor:pointer;">✕</button>
@@ -161,6 +180,20 @@
      <input type="number" id="monto-usdt" placeholder="Monto aproximado en USD" style="width:100%; padding:12px; border-radius:8px; border:1px solid #3a3f58; background:#0e0f16; color:#fff; font-size:16px; text-align:center; margin-bottom:15px; outline:none;">
      <button onclick="procesarPagoBinanceSeguro()" style="width:100%; padding:12px; background:linear-gradient(135deg, #f3ba2f, #f0a500); border:none; border-radius:8px; color:#000; font-weight:bold; font-size:15px; cursor:pointer;">
        Ir a pagar en Binance <i class="fa-solid fa-arrow-up-right-from-square"></i>
+     </button>
+   </div>
+ </div>
+
+ <!-- MODAL ESPECÍFICO DE CARGA MERCADO PAGO -->
+ <div id="modal-mercadopago" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
+   <div style="background:#161822; border:1px solid #009ee3; border-radius:16px; padding:24px; width:90%; max-width:380px; text-align:center; box-shadow:0 0 25px rgba(0,158,227,0.3); position:relative;">
+     <button onclick="cerrarModalMercadoPagoSaldo()" style="position:absolute; top:12px; right:15px; background:none; border:none; color:#aaa; font-size:18px; cursor:pointer;">✕</button>
+     <i class="fa-solid fa-bolt" style="font-size:40px; color:#009ee3; margin-bottom:10px;"></i>
+     <h3 style="color:#fff; font-family:'Orbitron', sans-serif; margin-bottom:8px;">Cargar Saldo con Mercado Pago</h3>
+     <p style="color:#aaa; font-size:13px; margin-bottom:15px;">1. Realizá el pago mediante transferencia o alias.<br>2. Envianos el comprobante por el chat para acreditarte el saldo.</p>
+     <input type="number" id="monto-mp" placeholder="Monto aproximado en ARS" style="width:100%; padding:12px; border-radius:8px; border:1px solid #3a3f58; background:#0e0f16; color:#fff; font-size:16px; text-align:center; margin-bottom:15px; outline:none;">
+     <button onclick="procesarPagoMPSeguro()" style="width:100%; padding:12px; background:linear-gradient(135deg, #009ee3, #0073a8); border:none; border-radius:8px; color:#fff; font-weight:bold; font-size:15px; cursor:pointer;">
+       Ir a pagar en Mercado Pago <i class="fa-solid fa-arrow-up-right-from-square"></i>
      </button>
    </div>
  </div>
@@ -477,8 +510,8 @@
  <span class="wallet-label">Tu Saldo Virtual</span>
  <h2 class="wallet-amount" id="user-balance">$0.00 USD</h2>
  <p class="wallet-subtext">El saldo se descontará automáticamente al realizar recargas.</p>
- <a href="javascript:void(0)" onclick="abrirModalBinance()" class="btn-add-funds" style="display:inline-flex; align-items:center; gap:6px; justify-content:center; text-decoration:none;">
- <i class="fa-solid fa-plus-circle"></i> Cargar Saldo con Binance
+ <a href="javascript:void(0)" onclick="abrirModalSeleccionCarga()" class="btn-add-funds" style="display:inline-flex; align-items:center; gap:6px; justify-content:center; text-decoration:none;">
+ <i class="fa-solid fa-plus-circle"></i> Cargar Saldo con Binance o Mercado Pago
  </a>
  </div>
  </div>
@@ -778,6 +811,7 @@
   const N8N_WEBHOOK_URL = 'https://almazarela.app.n8n.cloud/webhook/free-fire-check';
   const WHATSAPP_NUMERO = '54911XXXXXXXX';
   const BINANCE_PAY_LINK = 'https://www.binance.com';
+  const MERCADO_PAGO_LINK = 'https://www.mercadopago.com.ar'; // Podes cambiar por tu link de cobro de MP
 
   window.saldoActualUSD = parseFloat(localStorage.getItem('saldoUSD')) || 0.00;
 
@@ -811,12 +845,31 @@
     }
   };
 
+  /* MODALES DE CARGA DE SALDO */
+  window.abrirModalSeleccionCarga = function() {
+    document.getElementById('modal-seleccion-carga').style.display = 'flex';
+  };
+
+  window.cerrarModalSeleccionCarga = function() {
+    document.getElementById('modal-seleccion-carga').style.display = 'none';
+  };
+
   window.abrirModalBinance = function() {
+    window.cerrarModalSeleccionCarga();
     document.getElementById('modal-binance').style.display = 'flex';
   };
 
   window.cerrarModalBinance = function() {
     document.getElementById('modal-binance').style.display = 'none';
+  };
+
+  window.abrirModalMercadoPagoSaldo = function() {
+    window.cerrarModalSeleccionCarga();
+    document.getElementById('modal-mercadopago').style.display = 'flex';
+  };
+
+  window.cerrarModalMercadoPagoSaldo = function() {
+    document.getElementById('modal-mercadopago').style.display = 'none';
   };
 
   window.procesarPagoBinanceSeguro = function() {
@@ -829,6 +882,18 @@
     window.open(BINANCE_PAY_LINK, '_blank');
     window.cerrarModalBinance();
     alert('Redirigiendo a Binance...\n\n⚠️ ATENCIÓN: El saldo se acreditará en tu cuenta una vez que adjuntes el comprobante en el chat.');
+  };
+
+  window.procesarPagoMPSeguro = function() {
+    const montoInput = parseFloat(document.getElementById('monto-mp').value);
+    if (!montoInput || montoInput <= 0) {
+      alert('Por favor ingresá un monto válido.');
+      return;
+    }
+
+    window.open(MERCADO_PAGO_LINK, '_blank');
+    window.cerrarModalMercadoPagoSaldo();
+    alert('Redirigiendo a Mercado Pago...\n\n⚠️ ATENCIÓN: El saldo se acreditará en tu cuenta una vez que adjuntes el comprobante en el chat.');
   };
   
   /* ===== VERIFICADOR DE ID DE JUGADOR ===== */
