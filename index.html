@@ -191,7 +191,7 @@
  <div class="sidebar-section">
  <h4><i class="fa-solid fa-user-gear"></i> Revendedores</h4>
  <div id="sidebar-auth-btn-area">
-   <button class="btn-google-login" onclick="loginConGoogle()">
+   <button type="button" class="btn-google-login" onclick="loginConGoogle()">
      <i class="fa-brands fa-google" style="color: #ea4335;"></i> Iniciar Sesión con Google
    </button>
  </div>
@@ -464,7 +464,7 @@
 
  <div id="auth-forms" class="auth-box">
  <p class="auth-desc">Iniciá sesión con tu cuenta de Google para gestionar tu monedero y chatear con soporte.</p>
- <button class="btn-google-login" onclick="loginConGoogle()">
+ <button type="button" class="btn-google-login" onclick="loginConGoogle()">
    <i class="fa-brands fa-google" style="color: #ea4335;"></i> Iniciar Sesión con Google
  </button>
  </div>
@@ -515,7 +515,7 @@
  <script>
   // CREDENCIALES DE TU PROYECTO EN SUPABASE
   const SUPABASE_URL = 'https://egtuaihydqkmaqehgrnd.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVndHVhaWh5ZHFrbWFxZWhncm5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwMDA0NjAsImV4cCI6MjA1NTU3NjQ2MH0.TU_KEY_COMPLETA_AQUI'; // Reemplazar con tu anon key de Supabase
+  const SUPABASE_KEY = 'sb_publishable_fEVgUFX5bTcoMCqjsT44-A_tgw4p...'; // Tu clave publishable configurada
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // FUNCIÓN PARA INICIAR SESIÓN CON GOOGLE USANDO SUPABASE
