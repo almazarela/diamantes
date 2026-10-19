@@ -57,7 +57,6 @@
  .verify-status.error { color: #ff5c5c; }
  .verify-status.loading { color: #f3ba2f; }
 
- /* TARJETAS ESTILO BONOXS LADO A LADO */
  .bonoxs-method-selector {
    display: grid;
    grid-template-columns: 1fr 1fr;
@@ -151,7 +150,6 @@
  </div>
  </header>
 
- <!-- MODAL GENERAL DE SELECCIÓN DE CARGA DE SALDO -->
  <div id="modal-seleccion-carga" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
    <div style="background:#161822; border:1px solid #f3ba2f; border-radius:16px; padding:24px; width:90%; max-width:400px; text-align:center; box-shadow:0 0 25px rgba(243,186,47,0.3); position:relative;">
      <button onclick="cerrarModalSeleccionCarga()" style="position:absolute; top:12px; right:15px; background:none; border:none; color:#aaa; font-size:18px; cursor:pointer;">✕</button>
@@ -265,10 +263,8 @@
 
  <div class="main-layout-grid">
 
- <!-- COLUMNA IZQUIERDA -->
  <div class="left-content-col">
  
- <!-- PASO 1: ID DE JUGADOR -->
  <section class="card">
  <div class="step-title">
  <span class="badge">1</span>
@@ -295,7 +291,6 @@
  <p class="subtext">⚠️ Verificá bien tu ID antes de enviar el pedido.</p>
  </section>
 
- <!-- PASO 2: MÉTODOS COMPRIMIDOS ESTILO BONOXS (MERCADO PAGO Y BINANCE) -->
  <section class="card">
  <div class="step-title">
  <span class="badge">2</span>
@@ -411,7 +406,6 @@
  </section>
  </div>
 
- <!-- COLUMNA DERECHA: CHAT EN VIVO Y BIENVENIDA -->
  <div class="right-widgets-col">
 
  <div class="chat-widget-card">
@@ -509,16 +503,13 @@
  <p>© Tienda de Recargas Independiente. Todos los derechos reservados.</p>
  </footer>
 
- <!-- LIBRERÍA OFICIAL DE SUPABASE -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
  <script>
-  // CREDENCIALES DE TU PROYECTO EN SUPABASE
   const SUPABASE_URL = 'https://egtuaihydqkmaqehgrnd.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_fEVgUFX5bTcoMCqjsT44-A_tgw4p...'; // Tu clave publishable configurada
+  const SUPABASE_KEY = 'sb_publishable_fEVgUFX5bTcoMCqjsT44-A_tgw4p...';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // FUNCIÓN PARA INICIAR SESIÓN CON GOOGLE USANDO SUPABASE
   async function loginConGoogle() {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -533,13 +524,11 @@
     }
   }
 
-  // FUNCIÓN PARA CERRAR SESIÓN
   async function logoutGoogle() {
     await supabase.auth.signOut();
     location.reload();
   }
 
-  // DETECTAR ESTADO DE LA SESIÓN EN SUPABASE
   supabase.auth.onAuthStateChange((event, session) => {
     if (session && session.user) {
       document.getElementById('auth-forms').style.display = 'none';
