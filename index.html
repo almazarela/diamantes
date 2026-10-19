@@ -455,12 +455,12 @@
  <div class="chat-message admin-msg">HOLA, ¿en qué te puedo ayudar hoy? Iniciá sesión con Google para guardar tu historial de compras.</div>
  </div>
  <div class="chat-input-area">
- <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarComprobanteFirebase()">
+ <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarComprobanteSupabase()">
  <button type="button" class="btn-attach" onclick="document.getElementById('chat-file-input').click()" title="Adjuntar Comprobante">
  <i class="fa-solid fa-paperclip"></i>
  </button>
- <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí..." onkeydown="if(event.key === 'Enter'){ enviarMensajeFirebase(); }">
- <button type="button" class="btn-send" onclick="enviarMensajeFirebase()" title="Enviar mensaje">
+ <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí..." onkeydown="if(event.key === 'Enter'){ enviarMensajeSupabase(); }">
+ <button type="button" class="btn-send" onclick="enviarMensajeSupabase()" title="Enviar mensaje">
  <i class="fa-solid fa-paper-plane"></i>
  </button>
  </div>
@@ -567,134 +567,109 @@
  <i id="icono-musica" class="fa-solid fa-play"></i>
  </button>
  
- <!-- Carga SDK de Firebase Modular desde CDN -->
+ <!-- Carga cliente oficial de Supabase con tus credenciales reales -->
  <script type="module">
- import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
- import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
- import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
  
- // CREDENCIALES REALES DE TU PROYECTO FIREBASE (zarela-4c939)
- const firebaseConfig = {
- apiKey: "AIzaSyBro_YXlV6MFA5OMwgTiK9KKZ16EsiwPIU",
- authDomain: "zarela-4c939.firebaseapp.com",
- projectId: "zarela-4c939",
- storageBucket: "zarela-4c939.firebasestorage.app",
- messagingSenderId: "28824081083",
- appId: "1:28824081083:web:89a8dae9aa4575abe2cf9e",
- measurementId: "G-RYS9P9K8D7"
- };
+ // CREDENCIALES REALES DE SUPABASE
+ const SUPABASE_URL = 'https://egtuaihydqkmaqehgrnd.supabase.co';
+ const SUPABASE_ANON_KEY = 'sb_publishable_fEVgUFX5bTcoMCqjsT44-A_tgW4pVeZ';
  
- const app = initializeApp(firebaseConfig);
- const auth = getAuth(app);
- const db = getFirestore(app);
- const provider = new GoogleAuthProvider();
+ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
  
  // URLS DE TUS WEBHOOKS DE N8N
- const WEBHOOK_INICIO_SESION = 'https://almazarela.app.n8n.cloud/webhook-test/aedc036b-b380-4f4f-85d9-ecfc032c3be9';
- const WEBHOOK_CHAT_CLIENTES = 'https://almazarela.app.n8n.cloud/webhook-test/14200234-eee8-4b90-a4a3-1306b12c377f';
+ const WEBHOOK_INICIO_SESION = 'https://almazarela.app.n8n.cloud/webhook-test/0764aae1-cc1b-4f67-9635-5c44ceac4544';
+ const WEBHOOK_CHAT_CLIENTES = 'https://almazarela.app.n8n.cloud/webhook-test/0764aae1-cc1b-4f67-9635-5c44ceac4544';
  
  let usuarioActual = null;
- let unsubscribeChat = null;
- let adminSelectedUser = null;
  
- // LOGIN GOOGLE CON ENVÍO A WEBHOOK DE INICIO DE SESIÓN
+ // LOGIN CON GOOGLE VÍA SUPABASE
  window.loginConGoogle = async function() {
  try {
- const result = await signInWithPopup(auth, provider);
- const user = result.user;
- console.log("Logueado con éxito:", user);
- 
- // Enviar datos de inicio de sesión al webhook correspondiente
- fetch(WEBHOOK_INICIO_SESION, {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({
- event: 'inicio_sesion',
- uid: user.uid,
- email: user.email,
- displayName: user.displayName || 'Sin nombre',
- photoURL: user.photoURL || '',
- timestamp: new Date().toISOString()
- })
- }).catch(err => console.error("Error enviando inicio de sesión al webhook:", err));
- 
+ const { error } = await supabase.auth.signInWithOAuth({
+ provider: 'google',
+ options: {
+ redirectTo: window.location.href
+ }
+ });
+ if (error) throw error;
  } catch (error) {
- console.error("Error al iniciar sesión:", error);
- alert("No se pudo completar el inicio de sesión con Google.");
+ console.error("Error al iniciar sesión con Supabase:", error);
+ alert("No se pudo completar el inicio de sesión.");
  }
  };
- 
- window.logoutGoogle = function() {
- signOut(auth);
+
+ window.logoutGoogle = async function() {
+ await supabase.auth.signOut();
+ document.getElementById('auth-forms').style.display = 'block';
+ document.getElementById('user-dashboard').style.display = 'none';
+ document.getElementById('admin-panel-section').style.display = 'none';
+ usuarioActual = null;
  };
  
- // OBSERVAR ESTADO DE AUTENTICACIÓN
- onAuthStateChanged(auth, async (user) => {
+ // OBSERVAR ESTADO DE AUTENTICACIÓN EN SUPABASE
+ supabase.auth.onAuthStateChange(async (event, session) => {
+ const user = session?.user || null;
  usuarioActual = user;
+ 
  if (user) {
  document.getElementById('auth-forms').style.display = 'none';
  document.getElementById('user-dashboard').style.display = 'block';
  document.getElementById('user-email-display').innerText = user.email;
  
- // Cargar o crear datos de usuario en Firestore
- const userRef = doc(db, "users", user.uid);
- const userSnap = await getDoc(userRef);
-  
-if (!userSnap.exists()) {
- await setDoc(userRef, {
+ if (event === 'SIGNED_IN') {
+ // Enviar notificación de inicio de sesión al Webhook
+ fetch(WEBHOOK_INICIO_SESION, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ event: 'inicio_sesion',
+ uid: user.id,
  email: user.email,
- displayName: user.displayName || 'Cliente',
- saldoUSD: 0.00
- });
- } else {
- const data = userSnap.data();
- window.saldoActualUSD = data.saldoUSD || 0.00;
- window.actualizarPantallaSaldo();
+ displayName: user.user_metadata?.full_name || user.email,
+ photoURL: user.user_metadata?.avatar_url || '',
+ timestamp: new Date().toISOString()
+ })
+ }).catch(err => console.error("Error enviando inicio de sesión al webhook:", err));
  }
  
- escucharMensajesFirebase(user.uid);
- 
- // Verificación de Administrador (Tu cuenta)
  if (user.email === 'almita.zarela@gmail.com' || user.email.includes('admin')) {
  document.getElementById('admin-panel-section').style.display = 'block';
- cargarListaClientesAdmin();
  }
- 
  } else {
  document.getElementById('auth-forms').style.display = 'block';
  document.getElementById('user-dashboard').style.display = 'none';
  document.getElementById('admin-panel-section').style.display = 'none';
- if (unsubscribeChat) unsubscribeChat();
  }
  });
  
- // ENVIAR MENSAJE AL CHAT DE FIREBASE Y AL WEBHOOK CHAT-CLIENTES
- window.enviarMensajeFirebase = async function() {
+ // ENVIAR MENSAJE DE CHAT AL WEBHOOK chat-cliente
+ window.enviarMensajeSupabase = async function() {
  const input = document.getElementById('chat-user-input');
  const texto = input.value.trim();
  if (!texto) return;
  
  if (!usuarioActual) {
- alert("Por favor iniciá sesión con Google para enviar mensajes.");
+ alert("Por favor iniciá sesión para enviar mensajes.");
  window.loginConGoogle();
  return;
  }
  
  const mensajeData = {
+ event: 'mensaje_chat',
  sender: usuarioActual.email,
- uid: usuarioActual.uid,
+ uid: usuarioActual.id,
  text: texto,
- type: 'texto',
  timestamp: new Date().toISOString()
  };
  
  try {
- // Guardar en Firestore
- await addDoc(collection(db, "chats", usuarioActual.uid, "messages"), {
- sender: usuarioActual.email,
- text: texto,
- timestamp: new Date()
- });
+ const area = document.getElementById('chat-messages-container');
+ const div = document.createElement('div');
+ div.className = 'chat-message user-msg';
+ div.textContent = texto;
+ area.appendChild(div);
+ area.scrollTop = area.scrollHeight;
  
  // Enviar al Webhook chat-clientes
  fetch(WEBHOOK_CHAT_CLIENTES, {
@@ -709,14 +684,14 @@ if (!userSnap.exists()) {
  }
  };
  
- // ENVIAR COMPROBANTE DE PAGO Y ARCHIVOS AL CHAT Y AL WEBHOOK CHAT-CLIENTES
- window.enviarComprobanteFirebase = async function() {
+ // ENVIAR COMPROBANTE Y FOTOS AL WEBHOOK chat-cliente
+ window.enviarComprobanteSupabase = async function() {
  const fileInput = document.getElementById('chat-file-input');
  const file = fileInput.files[0];
  if (!file) return;
  
  if (!usuarioActual) {
- alert("Iniciá sesión con Google para adjuntar comprobantes.");
+ alert("Iniciá sesión para adjuntar comprobantes.");
  fileInput.value = '';
  return;
  }
@@ -727,21 +702,26 @@ if (!userSnap.exists()) {
  const textoAdjunto = '📄 Comprobante adjunto: ' + file.name;
  
  try {
- // Guardar en Firestore
- await addDoc(collection(db, "chats", usuarioActual.uid, "messages"), {
- sender: usuarioActual.email,
- text: textoAdjunto,
- image: base64Image,
- timestamp: new Date()
- });
+ const area = document.getElementById('chat-messages-container');
+ const div = document.createElement('div');
+ div.className = 'chat-message user-msg';
+ div.textContent = textoAdjunto;
+ const img = document.createElement('img');
+ img.src = base64Image;
+ img.style.maxWidth = '100%';
+ img.style.borderRadius = '8px';
+ img.style.marginTop = '6px';
+ div.appendChild(img);
+ area.appendChild(div);
+ area.scrollTop = area.scrollHeight;
  
- // Enviar al Webhook chat-clientes (incluyendo la foto/archivo en base64)
+ // Enviar al Webhook chat-clientes
  fetch(WEBHOOK_CHAT_CLIENTES, {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({
  event: 'archivo_adjunto',
- uid: usuarioActual.uid,
+ uid: usuarioActual.id,
  sender: usuarioActual.email,
  text: textoAdjunto,
  fileName: file.name,
@@ -756,115 +736,6 @@ if (!userSnap.exists()) {
  }
  };
  reader.readAsDataURL(file);
- };
- 
- // ESCUCHAR MENSAJES EN TIEMPO REAL
- function escucharMensajesFirebase(uid) {
- if (unsubscribeChat) unsubscribeChat();
- const q = query(collection(db, "chats", uid, "messages"), orderBy("timestamp", "asc"));
-  
-unsubscribeChat = onSnapshot(q, (snapshot) => {
- const area = document.getElementById('chat-messages-container');
- area.innerHTML = '';
- snapshot.forEach((docSnap) => {
- const msg = docSnap.data();
- const div = document.createElement('div');
- div.className = msg.sender === 'almita.zarela@gmail.com' ? 'chat-message admin-msg' : 'chat-message user-msg';
- div.textContent = msg.text;
- if (msg.image) {
- const img = document.createElement('img');
- img.src = msg.image;
- img.style.maxWidth = '100%';
- img.style.borderRadius = '8px';
- img.style.marginTop = '6px';
- div.appendChild(img);
- }
- area.appendChild(div);
- });
- area.scrollTop = area.scrollHeight;
- });
- }
- 
- // FUNCIONES PANEL ADMINISTRADOR
- function cargarListaClientesAdmin() {
- onSnapshot(collection(db, "users"), (snapshot) => {
- const container = document.getElementById('admin-users-list');
- container.innerHTML = '';
- snapshot.forEach((docSnap) => {
- const u = docSnap.data();
- const id = docSnap.id;
- const div = document.createElement('div');
- div.style.padding = '8px';
- div.style.borderBottom = '1px solid #222';
- div.style.cursor = 'pointer';
- div.style.fontSize = '12px';
- div.innerHTML = `<b>${u.displayName || u.email}</b><br><span style="color:#4ef38d;">Saldo: $${(u.saldoUSD||0).toFixed(2)} USD</span>`;
- div.onclick = () => abrirChatAdmin(id, u);
- container.appendChild(div);
- });
- });
- }
- 
- function abrirChatAdmin(uid, userObj) {
- adminSelectedUser = uid;
- const view = document.getElementById('admin-chat-view');
- view.innerHTML = `
- <div style="border-bottom:1px solid #333; padding-bottom:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
- <span style="font-size:13px; color:#fff;">Chat con: <b>${userObj.email}</b></span>
- <button onclick="acreditarSaldoAdmin('${uid}')" style="background:#2ecc71; border:none; border-radius:4px; padding:4px 8px; font-weight:bold; cursor:pointer;">+ Cargar Saldo</button>
- </div>
- <div id="admin-msg-box" style="flex:1; overflow-y:auto; font-size:12px; margin-bottom:8px;"></div>
- <div style="display:flex; gap:6px;">
- <input type="text" id="admin-input-reply" placeholder="Responder al cliente..." style="flex:1; padding:6px; border-radius:4px; border:1px solid #333; background:#161822; color:#fff;">
- <button onclick="enviarRespuestaAdmin('${uid}')" style="background:#f3ba2f; border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">Enviar</button>
- </div>
- `;
- 
- const q = query(collection(db, "chats", uid, "messages"), orderBy("timestamp", "asc"));
- onSnapshot(q, (snapshot) => {
- const box = document.getElementById('admin-msg-box');
- if (!box) return;
- box.innerHTML = '';
- snapshot.forEach((docSnap) => {
- const m = docSnap.data();
- const d = document.createElement('div');
- d.style.margin = '4px 0';
- d.style.color = m.sender === 'almita.zarela@gmail.com' ? '#f3ba2f' : '#fff';
- d.innerHTML = `<b>${m.sender}:</b> ${m.text}`;
- if (m.image) {
- const img = document.createElement('img');
- img.src = m.image;
- img.style.maxWidth = '150px';
- img.style.display = 'block';
- d.appendChild(img);
- }
- box.appendChild(d);
- });
- box.scrollTop = box.scrollHeight;
- });
- }
- 
- window.enviarRespuestaAdmin = async function(uid) {
- const inp = document.getElementById('admin-input-reply');
- const val = inp.value.trim();
- if (!val) return;
- await addDoc(collection(db, "chats", uid, "messages"), {
- sender: 'almita.zarela@gmail.com',
- text: val,
- timestamp: new Date()
- });
- inp.value = '';
- };
- 
- window.acreditarSaldoAdmin = async function(uid) {
- const monto = parseFloat(prompt("Ingresá el monto en USD a acreditar al cliente:"));
- if (monto && monto > 0) {
- const userRef = doc(db, "users", uid);
- const snap = await getDoc(userRef);
- const actual = snap.exists() ? (snap.data().saldoUSD || 0) : 0;
- await setDoc(userRef, { saldoUSD: actual + monto }, { merge: true });
- alert("¡Saldo acreditado con éxito!");
- }
  };
  
  </script>
