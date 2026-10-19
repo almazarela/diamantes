@@ -6,8 +6,8 @@
  <title>Centro de Recargas - Free Fire</title>
  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
  <link rel="stylesheet" href="style.css">
- 
- <style>
+  
+<style>
  .verify-row { display: flex; gap: 10px; align-items: stretch; }
  .verify-row input { flex: 1; min-width: 0; }
  .btn-verificar {
@@ -20,8 +20,8 @@
  }
  .btn-verificar:hover { transform: translateY(-1px); }
  .btn-verificar:disabled { opacity: .7; cursor: wait; transform: none; }
- 
- .player-card {
+  
+.player-card {
  display: flex; align-items: center; gap: 14px;
  margin-bottom: 12px; padding: 12px 14px; border-radius: 12px;
  background: linear-gradient(135deg, rgba(46, 154, 204, 0.349), rgba(46, 204, 113, .05));
@@ -51,44 +51,45 @@
  .player-name { font-size: 18px; line-height: 1.25; word-break: break-word; }
  .player-meta { font-size: 12px; opacity: .8; }
  .player-ok { color: #2ecc71; font-size: 22px; }
- 
- .verify-status { margin: 8px 0 0; font-size: 13px; min-height: 18px; }
+  
+.verify-status { margin: 8px 0 0; font-size: 13px; min-height: 18px; }
  .verify-status.ok { color: #2ecc70; }
  .verify-status.error { color: #ff5c5c; }
  .verify-status.loading { color: #f3ba2f; }
-
+ 
+ /* TARJETAS ESTILO BONOXS LADO A LADO */
  .bonoxs-method-selector {
-   display: grid;
-   grid-template-columns: 1fr 1fr;
-   gap: 15px;
-   margin-bottom: 20px;
+ display: grid;
+ grid-template-columns: 1fr 1fr;
+ gap: 15px;
+ margin-bottom: 20px;
  }
  .bonoxs-card {
-   background: #0e0f16;
-   border: 2px solid #2b3544;
-   border-radius: 14px;
-   padding: 18px 15px;
-   text-align: center;
-   cursor: pointer;
-   position: relative;
-   transition: all 0.25s ease;
+ background: #0e0f16;
+ border: 2px solid #2b3544;
+ border-radius: 14px;
+ padding: 18px 15px;
+ text-align: center;
+ cursor: pointer;
+ position: relative;
+ transition: all 0.25s ease;
  }
  .bonoxs-card:hover { transform: translateY(-3px); border-color: #ff3b3b; }
  .bonoxs-card.active {
-   border-color: #ff3b3b;
-   background: linear-gradient(180deg, rgba(255, 59, 59, 0.15) 0%, rgba(14, 15, 22, 1) 100%);
-   box-shadow: 0 0 15px rgba(255, 59, 59, 0.3);
+ border-color: #ff3b3b;
+ background: linear-gradient(180deg, rgba(255, 59, 59, 0.15) 0%, rgba(14, 15, 22, 1) 100%);
+ box-shadow: 0 0 15px rgba(255, 59, 59, 0.3);
  }
  .bonoxs-card#card-binance.active {
-   border-color: #f3ba2f;
-   background: linear-gradient(180deg, rgba(243, 186, 47, 0.15) 0%, rgba(14, 15, 22, 1) 100%);
-   box-shadow: 0 0 15px rgba(243, 186, 47, 0.3);
+ border-color: #f3ba2f;
+ background: linear-gradient(180deg, rgba(243, 186, 47, 0.15) 0%, rgba(14, 15, 22, 1) 100%);
+ box-shadow: 0 0 15px rgba(243, 186, 47, 0.3);
  }
  .bonoxs-card-badge {
-   position: absolute;
-   top: 10px; right: 10px;
-   background: #009ee3; color: #fff;
-   font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 10px;
+ position: absolute;
+ top: 10px; right: 10px;
+ background: #009ee3; color: #fff;
+ font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 10px;
  }
  .bonoxs-card-badge.usdt-badge { background: #f3ba2f; color: #000; }
  .bonoxs-card-icon { font-size: 28px; color: #009ee3; margin-bottom: 8px; }
@@ -96,19 +97,19 @@
  .bonoxs-card h4 { font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 4px; }
  .bonoxs-card p { font-size: 11px; color: #aaa; margin-bottom: 12px; }
  .btn-bonoxs-select {
-   display: inline-block; font-size: 11px; font-weight: 700; color: #fff;
-   background: #1f2833; padding: 6px 14px; border-radius: 6px; border: 1px solid #45a29e;
+ display: inline-block; font-size: 11px; font-weight: 700; color: #fff;
+ background: #1f2833; padding: 6px 14px; border-radius: 6px; border: 1px solid #45a29e;
  }
  .bonoxs-card.active .btn-bonoxs-select { background: #ff3b3b; border-color: #ff3b3b; }
  .bonoxs-card#card-binance.active .btn-bonoxs-select { background: #f3ba2f; border-color: #f3ba2f; color: #000; }
-
+ 
  .expanded-box-header {
-   background: #0b0c10; border: 1px solid #009ee3; color: #009ee3;
-   padding: 10px 15px; border-radius: 8px; font-weight: bold; font-size: 13px;
-   margin-bottom: 15px; display: flex; align-items: center; gap: 8px;
+ background: #0b0c10; border: 1px solid #009ee3; color: #009ee3;
+ padding: 10px 15px; border-radius: 8px; font-weight: bold; font-size: 13px;
+ margin-bottom: 15px; display: flex; align-items: center; gap: 8px;
  }
  .expanded-box-header.binance-header { border-color: #f3ba2f; color: #f3ba2f; }
-
+ 
  .btn-google-login {
  background: #ffffff; color: #333; border: none; border-radius: 8px;
  padding: 10px 16px; font-weight: 600; display: inline-flex; align-items: center;
@@ -116,13 +117,13 @@
  width: 100%; justify-content: center; margin-top: 10px;
  }
  .btn-google-login:hover { background: #e6e6e6; }
-
+ 
  .admin-panel-card {
  background: #1a1d2e; border: 2px solid #f3ba2f; border-radius: 14px;
  padding: 18px; margin-top: 20px; box-shadow: 0 0 20px rgba(243, 186, 47, 0.2);
  }
- 
- @keyframes aparecer { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  
+@keyframes aparecer { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
  @media (max-width: 480px) {
  .btn-verificar span { display: none; }
  .btn-verificar { padding: 0 14px; }
@@ -131,7 +132,7 @@
  </style>
 </head>
 <body>
-
+ 
  <header class="navbar">
  <div class="nav-left">
  <button class="menu-toggle-btn" onclick="toggleMenu()" aria-label="Abrir Menú">
@@ -149,33 +150,62 @@
  </div>
  </div>
  </header>
-
+ 
+ <!-- MODAL GENERAL DE SELECCIÓN DE CARGA DE SALDO (BINANCE O MERCADO PAGO) -->
  <div id="modal-seleccion-carga" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
-   <div style="background:#161822; border:1px solid #f3ba2f; border-radius:16px; padding:24px; width:90%; max-width:400px; text-align:center; box-shadow:0 0 25px rgba(243,186,47,0.3); position:relative;">
-     <button onclick="cerrarModalSeleccionCarga()" style="position:absolute; top:12px; right:15px; background:none; border:none; color:#aaa; font-size:18px; cursor:pointer;">✕</button>
-     <i class="fa-solid fa-wallet" style="font-size:36px; color:#f3ba2f; margin-bottom:8px;"></i>
-     <h3 style="color:#fff; font-family:'Orbitron', sans-serif; margin-bottom:6px;">Elegí método para Cargar Saldo</h3>
-     <p style="color:#aaa; font-size:12px; margin-bottom:15px;">Seleccioná con qué medio de pago deseas acreditar saldo en tu cuenta.</p>
-     
-     <div style="display:flex; flex-direction:column; gap:10px;">
-       <button onclick="abrirModalBinance()" style="width:100%; padding:12px; background:linear-gradient(135deg, #f3ba2f, #f0a500); border:none; border-radius:8px; color:#000; font-weight:bold; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-         <i class="fa-brands fa-bitcoin"></i> Cargar con Binance (USDT)
-       </button>
-       <button onclick="abrirModalMercadoPagoSaldo()" style="width:100%; padding:12px; background:linear-gradient(135deg, #009ee3, #0073a8); border:none; border-radius:8px; color:#fff; font-weight:bold; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-         <i class="fa-solid fa-bolt"></i> Cargar con Mercado Pago (ARS)
-       </button>
-     </div>
-   </div>
+ <div style="background:#161822; border:1px solid #f3ba2f; border-radius:16px; padding:24px; width:90%; max-width:400px; text-align:center; box-shadow:0 0 25px rgba(243,186,47,0.3); position:relative;">
+ <button onclick="cerrarModalSeleccionCarga()" style="position:absolute; top:12px; right:15px; background:none; border:none; color:#aaa; font-size:18px; cursor:pointer;">✕</button>
+ <i class="fa-solid fa-wallet" style="font-size:36px; color:#f3ba2f; margin-bottom:8px;"></i>
+ <h3 style="color:#fff; font-family:'Orbitron', sans-serif; margin-bottom:6px;">Elegí método para Cargar Saldo</h3>
+ <p style="color:#aaa; font-size:12px; margin-bottom:15px;">Seleccioná con qué medio de pago deseas acreditar saldo en tu cuenta.</p>
+  
+<div style="display:flex; flex-direction:column; gap:10px;">
+ <button onclick="abrirModalBinance()" style="width:100%; padding:12px; background:linear-gradient(135deg, #f3ba2f, #f0a500); border:none; border-radius:8px; color:#000; font-weight:bold; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+ <i class="fa-brands fa-bitcoin"></i> BINANCE ( USDT )
+ </button>
+ <button onclick="abrirModalMercadoPagoSaldo()" style="width:100%; padding:12px; background:linear-gradient(135deg, #009ee3, #0073a8); border:none; border-radius:8px; color:#fff; font-weight:bold; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+ <i class="fa-solid fa-bolt"></i> MERCADO PAGO ( ARS )
+ </button>
  </div>
-
+ </div>
+ </div>
+ 
+ <!-- MODAL ESPECÍFICO DE CARGA BINANCE -->
+ <div id="modal-binance" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
+ <div style="background:#161822; border:1px solid #f3ba2f; border-radius:16px; padding:24px; width:90%; max-width:380px; text-align:center; box-shadow:0 0 25px rgba(243,186,47,0.3); position:relative;">
+ <button onclick="cerrarModalBinance()" style="position:absolute; top:12px; right:15px; background:none; border:none; color:#aaa; font-size:18px; cursor:pointer;">✕</button>
+ <i class="fa-brands fa-bitcoin" style="font-size:40px; color:#f3ba2f; margin-bottom:10px;"></i>
+ <h3 style="color:#fff; font-family:'Orbitron', sans-serif; margin-bottom:8px;">Cargar Saldo con Binance</h3>
+ <p style="color:#aaa; font-size:13px; margin-bottom:15px;">1. Realizá el pago en tu enlace de Binance.<br>2. Envianos el comprobante por el chat para acreditarte.</p>
+ <input type="number" id="monto-usdt" placeholder="Monto aproximado en USD" style="width:100%; padding:12px; border-radius:8px; border:1px solid #3a3f58; background:#0e0f16; color:#fff; font-size:16px; text-align:center; margin-bottom:15px; outline:none;">
+ <button onclick="procesarPagoBinanceSeguro()" style="width:100%; padding:12px; background:linear-gradient(135deg, #f3ba2f, #f0a500); border:none; border-radius:8px; color:#000; font-weight:bold; font-size:15px; cursor:pointer;">
+ Ir a pagar en Binance <i class="fa-solid fa-arrow-up-right-from-square"></i>
+ </button>
+ </div>
+ </div>
+ 
+ <!-- MODAL ESPECÍFICO DE CARGA MERCADO PAGO -->
+ <div id="modal-mercadopago" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
+ <div style="background:#161822; border:1px solid #009ee3; border-radius:16px; padding:24px; width:90%; max-width:380px; text-align:center; box-shadow:0 0 25px rgba(0,158,227,0.3); position:relative;">
+ <button onclick="cerrarModalMercadoPagoSaldo()" style="position:absolute; top:12px; right:15px; background:none; border:none; color:#aaa; font-size:18px; cursor:pointer;">✕</button>
+ <i class="fa-solid fa-bolt" style="font-size:40px; color:#009ee3; margin-bottom:10px;"></i>
+ <h3 style="color:#fff; font-family:'Orbitron', sans-serif; margin-bottom:8px;">Cargar Saldo con Mercado Pago</h3>
+ <p style="color:#aaa; font-size:13px; margin-bottom:15px;">1. Realizá el pago mediante transferencia o alias.<br>2. Envianos el comprobante por el chat para acreditarte el saldo.</p>
+ <input type="number" id="monto-mp" placeholder="Monto aproximado en ARS" style="width:100%; padding:12px; border-radius:8px; border:1px solid #3a3f58; background:#0e0f16; color:#fff; font-size:16px; text-align:center; margin-bottom:15px; outline:none;">
+ <button onclick="procesarPagoMPSeguro()" style="width:100%; padding:12px; background:linear-gradient(135deg, #009ee3, #0073a8); border:none; border-radius:8px; color:#fff; font-weight:bold; font-size:15px; cursor:pointer;">
+ Ir a pagar en Mercado Pago <i class="fa-solid fa-arrow-up-right-from-square"></i>
+ </button>
+ </div>
+ </div>
+ 
  <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
-
+ 
  <aside class="sidebar-menu" id="sidebar-menu">
  <div class="sidebar-header">
  <div class="sidebar-logo">Zarela <span class="garena-red"></span> </div>
  <button class="close-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-xmark"></i></button>
  </div>
-
+ 
  <div class="sidebar-content">
  <div class="sidebar-card user-wallet-box">
  <div class="wallet-header"><i class="fa-solid fa-wallet"></i><span>billetera Virtual</span></div>
@@ -185,23 +215,23 @@
  <strong class="balance-text" id="menu-wallet-balance">$0.00 USD</strong>
  </div>
  </div>
-
+ 
  <div class="sidebar-section">
  <h4><i class="fa-solid fa-user-gear"></i> Revendedores</h4>
  <div id="sidebar-auth-btn-area">
-   <button type="button" class="btn-google-login" onclick="loginConGoogle()">
-     <i class="fa-brands fa-google" style="color: #ea4335;"></i> Iniciar Sesión con Google
-   </button>
+ <button class="btn-google-login" onclick="loginConGoogle()">
+ <i class="fa-brands fa-google" style="color: #ea4335;"></i> Iniciar Sesión con Google
+ </button>
  </div>
  </div>
-
+ 
  <div class="sidebar-section">
  <h4><i class="fa-solid fa-headset"></i> Soporte & Contacto</h4>
  <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Tengo%20una%20consulta%20sobre%20las%20recargas." target="_blank" class="menu-link whatsapp-link">
  <i class="fa-brands fa-whatsapp"></i> Atención por WhatsApp
  </a>
  </div>
-
+ 
  <div class="sidebar-section">
  <h4><i class="fa-solid fa-circle-info"></i> Estado del Sistema</h4>
  <div class="status-indicator">
@@ -210,21 +240,21 @@
  </div>
  </div>
  </div>
-
+ 
  <div class="sidebar-footer"><p>© Centro de Recargas FF - Argentina</p></div>
  </aside>
-
+ 
  <section class="hero-banner-section">
  <div class="live-counter-badge">
  <span class="live-green-dot"></span>
  <span class="live-counter-text"><strong id="online-count">148</strong> Clientes Online</span>
  </div>
-
+ 
  <div class="carousel-wrapper" id="carousel-wrapper">
  <button class="carousel-btn prev-btn" onclick="moverCarrusel(-1)" aria-label="Anterior">
  <i class="fa-solid fa-chevron-left"></i>
  </button>
-
+ 
  <div class="carousel-track-container">
  <div class="carousel-track" id="carousel-track">
  <div class="carousel-slide prev">
@@ -244,12 +274,12 @@
  </div>
  </div>
  </div>
-
+ 
  <button class="carousel-btn next-btn" onclick="moverCarrusel(1)" aria-label="Siguiente">
  <i class="fa-solid fa-chevron-right"></i>
  </button>
  </div>
-
+ 
  <div class="carousel-dots" id="carousel-dots">
  <span class="dot" onclick="irASlide(0)"></span>
  <span class="dot active" onclick="irASlide(1)"></span>
@@ -258,19 +288,21 @@
  <span class="dot" onclick="irASlide(4)"></span>
  </div>
  </section>
-
- <div class="container">
-
- <div class="main-layout-grid">
-
- <div class="left-content-col">
  
+ <div class="container">
+ 
+ <div class="main-layout-grid">
+ 
+ <!-- COLUMNA IZQUIERDA -->
+ <div class="left-content-col">
+  
+<!-- PASO 1: ID DE JUGADOR -->
  <section class="card">
  <div class="step-title">
  <span class="badge">1</span>
  <h3>Ingresar ID de jugador</h3>
  </div>
-
+ 
  <div id="player-card" class="player-card" hidden>
  <div class="player-avatar"><img id="player-avatar-img" alt="Avatar" hidden><i id="player-avatar-icon" class="fa-solid fa-user-astronaut"></i></div>
  <div class="player-info">
@@ -280,7 +312,7 @@
  </div>
  <i class="fa-solid fa-circle-check player-ok"></i>
  </div>
-
+ 
  <div class="input-group verify-row">
  <input type="text" inputmode="numeric" autocomplete="off" placeholder="Introduce el ID del jugador..." id="player-id">
  <button type="button" id="btn-verificar" class="btn-verificar" onclick="verificarJugador()">
@@ -290,124 +322,130 @@
  <p id="verify-status" class="verify-status"></p>
  <p class="subtext">⚠️ Verificá bien tu ID antes de enviar el pedido.</p>
  </section>
-
+ 
+ <!-- PASO 2: MÉTODOS COMPRIMIDOS ESTILO BONOXS (MERCADO PAGO Y BINANCE) -->
  <section class="card">
  <div class="step-title">
  <span class="badge">2</span>
  <h3>Seleccionar Medio de Pago</h3>
  </div>
-
+ 
  <div class="bonoxs-method-selector">
-   <div class="bonoxs-card active" id="card-mp" onclick="seleccionarMetodo('mp')">
-     <div class="bonoxs-card-badge">ARS</div>
-     <div class="bonoxs-card-icon"><i class="fa-solid fa-wallet"></i></div>
-     <h4>MERCADO PAGO</h4>
-     <p>Acreditación Directa</p>
-     <span class="btn-bonoxs-select"><i class="fa-solid fa-chevron-down"></i> Ver Paquetes ARS</span>
-   </div>
-
-   <div class="bonoxs-card" id="card-binance" onclick="seleccionarMetodo('binance')">
-     <div class="bonoxs-card-badge usdt-badge">USDT</div>
-     <div class="bonoxs-card-icon binance-icon"><i class="fa-brands fa-bitcoin"></i></div>
-     <h4>BINANCE USDT</h4>
-     <p>Precio Revendedor</p>
-     <span class="btn-bonoxs-select"><i class="fa-solid fa-chevron-down"></i> Ver Paquetes USD</span>
-   </div>
+ <!-- TARJETA MERCADO PAGO -->
+ <div class="bonoxs-card active" id="card-mp" onclick="seleccionarMetodo('mp')">
+ <div class="bonoxs-card-badge">ARS</div>
+ <div class="bonoxs-card-icon"><i class="fa-solid fa-wallet"></i></div>
+ <h4>MERCADO PAGO</h4>
+ <p>Acreditación Directa</p>
+ <span class="btn-bonoxs-select"><i class="fa-solid fa-chevron-down"></i> Ver Paquetes ARS</span>
  </div>
-
+ 
+ <!-- TARJETA BINANCE USDT -->
+ <div class="bonoxs-card" id="card-binance" onclick="seleccionarMetodo('binance')">
+ <div class="bonoxs-card-badge usdt-badge">USDT</div>
+ <div class="bonoxs-card-icon binance-icon"><i class="fa-brands fa-bitcoin"></i></div>
+ <h4>BINANCE USDT</h4>
+ <p>Precio Revendedor</p>
+ <span class="btn-bonoxs-select"><i class="fa-solid fa-chevron-down"></i> Ver Paquetes USD</span>
+ </div>
+ </div>
+ 
+ <!-- CONTENEDOR EXPANDIDO: MERCADO PAGO -->
  <div id="grid-mp" class="diamonds-grid-container">
-   <div class="expanded-box-header">
-     <i class="fa-solid fa-bolt" style="color: #009ee3;"></i> <span>Paquetes Mercado Pago (ARS)</span>
-   </div>
-   <div class="grid-diamonds">
-     <div class="diamond-box">
-       <span class="icon">💎</span>
-       <h4>110 Diamantes</h4> 
-       <p class="price">ARS $1.463</p>
-       <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'ARS $1.463')">Mercado Pago</a>
-     </div>
-     <div class="diamond-box">
-       <span class="icon">💎</span>
-       <h4>341 Diamantes</h4>
-       <p class="price">ARS $4.555</p>
-       <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'ARS $4.555')">Mercado Pago</a>
-     </div>
-     <div class="diamond-box">
-       <span class="icon">💎</span>
-       <h4>572 Diamantes</h4>
-       <p class="price">ARS $8.059</p>
-       <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'ARS $8.059')">Mercado Pago</a>
-     </div>
-     <div class="diamond-box">
-       <span class="icon">💎</span>
-       <h4>1.166 Diamantes</h4>
-       <p class="price">ARS $14.690</p>
-       <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'ARS $14.690')">Mercado Pago</a>
-     </div>
-     <div class="diamond-box">
-       <span class="icon">💎</span>
-       <h4>2.398 Diamantes</h4>
-       <p class="price">ARS $27.602</p>
-       <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'ARS $27.602')">Mercado Pago</a>
-     </div>
-     <div class="diamond-box">
-       <span class="icon">💎</span>
-       <h4>6.160 Diamantes</h4>
-       <p class="price">ARS $67.750</p>
-       <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'ARS $67.750')">Mercado Pago</a>
-     </div>
-   </div>
+ <div class="expanded-box-header">
+ <i class="fa-solid fa-bolt" style="color: #009ee3;"></i> <span>Paquetes Mercado Pago (ARS)</span>
  </div>
-
+ <div class="grid-diamonds">
+ <div class="diamond-box">
+ <span class="icon">💎</span>
+ <h4>110 Diamantes</h4> 
+<p class="price">ARS $1.463</p>
+ <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'ARS $1.463')">Mercado Pago</a>
+ </div>
+ <div class="diamond-box">
+ <span class="icon">💎</span>
+ <h4>341 Diamantes</h4>
+ <p class="price">ARS $4.555</p>
+ <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'ARS $4.555')">Mercado Pago</a>
+ </div>
+ <div class="diamond-box">
+ <span class="icon">💎</span>
+ <h4>572 Diamantes</h4>
+ <p class="price">ARS $8.059</p>
+ <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'ARS $8.059')">Mercado Pago</a>
+ </div>
+ <div class="diamond-box">
+ <span class="icon">💎</span>
+ <h4>1.166 Diamantes</h4>
+ <p class="price">ARS $14.690</p>
+ <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'ARS $14.690')">Mercado Pago</a>
+ </div>
+ <div class="diamond-box">
+ <span class="icon">💎</span>
+ <h4>2.398 Diamantes</h4>
+ <p class="price">ARS $27.602</p>
+ <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'ARS $27.602')">Mercado Pago</a>
+ </div>
+ <div class="diamond-box">
+ <span class="icon">💎</span>
+ <h4>6.160 Diamantes</h4>
+ <p class="price">ARS $67.750</p>
+ <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'ARS $67.750')">Mercado Pago</a>
+ </div>
+ </div>
+ </div>
+ 
+ <!-- CONTENEDOR EXPANDIDO: BINANCE USDT (OCULTO POR DEFECTO) -->
  <div id="grid-binance" class="diamonds-grid-container" style="display: none;">
-   <div class="expanded-box-header binance-header">
-     <i class="fa-brands fa-bitcoin" style="color: #f3ba2f;"></i> <span>Paquetes Binance USDT (USD)</span>
-   </div>
-   <div class="grid-diamonds">
-     <div class="diamond-box reseller-box">
-       <span class="icon">💎</span>
-       <h4>110 Diamantes</h4>
-       <p class="price usdt-price">USD 0,86</p>
-       <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'USD 0,86 con Binance USDT')">Comprar USDT</a>
-     </div>
-     <div class="diamond-box reseller-box">
-       <span class="icon">💎</span>
-       <h4>341 Diamantes</h4>
-       <p class="price usdt-price">USD 2,45</p>
-       <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'USD 2,45 con Binance USDT')">Comprar USDT</a>
-     </div>
-     <div class="diamond-box reseller-box">
-       <span class="icon">💎</span>
-       <h4>572 Diamantes</h4>
-       <p class="price usdt-price">USD 4,16</p>
-       <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'USD 4,16 con Binance USDT')">Comprar USDT</a>
-     </div>
-     <div class="diamond-box reseller-box">
-       <span class="icon">💎</span>
-       <h4>1.166 Diamantes</h4>
-       <p class="price usdt-price">USD 8,27</p>
-       <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'USD 8,27 con Binance USDT')">Comprar USDT</a>
-     </div>
-     <div class="diamond-box reseller-box">
-       <span class="icon">💎</span>
-       <h4>2.398 Diamantes</h4>
-       <p class="price usdt-price">USD 16,10</p>
-       <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'USD 16,10 con Binance USDT')">Comprar USDT</a>
-     </div>
-     <div class="diamond-box reseller-box">
-       <span class="icon">💎</span>
-       <h4>6.160 Diamantes</h4>
-       <p class="price usdt-price">USD 40,55</p>
-       <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'USD 40,55 con Binance USDT')">Comprar USDT</a>
-     </div>
-   </div>
+ <div class="expanded-box-header binance-header">
+ <i class="fa-brands fa-bitcoin" style="color: #f3ba2f;"></i> <span>Paquetes Binance USDT (USD)</span>
  </div>
-
+ <div class="grid-diamonds">
+ <div class="diamond-box reseller-box">
+ <span class="icon">💎</span>
+ <h4>110 Diamantes</h4>
+ <p class="price usdt-price">USD 0,86</p>
+ <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'USD 0,86 con Binance USDT')">Comprar USDT</a>
+ </div>
+ <div class="diamond-box reseller-box">
+ <span class="icon">💎</span>
+ <h4>341 Diamantes</h4>
+ <p class="price usdt-price">USD 2,45</p>
+ <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'USD 2,45 con Binance USDT')">Comprar USDT</a>
+ </div>
+ <div class="diamond-box reseller-box">
+ <span class="icon">💎</span>
+ <h4>572 Diamantes</h4>
+ <p class="price usdt-price">USD 4,16</p>
+ <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'USD 4,16 con Binance USDT')">Comprar USDT</a>
+ </div>
+ <div class="diamond-box reseller-box">
+ <span class="icon">💎</span>
+ <h4>1.166 Diamantes</h4>
+ <p class="price usdt-price">USD 8,27</p>
+ <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'USD 8,27 con Binance USDT')">Comprar USDT</a>
+ </div>
+ <div class="diamond-box reseller-box">
+ <span class="icon">💎</span>
+ <h4>2.398 Diamantes</h4>
+ <p class="price usdt-price">USD 16,10</p>
+ <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'USD 16,10 con Binance USDT')">Comprar USDT</a>
+ </div>
+ <div class="diamond-box reseller-box">
+ <span class="icon">💎</span>
+ <h4>6.160 Diamantes</h4>
+ <p class="price usdt-price">USD 40,55</p>
+ <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'USD 40,55 con Binance USDT')">Comprar USDT</a>
+ </div>
+ </div>
+ </div>
+ 
  </section>
  </div>
-
+ 
+ <!-- COLUMNA DERECHA: CHAT EN VIVO Y BIENVENIDA -->
  <div class="right-widgets-col">
-
+ 
  <div class="chat-widget-card">
  <div class="chat-widget-header">
  <span><i class="fa-solid fa-comments"></i> CHAT EN VIVO: ALMA ZARELA</span>
@@ -417,17 +455,17 @@
  <div class="chat-message admin-msg">HOLA, ¿en qué te puedo ayudar hoy? Iniciá sesión con Google para guardar tu historial de compras.</div>
  </div>
  <div class="chat-input-area">
- <input type="file" id="chat-file-input" accept="image/*" style="display: none;">
+ <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarComprobanteFirebase()">
  <button type="button" class="btn-attach" onclick="document.getElementById('chat-file-input').click()" title="Adjuntar Comprobante">
  <i class="fa-solid fa-paperclip"></i>
  </button>
- <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí...">
- <button type="button" class="btn-send" title="Enviar mensaje">
+ <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí..." onkeydown="if(event.key === 'Enter'){ enviarMensajeFirebase(); }">
+ <button type="button" class="btn-send" onclick="enviarMensajeFirebase()" title="Enviar mensaje">
  <i class="fa-solid fa-paper-plane"></i>
  </button>
  </div>
  </div>
-
+ 
  <div class="sakura-welcome-card">
  <div class="sakura-badge-icon">🌸</div>
  <h2 class="sakura-title">BIENVENIDOS</h2>
@@ -435,9 +473,9 @@
  <h3 class="sakura-brand">RECARGAS ZARELA</h3>
  </div>
  </div>
-
+ 
  </div>
-
+ 
  <section class="card">
  <div class="step-title">
  <span class="badge">3</span>
@@ -449,23 +487,23 @@
  <span class="pay-tag" style="background: rgba(74, 70, 87, 0.26); color: #f3ba2f; border: 1px solid #ceb577;">Binance USDT</span>
  </div>
  </section>
-
+ 
  <section class="card auth-card" id="auth-section">
  <div class="step-title">
  <span class="badge"><i class="fa-solid fa-user-gear"></i></span>
  <h3>Cuenta Revendedor</h3>
  </div>
-
+ 
  <div id="auth-forms" class="auth-box">
  <p class="auth-desc">Iniciá sesión con tu cuenta de Google para gestionar tu monedero y chatear con soporte.</p>
- <button type="button" class="btn-google-login" onclick="loginConGoogle()">
-   <i class="fa-brands fa-google" style="color: #ea4335;"></i> Iniciar Sesión con Google
+ <button class="btn-google-login" onclick="loginConGoogle()">
+ <i class="fa-brands fa-google" style="color: #ea4335;"></i> Iniciar Sesión con Google
  </button>
  </div>
-
+ 
  <div id="user-dashboard" class="dashboard-box" style="display: none;">
  <div class="dashboard-header">
- <span>Bienvenido, <b id="user-email-display">usuario@gmail.com</b></span>
+ <span class="dashboard-user-text">Bienvenido, <b id="user-email-display">usuario@gmail.com</b></span>
  <button class="btn-logout" onclick="logoutGoogle()">Cerrar Sesión</button>
  </div>
  <div class="wallet-card">
@@ -478,7 +516,24 @@
  </div>
  </div>
  </section>
-
+ 
+ <!-- PANEL DE ADMINISTRADOR DE CHATS Y COMPROBANTES (SOLO VISIBLE PARA ADMIN) -->
+ <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
+ <div class="step-title">
+ <span class="badge" style="background: #f3ba2f; color:#000;"><i class="fa-solid fa-shield-halved"></i></span>
+ <h3 style="color: #f3ba2f;">PANEL ADMINISTRADOR - MENSAJES Y SALDOS</h3>
+ </div>
+ <p style="font-size: 13px; color: #aaa; margin-bottom: 12px;">Seleccioná un cliente para ver sus comprobantes y acreditarle saldo:</p>
+ <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+ <div style="flex: 1; min-width: 200px; background: #0e0f16; border-radius: 8px; padding: 10px; height: 200px; overflow-y: auto;" id="admin-users-list">
+ <p style="font-size: 12px; color: #666;">Cargando lista de clientes...</p>
+ </div>
+ <div style="flex: 2; min-width: 250px; background: #0e0f16; border-radius: 8px; padding: 12px; display: flex; flex-direction: column;" id="admin-chat-view">
+ <p style="font-size: 13px; color: #888; text-align: center; margin-auto;">Seleccioná un usuario de la izquierda</p>
+ </div>
+ </div>
+ </section>
+ 
  <section class="card comments-section">
  <div class="step-title">
  <span class="badge"><i class="fa-solid fa-comments"></i></span>
@@ -496,49 +551,603 @@
  </div>
  </div>
  </section>
-
+ 
  </div>
-
+ 
  <footer>
  <p>© Tienda de Recargas Independiente. Todos los derechos reservados.</p>
  </footer>
-
- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+ 
+ <audio id="musica-fondo" loop preload="auto">
+ <source src="musica.mp3" type="audio/mpeg">
+ </audio>
+ 
+ <button id="btn-musica" class="btn-musica-flotante" onclick="toggleMusica()" aria-label="Reproducir Música">
+ <img src="disco.jpg" id="imagen-disco" alt="Disco de Música" onerror="this.style.opacity='0';">
+ <i id="icono-musica" class="fa-solid fa-play"></i>
+ </button>
+ 
+ <!-- Carga SDK de Firebase Modular desde CDN -->
+ <script type="module">
+ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+ import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+ 
+ // CREDENCIALES REALES DE TU PROYECTO FIREBASE (zarela-4c939)
+ const firebaseConfig = {
+ apiKey: "AIzaSyBro_YXlV6MFA5OMwgTiK9KKZ16EsiwPIU",
+ authDomain: "zarela-4c939.firebaseapp.com",
+ projectId: "zarela-4c939",
+ storageBucket: "zarela-4c939.firebasestorage.app",
+ messagingSenderId: "28824081083",
+ appId: "1:28824081083:web:89a8dae9aa4575abe2cf9e",
+ measurementId: "G-RYS9P9K8D7"
+ };
+ 
+ const app = initializeApp(firebaseConfig);
+ const auth = getAuth(app);
+ const db = getFirestore(app);
+ const provider = new GoogleAuthProvider();
+ 
+ // URLS DE TUS WEBHOOKS DE N8N
+ const WEBHOOK_INICIO_SESION = 'https://almazarela.app.n8n.cloud/webhook-test/aedc036b-b380-4f4f-85d9-ecfc032c3be9';
+ const WEBHOOK_CHAT_CLIENTES = 'https://almazarela.app.n8n.cloud/webhook-test/14200234-eee8-4b90-a4a3-1306b12c377f';
+ 
+ let usuarioActual = null;
+ let unsubscribeChat = null;
+ let adminSelectedUser = null;
+ 
+ // LOGIN GOOGLE CON ENVÍO A WEBHOOK DE INICIO DE SESIÓN
+ window.loginConGoogle = async function() {
+ try {
+ const result = await signInWithPopup(auth, provider);
+ const user = result.user;
+ console.log("Logueado con éxito:", user);
+ 
+ // Enviar datos de inicio de sesión al webhook correspondiente
+ fetch(WEBHOOK_INICIO_SESION, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ event: 'inicio_sesion',
+ uid: user.uid,
+ email: user.email,
+ displayName: user.displayName || 'Sin nombre',
+ photoURL: user.photoURL || '',
+ timestamp: new Date().toISOString()
+ })
+ }).catch(err => console.error("Error enviando inicio de sesión al webhook:", err));
+ 
+ } catch (error) {
+ console.error("Error al iniciar sesión:", error);
+ alert("No se pudo completar el inicio de sesión con Google.");
+ }
+ };
+ 
+ window.logoutGoogle = function() {
+ signOut(auth);
+ };
+ 
+ // OBSERVAR ESTADO DE AUTENTICACIÓN
+ onAuthStateChanged(auth, async (user) => {
+ usuarioActual = user;
+ if (user) {
+ document.getElementById('auth-forms').style.display = 'none';
+ document.getElementById('user-dashboard').style.display = 'block';
+ document.getElementById('user-email-display').innerText = user.email;
+ 
+ // Cargar o crear datos de usuario en Firestore
+ const userRef = doc(db, "users", user.uid);
+ const userSnap = await getDoc(userRef);
+  
+if (!userSnap.exists()) {
+ await setDoc(userRef, {
+ email: user.email,
+ displayName: user.displayName || 'Cliente',
+ saldoUSD: 0.00
+ });
+ } else {
+ const data = userSnap.data();
+ window.saldoActualUSD = data.saldoUSD || 0.00;
+ window.actualizarPantallaSaldo();
+ }
+ 
+ escucharMensajesFirebase(user.uid);
+ 
+ // Verificación de Administrador (Tu cuenta)
+ if (user.email === 'almita.zarela@gmail.com' || user.email.includes('admin')) {
+ document.getElementById('admin-panel-section').style.display = 'block';
+ cargarListaClientesAdmin();
+ }
+ 
+ } else {
+ document.getElementById('auth-forms').style.display = 'block';
+ document.getElementById('user-dashboard').style.display = 'none';
+ document.getElementById('admin-panel-section').style.display = 'none';
+ if (unsubscribeChat) unsubscribeChat();
+ }
+ });
+ 
+ // ENVIAR MENSAJE AL CHAT DE FIREBASE Y AL WEBHOOK CHAT-CLIENTES
+ window.enviarMensajeFirebase = async function() {
+ const input = document.getElementById('chat-user-input');
+ const texto = input.value.trim();
+ if (!texto) return;
+ 
+ if (!usuarioActual) {
+ alert("Por favor iniciá sesión con Google para enviar mensajes.");
+ window.loginConGoogle();
+ return;
+ }
+ 
+ const mensajeData = {
+ sender: usuarioActual.email,
+ uid: usuarioActual.uid,
+ text: texto,
+ type: 'texto',
+ timestamp: new Date().toISOString()
+ };
+ 
+ try {
+ // Guardar en Firestore
+ await addDoc(collection(db, "chats", usuarioActual.uid, "messages"), {
+ sender: usuarioActual.email,
+ text: texto,
+ timestamp: new Date()
+ });
+ 
+ // Enviar al Webhook chat-clientes
+ fetch(WEBHOOK_CHAT_CLIENTES, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify(mensajeData)
+ }).catch(err => console.error("Error enviando mensaje al webhook chat-clientes:", err));
+ 
+ input.value = '';
+ } catch (e) {
+ console.error("Error enviando mensaje: ", e);
+ }
+ };
+ 
+ // ENVIAR COMPROBANTE DE PAGO Y ARCHIVOS AL CHAT Y AL WEBHOOK CHAT-CLIENTES
+ window.enviarComprobanteFirebase = async function() {
+ const fileInput = document.getElementById('chat-file-input');
+ const file = fileInput.files[0];
+ if (!file) return;
+ 
+ if (!usuarioActual) {
+ alert("Iniciá sesión con Google para adjuntar comprobantes.");
+ fileInput.value = '';
+ return;
+ }
+ 
+ const reader = new FileReader();
+ reader.onload = async function(e) {
+ const base64Image = e.target.result;
+ const textoAdjunto = '📄 Comprobante adjunto: ' + file.name;
+ 
+ try {
+ // Guardar en Firestore
+ await addDoc(collection(db, "chats", usuarioActual.uid, "messages"), {
+ sender: usuarioActual.email,
+ text: textoAdjunto,
+ image: base64Image,
+ timestamp: new Date()
+ });
+ 
+ // Enviar al Webhook chat-clientes (incluyendo la foto/archivo en base64)
+ fetch(WEBHOOK_CHAT_CLIENTES, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ event: 'archivo_adjunto',
+ uid: usuarioActual.uid,
+ sender: usuarioActual.email,
+ text: textoAdjunto,
+ fileName: file.name,
+ image: base64Image,
+ timestamp: new Date().toISOString()
+ })
+ }).catch(err => console.error("Error enviando archivo al webhook chat-clientes:", err));
+ 
+ fileInput.value = '';
+ } catch (err) {
+ console.error("Error al procesar archivo adjunto:", err);
+ }
+ };
+ reader.readAsDataURL(file);
+ };
+ 
+ // ESCUCHAR MENSAJES EN TIEMPO REAL
+ function escucharMensajesFirebase(uid) {
+ if (unsubscribeChat) unsubscribeChat();
+ const q = query(collection(db, "chats", uid, "messages"), orderBy("timestamp", "asc"));
+  
+unsubscribeChat = onSnapshot(q, (snapshot) => {
+ const area = document.getElementById('chat-messages-container');
+ area.innerHTML = '';
+ snapshot.forEach((docSnap) => {
+ const msg = docSnap.data();
+ const div = document.createElement('div');
+ div.className = msg.sender === 'almita.zarela@gmail.com' ? 'chat-message admin-msg' : 'chat-message user-msg';
+ div.textContent = msg.text;
+ if (msg.image) {
+ const img = document.createElement('img');
+ img.src = msg.image;
+ img.style.maxWidth = '100%';
+ img.style.borderRadius = '8px';
+ img.style.marginTop = '6px';
+ div.appendChild(img);
+ }
+ area.appendChild(div);
+ });
+ area.scrollTop = area.scrollHeight;
+ });
+ }
+ 
+ // FUNCIONES PANEL ADMINISTRADOR
+ function cargarListaClientesAdmin() {
+ onSnapshot(collection(db, "users"), (snapshot) => {
+ const container = document.getElementById('admin-users-list');
+ container.innerHTML = '';
+ snapshot.forEach((docSnap) => {
+ const u = docSnap.data();
+ const id = docSnap.id;
+ const div = document.createElement('div');
+ div.style.padding = '8px';
+ div.style.borderBottom = '1px solid #222';
+ div.style.cursor = 'pointer';
+ div.style.fontSize = '12px';
+ div.innerHTML = `<b>${u.displayName || u.email}</b><br><span style="color:#4ef38d;">Saldo: $${(u.saldoUSD||0).toFixed(2)} USD</span>`;
+ div.onclick = () => abrirChatAdmin(id, u);
+ container.appendChild(div);
+ });
+ });
+ }
+ 
+ function abrirChatAdmin(uid, userObj) {
+ adminSelectedUser = uid;
+ const view = document.getElementById('admin-chat-view');
+ view.innerHTML = `
+ <div style="border-bottom:1px solid #333; padding-bottom:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+ <span style="font-size:13px; color:#fff;">Chat con: <b>${userObj.email}</b></span>
+ <button onclick="acreditarSaldoAdmin('${uid}')" style="background:#2ecc71; border:none; border-radius:4px; padding:4px 8px; font-weight:bold; cursor:pointer;">+ Cargar Saldo</button>
+ </div>
+ <div id="admin-msg-box" style="flex:1; overflow-y:auto; font-size:12px; margin-bottom:8px;"></div>
+ <div style="display:flex; gap:6px;">
+ <input type="text" id="admin-input-reply" placeholder="Responder al cliente..." style="flex:1; padding:6px; border-radius:4px; border:1px solid #333; background:#161822; color:#fff;">
+ <button onclick="enviarRespuestaAdmin('${uid}')" style="background:#f3ba2f; border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">Enviar</button>
+ </div>
+ `;
+ 
+ const q = query(collection(db, "chats", uid, "messages"), orderBy("timestamp", "asc"));
+ onSnapshot(q, (snapshot) => {
+ const box = document.getElementById('admin-msg-box');
+ if (!box) return;
+ box.innerHTML = '';
+ snapshot.forEach((docSnap) => {
+ const m = docSnap.data();
+ const d = document.createElement('div');
+ d.style.margin = '4px 0';
+ d.style.color = m.sender === 'almita.zarela@gmail.com' ? '#f3ba2f' : '#fff';
+ d.innerHTML = `<b>${m.sender}:</b> ${m.text}`;
+ if (m.image) {
+ const img = document.createElement('img');
+ img.src = m.image;
+ img.style.maxWidth = '150px';
+ img.style.display = 'block';
+ d.appendChild(img);
+ }
+ box.appendChild(d);
+ });
+ box.scrollTop = box.scrollHeight;
+ });
+ }
+ 
+ window.enviarRespuestaAdmin = async function(uid) {
+ const inp = document.getElementById('admin-input-reply');
+ const val = inp.value.trim();
+ if (!val) return;
+ await addDoc(collection(db, "chats", uid, "messages"), {
+ sender: 'almita.zarela@gmail.com',
+ text: val,
+ timestamp: new Date()
+ });
+ inp.value = '';
+ };
+ 
+ window.acreditarSaldoAdmin = async function(uid) {
+ const monto = parseFloat(prompt("Ingresá el monto en USD a acreditar al cliente:"));
+ if (monto && monto > 0) {
+ const userRef = doc(db, "users", uid);
+ const snap = await getDoc(userRef);
+ const actual = snap.exists() ? (snap.data().saldoUSD || 0) : 0;
+ await setDoc(userRef, { saldoUSD: actual + monto }, { merge: true });
+ alert("¡Saldo acreditado con éxito!");
+ }
+ };
+ 
+ </script>
+ 
  <script>
-  const SUPABASE_URL = 'https://egtuaihydqkmaqehgrnd.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_fEVgUFX5bTcoMCqjsT44-A_tgw4p...';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-  async function loginConGoogle() {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: 'https://almazarela.github.io/diamantes/'
-      }
-    });
-
-    if (error) {
-      console.error("Error al iniciar sesión con Google:", error.message);
-      alert("No se pudo iniciar sesión con Google: " + error.message);
-    }
-  }
-
-  async function logoutGoogle() {
-    await supabase.auth.signOut();
-    location.reload();
-  }
-
-  supabase.auth.onAuthStateChange((event, session) => {
-    if (session && session.user) {
-      document.getElementById('auth-forms').style.display = 'none';
-      document.getElementById('user-dashboard').style.display = 'block';
-      document.getElementById('user-email-display').innerText = session.user.email;
-    } else {
-      document.getElementById('auth-forms').style.display = 'block';
-      document.getElementById('user-dashboard').style.display = 'none';
-    }
-  });
+ /* ===== CONFIGURACIÓN Y FUNCIONES GENERALES ===== */
+ const N8N_WEBHOOK_URL = 'https://almazarela.app.n8n.cloud/webhook-test/0764aae1-cc1b-4f67-9635-5c44ceac4544';
+ const WHATSAPP_NUMERO = '54911XXXXXXXX';
+ const BINANCE_PAY_LINK = 'https://www.binance.com';
+ const MERCADO_PAGO_LINK = 'https://www.mercadopago.com.ar';
+ 
+ window.saldoActualUSD = parseFloat(localStorage.getItem('saldoUSD')) || 0.00;
+ 
+ window.actualizarPantallaSaldo = function() {
+ const badgeHeader = document.getElementById('header-balance-amount');
+ if (badgeHeader) badgeHeader.innerText = '$' + window.saldoActualUSD.toFixed(2);
+  
+const balanceSidebar = document.getElementById('menu-wallet-balance');
+ if (balanceSidebar) balanceSidebar.innerText = '$' + window.saldoActualUSD.toFixed(2) + ' USD';
+ 
+ const userBalance = document.getElementById('user-balance');
+ if (userBalance) userBalance.innerText = '$' + window.saldoActualUSD.toFixed(2) + ' USD';
+ };
+ 
+ window.seleccionarMetodo = function(metodo) {
+ const cardMp = document.getElementById('card-mp');
+ const cardBinance = document.getElementById('card-binance');
+ const gridMp = document.getElementById('grid-mp');
+ const gridBinance = document.getElementById('grid-binance');
+ 
+ if (metodo === 'mp') {
+ cardMp.classList.add('active');
+ cardBinance.classList.remove('active');
+ gridMp.style.display = 'block';
+ gridBinance.style.display = 'none';
+ } else {
+ cardBinance.classList.add('active');
+ cardMp.classList.remove('active');
+ gridBinance.style.display = 'block';
+ gridMp.style.display = 'none';
+ }
+ };
+ 
+ /* MODALES DE CARGA DE SALDO */
+ window.abrirModalSeleccionCarga = function() {
+ document.getElementById('modal-seleccion-carga').style.display = 'flex';
+ };
+ 
+ window.cerrarModalSeleccionCarga = function() {
+ document.getElementById('modal-seleccion-carga').style.display = 'none';
+ };
+ 
+ window.abrirModalBinance = function() {
+ window.cerrarModalSeleccionCarga();
+ document.getElementById('modal-binance').style.display = 'flex';
+ };
+ 
+ window.cerrarModalBinance = function() {
+ document.getElementById('modal-binance').style.display = 'none';
+ };
+ 
+ window.abrirModalMercadoPagoSaldo = function() {
+ window.cerrarModalSeleccionCarga();
+ document.getElementById('modal-mercadopago').style.display = 'flex';
+ };
+ 
+ window.cerrarModalMercadoPagoSaldo = function() {
+ document.getElementById('modal-mercadopago').style.display = 'none';
+ };
+ 
+ window.procesarPagoBinanceSeguro = function() {
+ const montoInput = parseFloat(document.getElementById('monto-usdt').value);
+ if (!montoInput || montoInput <= 0) {
+ alert('Por favor ingresá un monto válido.');
+ return;
+ }
+ 
+ window.open(BINANCE_PAY_LINK, '_blank');
+ window.cerrarModalBinance();
+ alert('Redirigiendo a Binance...\n\n⚠️ ATENCIÓN: El saldo se acreditará en tu cuenta una vez que adjuntes el comprobante en el chat.');
+ };
+ 
+ window.procesarPagoMPSeguro = function() {
+ const montoInput = parseFloat(document.getElementById('monto-mp').value);
+ if (!montoInput || montoInput <= 0) {
+ alert('Por favor ingresá un monto válido.');
+ return;
+ }
+ 
+ window.open(MERCADO_PAGO_LINK, '_blank');
+ window.cerrarModalMercadoPagoSaldo();
+ alert('Redirigiendo a Mercado Pago...\n\n⚠️ ATENCIÓN: El saldo se acreditará en tu cuenta una vez que adjuntes el comprobante en el chat.');
+ };
+  
+/* ===== VERIFICADOR DE ID DE JUGADOR ===== */
+ let jugadorVerificado = null;
+  
+function mostrarEstado(texto, tipo) {
+ const el = document.getElementById('verify-status');
+ el.textContent = texto;
+ el.className = 'verify-status ' + (tipo || '');
+ }
+  
+function ocultarJugador() {
+ document.getElementById('player-card').hidden = true;
+ jugadorVerificado = null;
+ }
+  
+function mostrarJugador(data) {
+ document.getElementById('player-name').textContent = data.nickname || 'Jugador';
+ const meta = [];
+ if (data.level) meta.push('Nivel ' + data.level);
+ if (data.rank) meta.push(data.rank);
+ if (data.region) meta.push('Región ' + data.region);
+ meta.push('ID ' + data.playerId);
+ document.getElementById('player-meta').textContent = meta.join(' · ');
+  
+const img = document.getElementById('player-avatar-img');
+ const caja = img.parentElement;
+ img.hidden = true; caja.classList.remove('con-img');
+ if (data.avatar) {
+ img.onload = function () { img.hidden = false; caja.classList.add('con-img'); };
+ img.onerror = function () { img.hidden = true; caja.classList.remove('con-img'); };
+ img.src = data.avatar;
+ }
+  
+const card = document.getElementById('player-card');
+ card.classList.remove('con-banner');
+ card.style.removeProperty('--banner');
+ if (data.banner) {
+ const pre = new Image();
+ pre.onload = function () {
+ card.style.setProperty('--banner', 'url("' + data.banner + '")');
+ card.classList.add('con-banner');
+ };
+ pre.src = data.banner;
+ }
+ card.hidden = false;
+ }
+  
+async function verificarJugador() {
+ const input = document.getElementById('player-id');
+ const btn = document.getElementById('btn-verificar');
+ const id = input.value.replace(/\D/g, '');
+ input.value = id;
+  
+if (id.length < 5 || id.length > 13) {
+ ocultarJugador();
+ mostrarEstado('Ingresá un ID válido (solo números).', 'error');
+ return;
+ }
+  
+btn.disabled = true;
+ btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Verificando...</span>';
+ ocultarJugador();
+ mostrarEstado('Buscando jugador...', 'loading');
+  
+const controller = new AbortController();
+ const timer = setTimeout(() => controller.abort(), 35000);
+  
+try {
+ const res = await fetch(N8N_WEBHOOK_URL, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ playerId: id }),
+ signal: controller.signal
+ });
+ const data = await res.json();
+  
+if (data.valid) {
+ jugadorVerificado = { id: id, nickname: data.nickname };
+ mostrarJugador(data);
+ mostrarEstado('✅ ID verificado. Ya podés elegir tu recarga.', 'ok');
+ } else {
+ mostrarEstado('❌ No encontramos ese ID. Revisalo e intentá de nuevo.', 'error');
+ }
+ } catch (e) {
+ mostrarEstado(
+ e.name === 'AbortError'
+ ? 'El verificador tardó demasiado. Probá de nuevo.'
+ : 'No se pudo conectar con el verificador. Probá de nuevo en unos segundos.',
+ 'error'
+ );
+ } finally {
+ clearTimeout(timer);
+ btn.disabled = false;
+ btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> <span>Verificar</span>';
+ }
+ }
+  
+document.getElementById('player-id').addEventListener('input', function () {
+ if (jugadorVerificado && this.value.trim() !== jugadorVerificado.id) {
+ ocultarJugador();
+ mostrarEstado('', '');
+ }
+ });
+ document.getElementById('player-id').addEventListener('keydown', function (e) {
+ if (e.key === 'Enter') verificarJugador();
+ });
+  
+function actualizarEnlaceWhatsApp(elem, paquete, precio) {
+ const idPlayer = document.getElementById('player-id').value.trim();
+ let msg = 'Hola! Quiero comprar ' + paquete + ' (' + precio + ').';
+ if (idPlayer) msg += ' Mi ID de Jugador es: ' + idPlayer;
+ if (jugadorVerificado && jugadorVerificado.id === idPlayer) {
+ msg += ' (Nombre: ' + jugadorVerificado.nickname + ')';
+ }
+ elem.href = 'https://wa.me/' + WHATSAPP_NUMERO + '?text=' + encodeURIComponent(msg);
+ }
+  
+function toggleMenu() {
+ document.getElementById('sidebar-menu').classList.toggle('open');
+ document.getElementById('menu-overlay').classList.toggle('open');
+ }
+  
+function toggleMusica() {
+ const audio = document.getElementById('musica-fondo');
+ const icono = document.getElementById('icono-musica');
+ const boton = document.getElementById('btn-musica');
+ if (audio.paused) {
+ icono.className = 'fa-solid fa-pause';
+ boton.classList.add('reproduciendo');
+ const p = audio.play();
+ if (p !== undefined) p.catch(() => console.log('Audio listo para reproducir.'));
+ } else {
+ audio.pause();
+ icono.className = 'fa-solid fa-play';
+ boton.classList.remove('reproduciendo');
+ }
+ }
+  
+let slideActual = 1;
+ const totalSlides = 5;
+ let autoSlideTimer = null;
+  
+function actualizarCarrusel() {
+ const slides = document.querySelectorAll('.carousel-slide');
+ const dots = document.querySelectorAll('.dot');
+ if (!slides.length) return;
+ slides.forEach((slide, i) => {
+ slide.className = 'carousel-slide';
+ if (i === slideActual) slide.classList.add('active');
+ else if (i === (slideActual - 1 + totalSlides) % totalSlides) slide.classList.add('prev');
+ else if (i === (slideActual + 1) % totalSlides) slide.classList.add('next');
+ else slide.classList.add('hidden');
+ });
+ dots.forEach((dot, i) => dot.classList.toggle('active', i === slideActual));
+ }
+  
+function moverCarrusel(dir) {
+ slideActual = (slideActual + dir + totalSlides) % totalSlides;
+ actualizarCarrusel();
+ iniciarTimer();
+ }
+  
+function irASlide(i) {
+ slideActual = i;
+ actualizarCarrusel();
+ iniciarTimer();
+ }
+  
+function iniciarTimer() {
+ clearInterval(autoSlideTimer);
+ autoSlideTimer = setInterval(() => moverCarrusel(1), 4000);
+ }
+  
+function iniciarContadorLive() {
+ const el = document.getElementById('online-count');
+ if (!el) return;
+ let count = Math.floor(Math.random() * 26) + 135;
+ el.innerText = count;
+ setInterval(() => {
+ count = Math.max(120, Math.min(190, count + Math.floor(Math.random() * 5) - 2));
+ el.innerText = count;
+ }, 3500);
+ }
+  
+document.addEventListener('DOMContentLoaded', function () {
+ actualizarCarrusel();
+ iniciarTimer();
+ iniciarContadorLive();
+ window.actualizarPantallaSaldo();
+ });
  </script>
 </body>
 </html>

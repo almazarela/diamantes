@@ -1112,4 +1112,5 @@ footer {
   .live-counter-text {
     font-size: 0.78rem;
   }
+  .category-header { min-height: 120px; }
 }
