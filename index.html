@@ -6,6 +6,7 @@
   <title>Centro de Recargas - Free Fire</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
   
 <style>
   .verify-row { display: flex; gap: 10px; align-items: stretch; }
@@ -57,7 +58,6 @@
   .verify-status.error { color: #ff5c5c; }
   .verify-status.loading { color: #f3ba2f; }
   
-  /* TARJETAS ESTILO BONOXS LADO A LADO */
   .bonoxs-method-selector {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -323,7 +323,7 @@
   <p class="subtext">⚠️ Verificá bien tu ID antes de enviar el pedido.</p>
   </section>
   
-  <!-- PASO 2: MÉTODOS COMPRIMIDOS ESTILO BONOXS -->
+  <!-- PASO 2: MÉTODOS ESTILO BONOXS -->
   <section class="card">
   <div class="step-title">
   <span class="badge">2</span>
@@ -331,7 +331,6 @@
   </div>
   
   <div class="bonoxs-method-selector">
-  <!-- TARJETA MERCADO PAGO -->
   <div class="bonoxs-card active" id="card-mp" onclick="seleccionarMetodo('mp')">
   <div class="bonoxs-card-badge">ARS</div>
   <div class="bonoxs-card-icon"><i class="fa-solid fa-wallet"></i></div>
@@ -340,7 +339,6 @@
   <span class="btn-bonoxs-select"><i class="fa-solid fa-chevron-down"></i> Ver Paquetes ARS</span>
   </div>
   
-  <!-- TARJETA BINANCE USDT -->
   <div class="bonoxs-card" id="card-binance" onclick="seleccionarMetodo('binance')">
   <div class="bonoxs-card-badge usdt-badge">USDT</div>
   <div class="bonoxs-card-icon binance-icon"><i class="fa-brands fa-bitcoin"></i></div>
@@ -350,7 +348,6 @@
   </div>
   </div>
   
-  <!-- CONTENEDOR EXPANDIDO: MERCADO PAGO -->
   <div id="grid-mp" class="diamonds-grid-container">
   <div class="expanded-box-header">
   <i class="fa-solid fa-bolt" style="color: #009ee3;"></i> <span>Paquetes Mercado Pago (ARS)</span>
@@ -395,7 +392,6 @@
   </div>
   </div>
   
-  <!-- CONTENEDOR EXPANDIDO: BINANCE USDT -->
   <div id="grid-binance" class="diamonds-grid-container" style="display: none;">
   <div class="expanded-box-header binance-header">
   <i class="fa-brands fa-bitcoin" style="color: #f3ba2f;"></i> <span>Paquetes Binance USDT (USD)</span>
@@ -439,13 +435,11 @@
   </div>
   </div>
   </div>
-  
   </section>
   </div>
   
-  <!-- COLUMNA DERECHA: CHAT EN VIVO Y BIENVENIDA -->
+  <!-- COLUMNA DERECHA: CHAT EN VIVO -->
   <div class="right-widgets-col">
-  
   <div class="chat-widget-card">
   <div class="chat-widget-header">
   <span><i class="fa-solid fa-comments"></i> CHAT EN VIVO: ALMA ZARELA</span>
@@ -455,13 +449,13 @@
   <div class="chat-message admin-msg">HOLA, ¿en qué te puedo ayudar hoy? Iniciá sesión con Google para guardar tu historial de compras.</div>
   </div>
   <div class="chat-input-area">
-   <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarComprobanteSupabase()">
+   <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarMensajeWebhook()">
    <button type="button" class="btn-attach" onclick="document.getElementById('chat-file-input').click()" title="Adjuntar Comprobante">
-    <i class="fa-solid fa-paperclip"></i>
+     <i class="fa-solid fa-paperclip"></i>
    </button>
-   <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí..." onkeydown="if(event.key === 'Enter'){ enviarMensajeSupabase(); }">
-   <button type="button" class="btn-send" onclick="enviarMensajeSupabase()" title="Enviar mensaje">
-    <i class="fa-solid fa-paper-plane"></i>
+   <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí..." onkeydown="if(event.key === 'Enter'){ enviarMensajeWebhook(); }">
+   <button type="button" class="btn-send" onclick="enviarMensajeWebhook()" title="Enviar mensaje">
+     <i class="fa-solid fa-paper-plane"></i>
    </button>
   </div>
   </div>
@@ -517,7 +511,6 @@
   </div>
   </section>
   
-  <!-- PANEL DE ADMINISTRADOR -->
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="step-title">
   <span class="badge" style="background: #f3ba2f; color:#000;"><i class="fa-solid fa-shield-halved"></i></span>
@@ -566,8 +559,56 @@
   <img src="disco.jpg" id="imagen-disco" alt="Disco de Música" onerror="this.style.opacity='0';">
   <i id="icono-musica" class="fa-solid fa-play"></i>
   </button>
+
+  <!-- Script único de Supabase (sin webhooks duplicados ni conflictos) -->
+  <script type="module">
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
   
-  <!-- SCRIPT CON SUPABASE -->
-  <script type="module" src="js/scripts.js"></script>
+  const SUPABASE_URL = 'https://egtuaihydqkmaqehgrnd.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_fEVgUFX5bTcoMCqjsT44-A_tgW4pVeZ';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
+  let usuarioActual = null;
+  
+  window.loginConGoogle = async function() {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.href }
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error al iniciar sesión con Supabase:", error);
+      alert("No se pudo completar el inicio de sesión.");
+    }
+  };
+
+  window.logoutGoogle = async function() {
+    await supabase.auth.signOut();
+    document.getElementById('auth-forms').style.display = 'block';
+    document.getElementById('user-dashboard').style.display = 'none';
+    document.getElementById('admin-panel-section').style.display = 'none';
+    usuarioActual = null;
+  };
+  
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    const user = session?.user || null;
+    usuarioActual = user;
+    
+    if (user) {
+      document.getElementById('auth-forms').style.display = 'none';
+      document.getElementById('user-dashboard').style.display = 'block';
+      document.getElementById('user-email-display').innerText = user.email;
+      
+      if (user.email === 'almita.zarela@gmail.com' || user.email.includes('admin')) {
+        document.getElementById('admin-panel-section').style.display = 'block';
+      }
+    } else {
+      document.getElementById('auth-forms').style.display = 'block';
+      document.getElementById('user-dashboard').style.display = 'none';
+      document.getElementById('admin-panel-section').style.display = 'none';
+    }
+  });
+  </script>
 </body>
 </html>

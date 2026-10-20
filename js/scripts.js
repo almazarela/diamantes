@@ -32,6 +32,7 @@ window.loginConGoogle = async function () {
         queryParams: {
           access_type: "offline",
           prompt: "select_account",
+          hl: "es",
         },
       },
     });
