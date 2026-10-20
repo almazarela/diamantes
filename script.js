@@ -75,3 +75,11 @@ async function enviarMensajeWebhook() {
     console.error('Error de red:', error);
   }
 }
+async function LoginConGoogle() {
+  const { data, error } = await window.supabase.auth.signInWithOAuth({
+    provider: 'google',
+  });
+  if (error) {
+    console.error('Error al iniciar sesión con Google:', error.message);
+  }
+}

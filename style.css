@@ -1114,3 +1114,9 @@ footer {
   }
   .category-header { min-height: 120px; }
 }
+@media only screen and (max-width: 768px) {
+  .player-card-con-banner {
+    width: 100%;
+    height: auto;
+  }
+}
