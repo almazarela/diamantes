@@ -33,16 +33,18 @@ if (window.supabase && typeof window.supabase.createClient === 'function') {
   });
 }
 
-// Iniciar sesión con Google de forma segura
+// Iniciar sesión con Google forzando la URL real del sitio en GitHub Pages
 window.loginConGoogle = async function() {
   if (!supabaseClient) {
-    alert("Supabase no está cargado correctamente.");
+    alert("Supabase no está inicializado.");
     return;
   }
   try {
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + window.location.pathname }
+      options: { 
+        redirectTo: 'https://almazarela.github.io/diamantes/' 
+      }
     });
     if (error) throw error;
   } catch (err) {
