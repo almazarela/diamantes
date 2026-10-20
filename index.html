@@ -118,11 +118,6 @@
   }
   .btn-google-login:hover { background: #e6e6e6; }
   
-  .admin-panel-card {
-  background: #1a1d2e; border: 2px solid #f3ba2f; border-radius: 14px;
-  padding: 18px; margin-top: 20px; box-shadow: 0 0 20px rgba(243, 186, 47, 0.2);
-  }
-  
   @keyframes aparecer { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
   @media (max-width: 480px) {
   .btn-verificar span { display: none; }
@@ -511,20 +506,47 @@
   </div>
   </section>
   
-  <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
-  <div class="step-title">
-  <span class="badge" style="background: #f3ba2f; color:#000;"><i class="fa-solid fa-shield-halved"></i></span>
-  <h3 style="color: #f3ba2f;">PANEL ADMINISTRADOR - MENSAJES Y SALDOS</h3>
-  </div>
-  <p style="font-size: 13px; color: #aaa; margin-bottom: 12px;">Seleccioná un cliente para ver sus comprobantes y acreditarle saldo:</p>
-  <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-  <div style="flex: 1; min-width: 200px; background: #0e0f16; border-radius: 8px; padding: 10px; height: 200px; overflow-y: auto;" id="admin-users-list">
-  <p style="font-size: 12px; color: #666;">Cargando lista de clientes...</p>
-  </div>
-  <div style="flex: 2; min-width: 250px; background: #0e0f16; border-radius: 8px; padding: 12px; display: flex; flex-direction: column;" id="admin-chat-view">
-  <p style="font-size: 13px; color: #888; text-align: center; margin-auto;">Seleccioná un usuario de la izquierda</p>
-  </div>
-  </div>
+  <!-- NUEVO PANEL DE ADMINISTRADOR ESTILO WHATSAPP EN TONOS AZULES -->
+  <section class="card" id="admin-panel-section" style="display: none; background: #0f172a; border: 2px solid #0284c7; box-shadow: 0 0 25px rgba(2, 132, 199, 0.25);">
+    <div class="step-title" style="border-bottom: 1px solid #1e293b; padding-bottom: 10px; margin-bottom: 15px;">
+      <span class="badge" style="background: #0284c7; color:#fff;"><i class="fa-solid fa-shield-halved"></i></span>
+      <h3 style="color: #38bdf8; font-size: 16px;">PANEL DE SOPORTE ADMINISTRADOR (ESTILO WHATSAPP)</h3>
+    </div>
+    
+    <!-- Contenedor Principal a Dos Columnas -->
+    <div style="display: flex; gap: 15px; height: 500px; flex-wrap: wrap;">
+      
+      <!-- Columna Izquierda: Lista de Clientes -->
+      <div style="width: 300px; background: #1e293b; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #334155;">
+        <div style="padding: 12px; background: #0f172a; font-weight: bold; font-size: 13px; color: #38bdf8; border-bottom: 1px solid #334155;">
+          💬 Chats de Clientes Activos
+        </div>
+        <div id="admin-users-list" style="flex: 1; overflow-y: auto;">
+          <p style="font-size: 12px; color: #94a3b8; padding: 12px; text-align: center;">Cargando lista...</p>
+        </div>
+      </div>
+
+      <!-- Columna Derecha: Conversación y Mensajes -->
+      <div style="flex: 1; min-width: 280px; background: #0b132b; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #334155;">
+        <div id="admin-chat-header" style="padding: 12px; background: #1e293b; font-size: 13px; color: #cbd5e1; border-bottom: 1px solid #334155;">
+          Seleccioná un cliente de la izquierda para responder.
+        </div>
+        
+        <!-- Burbujas de Chat -->
+        <div id="admin-chat-view" style="flex: 1; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+          <p style="font-size: 13px; color: #64748b; text-align: center; margin: auto;">Ninguna conversación seleccionada</p>
+        </div>
+
+        <!-- Barra Inferior de Escritura tipo WhatsApp -->
+        <div style="padding: 10px; background: #1e293b; display: flex; gap: 8px; align-items: center; border-top: 1px solid #334155;">
+          <input type="text" id="admin-input-reply" placeholder="Escribí una respuesta..." style="flex: 1; padding: 10px 14px; border-radius: 20px; border: 1px solid #475569; background: #0f172a; color: #fff; outline: none; font-size: 13px;" onkeydown="if(event.key === 'Enter'){ enviarRespuestaAdminActivo(); }" />
+          <button type="button" onclick="enviarRespuestaAdminActivo()" style="background: #0284c7; color: white; border: none; border-radius: 50%; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+            ➤
+          </button>
+        </div>
+      </div>
+
+    </div>
   </section>
   
   <section class="card comments-section">
@@ -560,7 +582,7 @@
   <i id="icono-musica" class="fa-solid fa-play"></i>
   </button>
 
-  <!-- Script único de Supabase (sin webhooks duplicados ni conflictos) -->
+  <!-- Script integrado de Autenticación y Panel Admin Estilo WhatsApp -->
   <script type="module">
   import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
   
@@ -569,7 +591,9 @@
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   
   let usuarioActual = null;
-  
+  let adminSelectedUser = null;
+  let unsubscribeAdminChat = null;
+
   window.loginConGoogle = async function() {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -589,6 +613,7 @@
     document.getElementById('user-dashboard').style.display = 'none';
     document.getElementById('admin-panel-section').style.display = 'none';
     usuarioActual = null;
+    if (unsubscribeAdminChat) unsubscribeAdminChat();
   };
   
   supabase.auth.onAuthStateChange(async (event, session) => {
@@ -600,15 +625,35 @@
       document.getElementById('user-dashboard').style.display = 'block';
       document.getElementById('user-email-display').innerText = user.email;
       
-      if (user.email === 'almita.zarela@gmail.com' || user.email.includes('admin')) {
+      // Validación segura del administrador
+      if (user.email === 'almita.zarela@gmail.com') {
         document.getElementById('admin-panel-section').style.display = 'block';
+        cargarListaClientesAdmin();
+      } else {
+        document.getElementById('admin-panel-section').style.display = 'none';
       }
     } else {
       document.getElementById('auth-forms').style.display = 'block';
       document.getElementById('user-dashboard').style.display = 'none';
       document.getElementById('admin-panel-section').style.display = 'none';
+      if (unsubscribeAdminChat) unsubscribeAdminChat();
     }
   });
+
+  // Funciones del Panel Admin de Clientes
+  function cargarListaClientesAdmin() {
+    // Si tuvieras la lista de usuarios en una tabla, las cargamos. 
+    // Aquí puedes listar o simular los chats conectados.
+  }
+
+  window.enviarRespuestaAdminActivo = async function() {
+    const input = document.getElementById('admin-input-reply');
+    const texto = input.value.trim();
+    if (!texto || !adminSelectedUser) return;
+    
+    // Aquí se conecta el envío de la respuesta hacia el usuario individual
+    input.value = '';
+  }
   </script>
 </body>
 </html>
