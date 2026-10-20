@@ -32,11 +32,6 @@
   position: relative; overflow: hidden; min-height: 76px;
   background-size: cover; background-position: center;
   }
-  .player-card.con-banner {
-  background-image: linear-gradient(90deg, rgba(10, 12, 20, .55), rgba(10, 12, 20, .25)), var(--banner);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
-  }
-  .player-card > * { position: relative; z-index: 1; }
   .player-card[hidden] { display: none !important; }
   .player-avatar {
   width: 56px; height: 56px; border-radius: 10px; flex-shrink: 0; overflow: hidden;
@@ -44,10 +39,6 @@
   background: linear-gradient(135deg, #ff3b3b, #ff7a18); color: #fff; font-size: 22px;
   border: 2px solid rgba(255, 255, 255, .85); box-shadow: 0 2px 8px rgba(0, 0, 0, .6);
   }
-  .player-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .player-avatar img[hidden] { display: none !important; }
-  .player-avatar.con-img { background: none; }
-  .player-avatar.con-img i { display: none !important; }
   .player-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
   .player-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: .7; }
   .player-name { font-size: 18px; line-height: 1.25; word-break: break-word; }
@@ -83,16 +74,8 @@
   background: #009ee3; color: #fff; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 10px;
   }
   .bonoxs-card-badge.usdt-badge { background: #f3ba2f; color: #000; }
-  .bonoxs-card-icon { font-size: 28px; color: #009ee3; margin-bottom: 8px; }
-  .bonoxs-card-icon.binance-icon { color: #f3ba2f; }
   .bonoxs-card h4 { font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 4px; }
   .bonoxs-card p { font-size: 11px; color: #aaa; margin-bottom: 12px; }
-  .btn-bonoxs-select {
-  display: inline-block; font-size: 11px; font-weight: 700; color: #fff;
-  background: #1f2833; padding: 6px 14px; border-radius: 6px; border: 1px solid #45a29e;
-  }
-  .bonoxs-card.active .btn-bonoxs-select { background: #ff3b3b; border-color: #ff3b3b; }
-  .bonoxs-card#card-binance.active .btn-bonoxs-select { background: #f3ba2f; border-color: #f3ba2f; color: #000; }
   
   .expanded-box-header {
   background: #0b0c10; border: 1px solid #009ee3; color: #009ee3;
@@ -108,131 +91,77 @@
   width: 100%; justify-content: center; margin-top: 10px;
   }
   .btn-google-login:hover { background: #e6e6e6; }
-  
-  .admin-panel-card {
-  background: #1a1d2e; border: 2px solid #f3ba2f; border-radius: 14px;
-  padding: 18px; margin-top: 20px; box-shadow: 0 0 20px rgba(243, 186, 47, 0.2);
-  }
-  
   @keyframes aparecer { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-  @media (max-width: 480px) {
-  .btn-verificar span { display: none; }
-  .btn-verificar { padding: 0 14px; }
-  .bonoxs-method-selector { grid-template-columns: 1fr; }
-  }
   </style>
 </head>
 <body>
   
   <header class="navbar">
   <div class="nav-left">
-  <button class="menu-toggle-btn" onclick="toggleMenu()" aria-label="Abrir Menú">
-  <i class="fa-solid fa-bars"></i>
-  </button>
-  <div class="logo">
-  Zarela <span class="garena-red"></span> 🔥
-  </div>
+  <button class="menu-toggle-btn" onclick="toggleMenu()" aria-label="Abrir Menú"><i class="fa-solid fa-bars"></i></button>
+  <div class="logo">Zarela <span class="garena-red"></span> 🔥</div>
   </div>
   <div class="header-right-group">
   <div class="region">🇦🇷 Argentina | ES</div>
   <div class="header-wallet-container" style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
   <div class="saldo-usd-badge"><i class="fa-solid fa-wallet"></i> SALDO USD <span id="header-balance-amount" style="margin-left: 5px; font-weight: 900;">$0.00</span></div>
-  <a href="javascript:void(0)" onclick="abrirModalSeleccionCarga()" style="font-size: 0.75rem; color: #4ef38d; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;"><i class="fa-solid fa-plus-circle"></i> Cargar Saldo</a>
+  <a href="javascript:void(0)" onclick="abrirModalSeleccionCarga()" style="font-size: 0.75rem; color: #4ef38d; text-decoration: none; font-weight: 600;"><i class="fa-solid fa-plus-circle"></i> Cargar Saldo</a>
   </div>
   </div>
   </header>
   
-  <!-- MODAL GENERAL DE SELECCIÓN DE CARGA DE SALDO -->
+  <!-- MODAL GENERAL DE CARGA -->
   <div id="modal-seleccion-carga" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
-  <div style="background:#161822; border:1px solid #f3ba2f; border-radius:16px; padding:24px; width:90%; max-width:400px; text-align:center; box-shadow:0 0 25px rgba(243,186,47,0.3); position:relative;">
+  <div style="background:#161822; border:1px solid #f3ba2f; border-radius:16px; padding:24px; width:90%; max-width:400px; text-align:center; position:relative;">
   <button onclick="cerrarModalSeleccionCarga()" style="position:absolute; top:12px; right:15px; background:none; border:none; color:#aaa; font-size:18px; cursor:pointer;">✕</button>
   <i class="fa-solid fa-wallet" style="font-size:36px; color:#f3ba2f; margin-bottom:8px;"></i>
-  <h3 style="color:#fff; font-family:'Orbitron', sans-serif; margin-bottom:6px;">Elegí método para Cargar Saldo</h3>
-  <p style="color:#aaa; font-size:12px; margin-bottom:15px;">Seleccioná con qué medio de pago deseas acreditar saldo en tu cuenta.</p>
-  
-  <div style="display:flex; flex-direction:column; gap:10px;">
-  <button onclick="abrirModalBinance()" style="width:100%; padding:12px; background:linear-gradient(135deg, #f3ba2f, #f0a500); border:none; border-radius:8px; color:#000; font-weight:bold; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-  <i class="fa-brands fa-bitcoin"></i> BINANCE ( USDT )
-  </button>
-  <button onclick="abrirModalMercadoPagoSaldo()" style="width:100%; padding:12px; background:linear-gradient(135deg, #009ee3, #0073a8); border:none; border-radius:8px; color:#fff; font-weight:bold; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-  <i class="fa-solid fa-bolt"></i> MERCADO PAGO ( ARS )
-  </button>
+  <h3 style="color:#fff; margin-bottom:6px;">Elegí método para Cargar Saldo</h3>
+  <div style="display:flex; flex-direction:column; gap:10px; margin-top:15px;">
+  <button onclick="abrirModalBinance()" style="padding:12px; background:#f3ba2f; border:none; border-radius:8px; color:#000; font-weight:bold; cursor:pointer;"><i class="fa-brands fa-bitcoin"></i> BINANCE ( USDT )</button>
+  <button onclick="abrirModalMercadoPagoSaldo()" style="padding:12px; background:#009ee3; border:none; border-radius:8px; color:#fff; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-bolt"></i> MERCADO PAGO ( ARS )</button>
   </div>
   </div>
   </div>
-  
-  <!-- MODAL ESPECÍFICO DE CARGA BINANCE -->
+
+  <!-- MODAL BINANCE -->
   <div id="modal-binance" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
-  <div style="background:#161822; border:1px solid #f3ba2f; border-radius:16px; padding:24px; width:90%; max-width:380px; text-align:center; box-shadow:0 0 25px rgba(243,186,47,0.3); position:relative;">
+  <div style="background:#161822; border:1px solid #f3ba2f; border-radius:16px; padding:24px; width:90%; max-width:380px; text-align:center; position:relative;">
   <button onclick="cerrarModalBinance()" style="position:absolute; top:12px; right:15px; background:none; border:none; color:#aaa; font-size:18px; cursor:pointer;">✕</button>
-  <i class="fa-brands fa-bitcoin" style="font-size:40px; color:#f3ba2f; margin-bottom:10px;"></i>
-  <h3 style="color:#fff; font-family:'Orbitron', sans-serif; margin-bottom:8px;">Cargar Saldo con Binance</h3>
-  <p style="color:#aaa; font-size:13px; margin-bottom:15px;">1. Realizá el pago en tu enlace de Binance.<br>2. Envianos el comprobante por el chat para acreditarte.</p>
-  <input type="number" id="monto-usdt" placeholder="Monto aproximado en USD" style="width:100%; padding:12px; border-radius:8px; border:1px solid #3a3f58; background:#0e0f16; color:#fff; font-size:16px; text-align:center; margin-bottom:15px; outline:none;">
-  <button onclick="procesarPagoBinanceSeguro()" style="width:100%; padding:12px; background:linear-gradient(135deg, #f3ba2f, #f0a500); border:none; border-radius:8px; color:#000; font-weight:bold; font-size:15px; cursor:pointer;">
-  Ir a pagar en Binance <i class="fa-solid fa-arrow-up-right-from-square"></i>
-  </button>
+  <i class="fa-brands fa-bitcoin" style="font-size:36px; color:#f3ba2f; margin-bottom:8px;"></i>
+  <h3 style="color:#fff; margin-bottom:8px;">Cargar Saldo con Binance</h3>
+  <input type="number" id="monto-usdt" placeholder="Monto en USD (ej: 5)" style="width:100%; padding:10px; background:#0e0f16; border:1px solid #333; color:#fff; border-radius:8px; margin-bottom:12px; text-align:center;">
+  <button onclick="procesarCargaBinanceModal()" style="width:100%; padding:10px; background:#f3ba2f; color:#000; font-weight:bold; border:none; border-radius:8px; cursor:pointer; margin-bottom:6px;">Confirmar y Notificar</button>
+  <button onclick="cerrarModalBinance()" style="background:none; border:none; color:#aaa; font-size:12px; cursor:pointer;">Cancelar</button>
   </div>
   </div>
-  
-  <!-- MODAL ESPECÍFICO DE CARGA MERCADO PAGO -->
+
+  <!-- MODAL MERCADO PAGO -->
   <div id="modal-mercadopago" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
-  <div style="background:#161822; border:1px solid #009ee3; border-radius:16px; padding:24px; width:90%; max-width:380px; text-align:center; box-shadow:0 0 25px rgba(0,158,227,0.3); position:relative;">
+  <div style="background:#161822; border:1px solid #009ee3; border-radius:16px; padding:24px; width:90%; max-width:380px; text-align:center; position:relative;">
   <button onclick="cerrarModalMercadoPagoSaldo()" style="position:absolute; top:12px; right:15px; background:none; border:none; color:#aaa; font-size:18px; cursor:pointer;">✕</button>
-  <i class="fa-solid fa-bolt" style="font-size:40px; color:#009ee3; margin-bottom:10px;"></i>
-  <h3 style="color:#fff; font-family:'Orbitron', sans-serif; margin-bottom:8px;">Cargar Saldo con Mercado Pago</h3>
-  <p style="color:#aaa; font-size:13px; margin-bottom:15px;">1. Realizá el pago mediante transferencia o alias.<br>2. Envianos el comprobante por el chat para acreditarte el saldo.</p>
-  <input type="number" id="monto-mp" placeholder="Monto aproximado en ARS" style="width:100%; padding:12px; border-radius:8px; border:1px solid #3a3f58; background:#0e0f16; color:#fff; font-size:16px; text-align:center; margin-bottom:15px; outline:none;">
-  <button onclick="procesarPagoMPSeguro()" style="width:100%; padding:12px; background:linear-gradient(135deg, #009ee3, #0073a8); border:none; border-radius:8px; color:#fff; font-weight:bold; font-size:15px; cursor:pointer;">
-  Ir a pagar en Mercado Pago <i class="fa-solid fa-arrow-up-right-from-square"></i>
-  </button>
+  <i class="fa-solid fa-bolt" style="font-size:36px; color:#009ee3; margin-bottom:8px;"></i>
+  <h3 style="color:#fff; margin-bottom:8px;">Cargar Saldo con Mercado Pago</h3>
+  <input type="number" id="monto-mp" placeholder="Monto en ARS (ej: 5000)" style="width:100%; padding:10px; background:#0e0f16; border:1px solid #333; color:#fff; border-radius:8px; margin-bottom:12px; text-align:center;">
+  <button onclick="procesarCargaMPModal()" style="width:100%; padding:10px; background:#009ee3; color:#fff; font-weight:bold; border:none; border-radius:8px; cursor:pointer; margin-bottom:6px;">Confirmar y Notificar</button>
+  <button onclick="cerrarModalMercadoPagoSaldo()" style="background:none; border:none; color:#aaa; font-size:12px; cursor:pointer;">Cancelar</button>
   </div>
   </div>
-  
+
   <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
   
   <aside class="sidebar-menu" id="sidebar-menu">
   <div class="sidebar-header">
-  <div class="sidebar-logo">Zarela <span class="garena-red"></span> </div>
+  <div class="sidebar-logo">Zarela <span class="garena-red"></span></div>
   <button class="close-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-xmark"></i></button>
   </div>
-  
   <div class="sidebar-content">
-  <div class="sidebar-card user-wallet-box">
-  <div class="wallet-header"><i class="fa-solid fa-wallet"></i><span>billetera Virtual</span></div>
-  <div class="wallet-id">ID Monedero: <strong id="menu-wallet-id">#REV-84920</strong></div>
-  <div class="wallet-balance-row">
-  <span>Saldo Disponible:</span>
-  <strong class="balance-text" id="menu-wallet-balance">$0.00 USD</strong>
-  </div>
-  </div>
-  
   <div class="sidebar-section">
   <h4><i class="fa-solid fa-user-gear"></i> Revendedores</h4>
-  <div id="sidebar-auth-btn-area">
   <button class="btn-google-login" onclick="loginConGoogle()">
   <i class="fa-brands fa-google" style="color: #ea4335;"></i> Iniciar Sesión con Google
   </button>
   </div>
   </div>
-  
-  <div class="sidebar-section">
-  <h4><i class="fa-solid fa-headset"></i> Soporte & Contacto</h4>
-  <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Tengo%20una%20consulta%20sobre%20las%20recargas." target="_blank" class="menu-link whatsapp-link">
-  <i class="fa-brands fa-whatsapp"></i> Atención por WhatsApp
-  </a>
-  </div>
-  
-  <div class="sidebar-section">
-  <h4><i class="fa-solid fa-circle-info"></i> Estado del Sistema</h4>
-  <div class="status-indicator">
-  <span class="status-dot online"></span>
-  <span>Servidores de Recarga: <b>ONLINE</b></span>
-  </div>
-  </div>
-  </div>
-  
-  <div class="sidebar-footer"><p>© Centro de Recargas FF - Argentina</p></div>
   </aside>
   
   <section class="hero-banner-section">
@@ -240,62 +169,25 @@
   <span class="live-green-dot"></span>
   <span class="live-counter-text"><strong id="online-count">148</strong> Clientes Online</span>
   </div>
-  
   <div class="carousel-wrapper" id="carousel-wrapper">
-  <button class="carousel-btn prev-btn" onclick="moverCarrusel(-1)" aria-label="Anterior">
-  <i class="fa-solid fa-chevron-left"></i>
-  </button>
-  
+  <button class="carousel-btn prev-btn" onclick="moverCarrusel(-1)"><i class="fa-solid fa-chevron-left"></i></button>
   <div class="carousel-track-container">
   <div class="carousel-track" id="carousel-track">
-  <div class="carousel-slide prev">
-  <img src="banner1.jpg" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop';" alt="Promoción 1">
-  </div>
-  <div class="carousel-slide active">
-  <img src="banner2.jpg" onerror="this.onerror=null; this.src='https://i.supaimg.com/d720aa86-6d33-4180-8339-caf8d59e6a66/c4716906-2102-4bfb-9b7f-e0b5c5b33502.jpg';" alt="Promoción 2">
-  </div>
-  <div class="carousel-slide next">
-  <img src="banner3.jpg" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=800&auto=format&fit=crop';" alt="Promoción 3">
-  </div>
-  <div class="carousel-slide hidden">
-  <img src="banner4.gif" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop';" alt="Promoción 4">
-  </div>
-  <div class="carousel-slide hidden">
-  <img src="banner5.jpg" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=800&auto=format&fit=crop';" alt="Promoción 5">
+  <div class="carousel-slide active"><img src="banner2.jpg" alt="Promo" onerror="this.src='https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop'"></div>
   </div>
   </div>
-  </div>
-  
-  <button class="carousel-btn next-btn" onclick="moverCarrusel(1)" aria-label="Siguiente">
-  <i class="fa-solid fa-chevron-right"></i>
-  </button>
-  </div>
-  
-  <div class="carousel-dots" id="carousel-dots">
-  <span class="dot" onclick="irASlide(0)"></span>
-  <span class="dot active" onclick="irASlide(1)"></span>
-  <span class="dot" onclick="irASlide(2)"></span>
-  <span class="dot" onclick="irASlide(3)"></span>
-  <span class="dot" onclick="irASlide(4)"></span>
+  <button class="carousel-btn next-btn" onclick="moverCarrusel(1)"><i class="fa-solid fa-chevron-right"></i></button>
   </div>
   </section>
   
   <div class="container">
-  
   <div class="main-layout-grid">
   
-  <!-- COLUMNA IZQUIERDA -->
   <div class="left-content-col">
-  
-  <!-- PASO 1: ID DE JUGADOR -->
   <section class="card">
-  <div class="step-title">
-  <span class="badge">1</span>
-  <h3>Ingresar ID de jugador</h3>
-  </div>
-  
+  <div class="step-title"><span class="badge">1</span><h3>Ingresar ID de jugador</h3></div>
   <div id="player-card" class="player-card" hidden>
-  <div class="player-avatar"><img id="player-avatar-img" alt="Avatar" hidden><i id="player-avatar-icon" class="fa-solid fa-user-astronaut"></i></div>
+  <div class="player-avatar"><i class="fa-solid fa-user-astronaut"></i></div>
   <div class="player-info">
   <span class="player-label">Jugador verificado</span>
   <strong id="player-name" class="player-name"></strong>
@@ -303,7 +195,6 @@
   </div>
   <i class="fa-solid fa-circle-check player-ok"></i>
   </div>
-  
   <div class="input-group verify-row">
   <input type="text" inputmode="numeric" autocomplete="off" placeholder="Introduce el ID del jugador..." id="player-id">
   <button type="button" id="btn-verificar" class="btn-verificar" onclick="verificarJugador()">
@@ -311,125 +202,49 @@
   </button>
   </div>
   <p id="verify-status" class="verify-status"></p>
-  <p class="subtext">⚠️ Verificá bien tu ID antes de enviar el pedido.</p>
   </section>
   
-  <!-- PASO 2: MÉTODOS ESTILO BONOXS -->
   <section class="card">
-  <div class="step-title">
-  <span class="badge">2</span>
-  <h3>Seleccionar Medio de Pago</h3>
-  </div>
-  
+  <div class="step-title"><span class="badge">2</span><h3>Seleccionar Medio de Pago</h3></div>
   <div class="bonoxs-method-selector">
   <div class="bonoxs-card active" id="card-mp" onclick="seleccionarMetodo('mp')">
   <div class="bonoxs-card-badge">ARS</div>
-  <div class="bonoxs-card-icon"><i class="fa-solid fa-wallet"></i></div>
   <h4>MERCADO PAGO</h4>
-  <p>Acreditación Directa</p>
-  <span class="btn-bonoxs-select"><i class="fa-solid fa-chevron-down"></i> Ver Paquetes ARS</span>
   </div>
-  
   <div class="bonoxs-card" id="card-binance" onclick="seleccionarMetodo('binance')">
-  <div class="bonoxs-card-badge usdt-badge">USDT</div>
-  <div class="bonoxs-card-icon binance-icon"><i class="fa-brands fa-bitcoin"></i></div>
+  <div class="bonoxs-card-badge usdt-badge">USD</div>
   <h4>BINANCE USDT</h4>
-  <p>Precio Revendedor</p>
-  <span class="btn-bonoxs-select"><i class="fa-solid fa-chevron-down"></i> Ver Paquetes USD</span>
   </div>
   </div>
   
+  <!-- PAQUETES MERCADO PAGO COMPLETOS -->
   <div id="grid-mp" class="diamonds-grid-container">
-  <div class="expanded-box-header">
-  <i class="fa-solid fa-bolt" style="color: #009ee3;"></i> <span>Paquetes Mercado Pago (ARS)</span>
-  </div>
+  <div class="expanded-box-header"><i class="fa-solid fa-bolt"></i> <span>Paquetes Mercado Pago (ARS)</span></div>
   <div class="grid-diamonds">
-  <div class="diamond-box">
-  <span class="icon">💎</span>
-  <h4>110 Diamantes</h4> 
-  <p class="price">ARS $1.463</p>
-  <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'ARS $1.463')">Mercado Pago</a>
-  </div>
-  <div class="diamond-box">
-  <span class="icon">💎</span>
-  <h4>341 Diamantes</h4>
-  <p class="price">ARS $4.555</p>
-  <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'ARS $4.555')">Mercado Pago</a>
-  </div>
-  <div class="diamond-box">
-  <span class="icon">💎</span>
-  <h4>572 Diamantes</h4>
-  <p class="price">ARS $8.059</p>
-  <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'ARS $8.059')">Mercado Pago</a>
-  </div>
-  <div class="diamond-box">
-  <span class="icon">💎</span>
-  <h4>1.166 Diamantes</h4>
-  <p class="price">ARS $14.690</p>
-  <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'ARS $14.690')">Mercado Pago</a>
-  </div>
-  <div class="diamond-box">
-  <span class="icon">💎</span>
-  <h4>2.398 Diamantes</h4>
-  <p class="price">ARS $27.602</p>
-  <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'ARS $27.602')">Mercado Pago</a>
-  </div>
-  <div class="diamond-box">
-  <span class="icon">💎</span>
-  <h4>6.160 Diamantes</h4>
-  <p class="price">ARS $67.750</p>
-  <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'ARS $67.750')">Mercado Pago</a>
-  </div>
+  <div class="diamond-box"><span class="icon">💎</span><h4>110 Diamantes</h4><p class="price">ARS $1.463</p><a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'ARS $1.463')">Mercado Pago</a></div>
+  <div class="diamond-box"><span class="icon">💎</span><h4>341 Diamantes</h4><p class="price">ARS $4.555</p><a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'ARS $4.555')">Mercado Pago</a></div>
+  <div class="diamond-box"><span class="icon">💎</span><h4>572 Diamantes</h4><p class="price">ARS $8.059</p><a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'ARS $8.059')">Mercado Pago</a></div>
+  <div class="diamond-box"><span class="icon">💎</span><h4>1.166 Diamantes</h4><p class="price">ARS $14.690</p><a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'ARS $14.690')">Mercado Pago</a></div>
+  <div class="diamond-box"><span class="icon">💎</span><h4>2.398 Diamantes</h4><p class="price">ARS $27.602</p><a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'ARS $27.602')">Mercado Pago</a></div>
+  <div class="diamond-box"><span class="icon">💎</span><h4>6.160 Diamantes</h4><p class="price">ARS $67.750</p><a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'ARS $67.750')">Mercado Pago</a></div>
   </div>
   </div>
   
+  <!-- PAQUETES BINANCE COMPLETOS -->
   <div id="grid-binance" class="diamonds-grid-container" style="display: none;">
-  <div class="expanded-box-header binance-header">
-  <i class="fa-brands fa-bitcoin" style="color: #f3ba2f;"></i> <span>Paquetes Binance USDT (USD)</span>
-  </div>
+  <div class="expanded-box-header binance-header"><i class="fa-brands fa-bitcoin"></i> <span>Paquetes Binance (USD)</span></div>
   <div class="grid-diamonds">
-  <div class="diamond-box reseller-box">
-  <span class="icon">💎</span>
-  <h4>110 Diamantes</h4>
-  <p class="price usdt-price">USD 0,86</p>
-  <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'USD 0,86 con Binance USDT')">Comprar USDT</a>
-  </div>
-  <div class="diamond-box reseller-box">
-  <span class="icon">💎</span>
-  <h4>341 Diamantes</h4>
-  <p class="price usdt-price">USD 2,45</p>
-  <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'USD 2,45 con Binance USDT')">Comprar USDT</a>
-  </div>
-  <div class="diamond-box reseller-box">
-  <span class="icon">💎</span>
-  <h4>572 Diamantes</h4>
-  <p class="price usdt-price">USD 4,16</p>
-  <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'USD 4,16 con Binance USDT')">Comprar USDT</a>
-  </div>
-  <div class="diamond-box reseller-box">
-  <span class="icon">💎</span>
-  <h4>1.166 Diamantes</h4>
-  <p class="price usdt-price">USD 8,27</p>
-  <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'USD 8,27 con Binance USDT')">Comprar USDT</a>
-  </div>
-  <div class="diamond-box reseller-box">
-  <span class="icon">💎</span>
-  <h4>2.398 Diamantes</h4>
-  <p class="price usdt-price">USD 16,10</p>
-  <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'USD 16,10 con Binance USDT')">Comprar USDT</a>
-  </div>
-  <div class="diamond-box reseller-box">
-  <span class="icon">💎</span>
-  <h4>6.160 Diamantes</h4>
-  <p class="price usdt-price">USD 40,55</p>
-  <a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'USD 40,55 con Binance USDT')">Comprar USDT</a>
-  </div>
+  <div class="diamond-box reseller-box"><span class="icon">💎</span><h4>110 Diamantes</h4><p class="price usdt-price">USD 0,86</p><a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'USD 0,86 USDT')">Comprar USDT</a></div>
+  <div class="diamond-box reseller-box"><span class="icon">💎</span><h4>341 Diamantes</h4><p class="price usdt-price">USD 2,45</p><a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'USD 2,45 USDT')">Comprar USDT</a></div>
+  <div class="diamond-box reseller-box"><span class="icon">💎</span><h4>572 Diamantes</h4><p class="price usdt-price">USD 4,16</p><a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'USD 4,16 USDT')">Comprar USDT</a></div>
+  <div class="diamond-box reseller-box"><span class="icon">💎</span><h4>1.166 Diamantes</h4><p class="price usdt-price">USD 8,27</p><a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'USD 8,27 USDT')">Comprar USDT</a></div>
+  <div class="diamond-box reseller-box"><span class="icon">💎</span><h4>2.398 Diamantes</h4><p class="price usdt-price">USD 16,10</p><a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'USD 16,10 USDT')">Comprar USDT</a></div>
+  <div class="diamond-box reseller-box"><span class="icon">💎</span><h4>6.160 Diamantes</h4><p class="price usdt-price">USD 40,55</p><a href="#" target="_blank" class="btn-buy btn-usdt" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'USD 40,55 USDT')">Comprar USDT</a></div>
   </div>
   </div>
   </section>
   </div>
   
-  <!-- COLUMNA DERECHA: CHAT EN VIVO -->
   <div class="right-widgets-col">
   <div class="chat-widget-card">
   <div class="chat-widget-header">
@@ -437,119 +252,51 @@
   <span class="chat-status-dot"></span>
   </div>
   <div class="chat-messages-area" id="chat-messages-container">
-  <div class="chat-message admin-msg">HOLA, ¿en qué te puedo ayudar hoy? Iniciá sesión con Google para guardar tu historial de compras.</div>
+  <div class="chat-message admin-msg">HOLA, ¿en qué te puedo ayudar hoy?</div>
   </div>
   <div class="chat-input-area">
    <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarMensajeWebhook()">
-   <button type="button" class="btn-attach" onclick="document.getElementById('chat-file-input').click()" title="Adjuntar Comprobante">
-     <i class="fa-solid fa-paperclip"></i>
-   </button>
-   <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí..." onkeydown="if(event.key === 'Enter'){ enviarMensajeWebhook(); }">
-   <button type="button" class="btn-send" onclick="enviarMensajeWebhook()" title="Enviar mensaje">
-     <i class="fa-solid fa-paper-plane"></i>
-   </button>
+   <button type="button" class="btn-attach" onclick="document.getElementById('chat-file-input')?.click()"><i class="fa-solid fa-paperclip"></i></button>
+   <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje..." onkeydown="if(event.key === 'Enter'){ enviarMensajeWebhook(); }">
+   <button type="button" class="btn-send" onclick="enviarMensajeWebhook()"><i class="fa-solid fa-paper-plane"></i></button>
   </div>
-  </div>
-  
-  <div class="sakura-welcome-card">
-  <div class="sakura-badge-icon">🌸</div>
-  <h2 class="sakura-title">BIENVENIDOS</h2>
-  <span class="sakura-sub">A</span>
-  <h3 class="sakura-brand">RECARGAS ZARELA</h3>
   </div>
   </div>
   
   </div>
-  
-  <section class="card">
-  <div class="step-title">
-  <span class="badge">3</span>
-  <h3>Medios de pago aceptados</h3>
-  </div>
-  <div class="payment-methods">
-  <span class="pay-tag">Mercado Pago</span>
-  <span class="pay-tag">Transferencia Bancaria</span>
-  <span class="pay-tag" style="background: rgba(74, 70, 87, 0.26); color: #f3ba2f; border: 1px solid #ceb577;">Binance USDT</span>
-  </div>
-  </section>
   
   <section class="card auth-card" id="auth-section">
-  <div class="step-title">
-  <span class="badge"><i class="fa-solid fa-user-gear"></i></span>
-  <h3>Cuenta Revendedor</h3>
-  </div>
-  
+  <div class="step-title"><span class="badge"><i class="fa-solid fa-user-gear"></i></span><h3>Cuenta Revendedor</h3></div>
   <div id="auth-forms" class="auth-box">
-  <p class="auth-desc">Iniciá sesión con tu cuenta de Google para gestionar tu monedero y chatear con soporte.</p>
   <button class="btn-google-login" onclick="loginConGoogle()">
   <i class="fa-brands fa-google" style="color: #ea4335;"></i> Iniciar Sesión con Google
   </button>
   </div>
-  
   <div id="user-dashboard" class="dashboard-box" style="display: none;">
   <div class="dashboard-header">
   <span class="dashboard-user-text">Bienvenido, <b id="user-email-display">usuario@gmail.com</b></span>
   <button class="btn-logout" onclick="logoutGoogle()">Cerrar Sesión</button>
   </div>
-  <div class="wallet-card">
-  <span class="wallet-label">Tu Saldo Virtual</span>
-  <h2 class="wallet-amount" id="user-balance">$0.00 USD</h2>
-  <p class="wallet-subtext">El saldo se descontará automáticamente al realizar recargas.</p>
-  <a href="javascript:void(0)" onclick="abrirModalSeleccionCarga()" class="btn-add-funds" style="display:inline-flex; align-items:center; gap:6px; justify-content:center; text-decoration:none;">
-  <i class="fa-solid fa-plus-circle"></i> Cargar Saldo con Binance o Mercado Pago
-  </a>
-  </div>
   </div>
   </section>
-
-  <!-- PANEL ADMIN ORIGINAL BÁSICO -->
-  <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
+  
+  <section class="card admin-panel-card" id="admin-panel-section" style="display: none; background: #1a1d2e; border: 2px solid #f3ba2f; border-radius: 14px; padding: 18px; margin-top: 20px;">
   <div class="step-title">
   <span class="badge" style="background: #f3ba2f; color:#000;"><i class="fa-solid fa-shield-halved"></i></span>
   <h3 style="color: #f3ba2f;">PANEL ADMINISTRADOR - MENSAJES Y SALDOS</h3>
   </div>
-  <p style="font-size: 13px; color: #aaa; margin-bottom: 12px;">Seleccioná un cliente para ver sus comprobantes y acreditarle saldo:</p>
+  <p style="font-size: 13px; color: #aaa; margin-bottom: 12px;">Seleccioná un cliente:</p>
   <div style="display: flex; gap: 15px; flex-wrap: wrap;">
   <div style="flex: 1; min-width: 200px; background: #0e0f16; border-radius: 8px; padding: 10px; height: 200px; overflow-y: auto;" id="admin-users-list">
-  <p style="font-size: 12px; color: #666;">Cargando lista de clientes...</p>
+  <p style="font-size: 12px; color: #666;">Cargando lista...</p>
   </div>
   <div style="flex: 2; min-width: 250px; background: #0e0f16; border-radius: 8px; padding: 12px; display: flex; flex-direction: column;" id="admin-chat-view">
-  <p style="font-size: 13px; color: #888; text-align: center; margin: auto;">Seleccioná un usuario de la izquierda</p>
+  <p style="font-size: 13px; color: #888; text-align: center; margin: auto;">Seleccioná un usuario</p>
   </div>
   </div>
   </section>
-  
-  <section class="card comments-section">
-  <div class="step-title">
-  <span class="badge"><i class="fa-solid fa-comments"></i></span>
-  <h3>Opiniones de Clientes</h3>
-  <span class="rating-overall">⭐ 4.9/5 (+73.520 recargas)</span>
   </div>
-  <div class="comments-list" id="comments-list">
-  <div class="comment-item">
-  <div class="comment-header">
-  <span class="comment-user"><i class="fa-solid fa-circle-user"></i> Matias_FF</span>
-  <span class="comment-stars">⭐⭐⭐⭐⭐</span>
-  <span class="comment-time">Hace 3 semanas</span>
-  </div>
-  <p class="comment-body">10/10 súper rápido! Cargué 520 diamantes con Mercado Pago y llegaron al toque a mi ID 🔥</p>
-  </div>
-  </div>
-  </section>
-  
-  </div>
-  
-  <footer>
-  <p>© Tienda de Recargas Independiente. Todos los derechos reservados.</p>
-  </footer>
-  
-  <audio id="musica-fondo" loop preload="auto">
-  <source src="musica.mp3" type="audio/mpeg">
-  </audio>
-  
-  <button id="btn-musica" class="btn-musica-flotante" onclick="toggleMusica()" aria-label="Reproducir Música">
-  <img src="disco.jpg" id="imagen-disco" alt="Disco de Música" onerror="this.style.opacity='0';">
-  <i id="icono-musica" class="fa-solid fa-play"></i>
-  </button>
+
+  <footer><p>© Tienda de Recargas Independiente.</p></footer>
 </body>
 </html>
