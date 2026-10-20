@@ -32,11 +32,11 @@ async function enviarMensajeWebhook() {
       nombreArchivo = archivo.name;
     }
 
-    // 3. Estructura de los datos adaptada a las columnas de tu Supabase (text, user_id, etc.)
+    // 3. Estructura con el UUID real de Supabase para JULIAN JP
     const payload = {
       tipo_evento: "CHAT_MENSAJE",
-      user_id: "333556673",
-      text: textoMensaje,           // Cambiado de 'mensaje' a 'text' para que coincida con tu tabla
+      user_id: "663cc991-70d8-4ee2-a7f5-d9a56d13484f", // UUID válido de la cuenta JULIAN JP
+      text: textoMensaje,
       archivo: archivoBase64,       
       nombre_archivo: nombreArchivo
     };
@@ -51,9 +51,9 @@ async function enviarMensajeWebhook() {
     });
 
     if (respuesta.ok) {
-      console.log('✅ Mensaje y foto enviados con éxito');
+      console.log('✅ Mensaje enviado con éxito');
       
-      // Mostrar visualmente el mensaje enviado en el chat
+      // Mostrar el mensaje en la interfaz
       const area = document.getElementById('chat-messages-container');
       if (area && textoMensaje) {
         const div = document.createElement('div');
