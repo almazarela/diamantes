@@ -1,6 +1,6 @@
-// Función para enviar mensajes y fotos al webhook de n8n
+// Función para enviar mensajes y fotos al webhook de n8n (Modo Producción)
 async function enviarMensajeWebhook() {
-  const urlWebhook = 'https://almazarela.app.n8n.cloud/webhook-test/7a0834cd-9cd0-46dc-b670-19b6bb1061a3';
+  const urlWebhook = 'https://almazarela.app.n8n.cloud/webhook/14200234-eee8-4b90-a4a3-1306b12c377f';
 
   // 1. Capturar el texto del input
   const inputMensaje = document.getElementById('chat-user-input'); 
