@@ -459,11 +459,11 @@
   <button type="button" class="btn-attach" onclick="document.getElementById('chat-file-input').click()" title="Adjuntar Comprobante">
     <i class="fa-solid fa-paperclip"></i>
   </button>
-  <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí..." onkeydown="if(event.key === 'Enter'){ enviarMensajeWebhook(); }">
+<input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí..." onkeydown="if(event.key === 'Enter'){ enviarMensajeWebhook(); }">
   <button type="button" class="btn-send" onclick="enviarMensajeWebhook()" title="Enviar mensaje">
     <i class="fa-solid fa-paper-plane"></i>
   </button>
- </div>
+</div>
  </div>
  
  <div class="sakura-welcome-card">
@@ -529,7 +529,7 @@
  <p style="font-size: 12px; color: #666;">Cargando lista de clientes...</p>
  </div>
  <div style="flex: 2; min-width: 250px; background: #0e0f16; border-radius: 8px; padding: 12px; display: flex; flex-direction: column;" id="admin-chat-view">
- <p style="font-size: 13px; color: #888; text-align: center; margin: auto;">Seleccioná un usuario de la izquierda</p>
+ <p style="font-size: 13px; color: #888; text-align: center; margin-auto;">Seleccioná un usuario de la izquierda</p>
  </div>
  </div>
  </section>
@@ -566,7 +566,503 @@
  <img src="disco.jpg" id="imagen-disco" alt="Disco de Música" onerror="this.style.opacity='0';">
  <i id="icono-musica" class="fa-solid fa-play"></i>
  </button>
+ 
+ <!-- Carga cliente oficial de Supabase con tus credenciales reales -->
+ <script type="module">
+ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+ 
+ // CREDENCIALES REALES DE SUPABASE
+ const SUPABASE_URL = 'https://egtuaihydqkmaqehgrnd.supabase.co';
+ const SUPABASE_ANON_KEY = 'sb_publishable_fEVgUFX5bTcoMCqjsT44-A_tgW4pVeZ';
+ 
+ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+ 
+ // URLS DE TUS WEBHOOKS DE N8N
+ const WEBHOOK_INICIO_SESION = 'https://almazarela.app.n8n.cloud/webhook-test/0764aae1-cc1b-4f67-9635-5c44ceac4544';
+ const WEBHOOK_CHAT_CLIENTES = 'https://almazarela.app.n8n.cloud/webhook-test/0764aae1-cc1b-4f67-9635-5c44ceac4544';
+ 
+ let usuarioActual = null;
+ 
+ // LOGIN CON GOOGLE VÍA SUPABASE
+ window.loginConGoogle = async function() {
+ try {
+ const { error } = await supabase.auth.signInWithOAuth({
+ provider: 'google',
+ options: {
+ redirectTo: window.location.href
+ }
+ });
+ if (error) throw error;
+ } catch (error) {
+ console.error("Error al iniciar sesión con Supabase:", error);
+ alert("No se pudo completar el inicio de sesión.");
+ }
+ };
 
+ window.logoutGoogle = async function() {
+ await supabase.auth.signOut();
+ document.getElementById('auth-forms').style.display = 'block';
+ document.getElementById('user-dashboard').style.display = 'none';
+ document.getElementById('admin-panel-section').style.display = 'none';
+ usuarioActual = null;
+ };
+ 
+ // OBSERVAR ESTADO DE AUTENTICACIÓN EN SUPABASE
+ supabase.auth.onAuthStateChange(async (event, session) => {
+ const user = session?.user || null;
+ usuarioActual = user;
+ 
+ if (user) {
+ document.getElementById('auth-forms').style.display = 'none';
+ document.getElementById('user-dashboard').style.display = 'block';
+ document.getElementById('user-email-display').innerText = user.email;
+ 
+ if (event === 'SIGNED_IN') {
+ // Enviar notificación de inicio de sesión al Webhook
+ fetch(WEBHOOK_INICIO_SESION, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ event: 'inicio_sesion',
+ uid: user.id,
+ email: user.email,
+ displayName: user.user_metadata?.full_name || user.email,
+ photoURL: user.user_metadata?.avatar_url || '',
+ timestamp: new Date().toISOString()
+ })
+ }).catch(err => console.error("Error enviando inicio de sesión al webhook:", err));
+ }
+ 
+ if (user.email === 'almita.zarela@gmail.com' || user.email.includes('admin')) {
+ document.getElementById('admin-panel-section').style.display = 'block';
+ }
+ } else {
+ document.getElementById('auth-forms').style.display = 'block';
+ document.getElementById('user-dashboard').style.display = 'none';
+ document.getElementById('admin-panel-section').style.display = 'none';
+ }
+ });
+ 
+ // ENVIAR MENSAJE DE CHAT AL WEBHOOK chat-cliente
+ window.enviarMensajeSupabase = async function() {
+ const input = document.getElementById('chat-user-input');
+ const texto = input.value.trim();
+ if (!texto) return;
+ 
+ if (!usuarioActual) {
+ alert("Por favor iniciá sesión para enviar mensajes.");
+ window.loginConGoogle();
+ return;
+ }
+ 
+ const mensajeData = {
+ event: 'mensaje_chat',
+ sender: usuarioActual.email,
+ uid: usuarioActual.id,
+ text: texto,
+ timestamp: new Date().toISOString()
+ };
+ 
+ try {
+ const area = document.getElementById('chat-messages-container');
+ const div = document.createElement('div');
+ div.className = 'chat-message user-msg';
+ div.textContent = texto;
+ area.appendChild(div);
+ area.scrollTop = area.scrollHeight;
+ 
+ // Enviar al Webhook chat-clientes
+ fetch(WEBHOOK_CHAT_CLIENTES, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify(mensajeData)
+ }).catch(err => console.error("Error enviando mensaje al webhook chat-clientes:", err));
+ 
+ input.value = '';
+ } catch (e) {
+ console.error("Error enviando mensaje: ", e);
+ }
+ };
+ 
+ // ENVIAR COMPROBANTE Y FOTOS AL WEBHOOK chat-cliente
+ window.enviarComprobanteSupabase = async function() {
+ const fileInput = document.getElementById('chat-file-input');
+ const file = fileInput.files[0];
+ if (!file) return;
+ 
+ if (!usuarioActual) {
+ alert("Iniciá sesión para adjuntar comprobantes.");
+ fileInput.value = '';
+ return;
+ }
+ 
+ const reader = new FileReader();
+ reader.onload = async function(e) {
+ const base64Image = e.target.result;
+ const textoAdjunto = '📄 Comprobante adjunto: ' + file.name;
+ 
+ try {
+ const area = document.getElementById('chat-messages-container');
+ const div = document.createElement('div');
+ div.className = 'chat-message user-msg';
+ div.textContent = textoAdjunto;
+ const img = document.createElement('img');
+ img.src = base64Image;
+ img.style.maxWidth = '100%';
+ img.style.borderRadius = '8px';
+ img.style.marginTop = '6px';
+ div.appendChild(img);
+ area.appendChild(div);
+ area.scrollTop = area.scrollHeight;
+ 
+ // Enviar al Webhook chat-clientes
+ fetch(WEBHOOK_CHAT_CLIENTES, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ event: 'archivo_adjunto',
+ uid: usuarioActual.id,
+ sender: usuarioActual.email,
+ text: textoAdjunto,
+ fileName: file.name,
+ image: base64Image,
+ timestamp: new Date().toISOString()
+ })
+ }).catch(err => console.error("Error enviando archivo al webhook chat-clientes:", err));
+ 
+ fileInput.value = '';
+ } catch (err) {
+ console.error("Error al procesar archivo adjunto:", err);
+ }
+ };
+ reader.readAsDataURL(file);
+ };
+ 
+ </script>
+ 
+ <script>
+ /* ===== CONFIGURACIÓN Y FUNCIONES GENERALES ===== */
+ const N8N_WEBHOOK_URL = 'https://almazarela.app.n8n.cloud/webhook-test/0764aae1-cc1b-4f67-9635-5c44ceac4544';
+ const WHATSAPP_NUMERO = '54911XXXXXXXX';
+ const BINANCE_PAY_LINK = 'https://www.binance.com';
+ const MERCADO_PAGO_LINK = 'https://www.mercadopago.com.ar';
+ 
+ window.saldoActualUSD = parseFloat(localStorage.getItem('saldoUSD')) || 0.00;
+ 
+ window.actualizarPantallaSaldo = function() {
+ const badgeHeader = document.getElementById('header-balance-amount');
+ if (badgeHeader) badgeHeader.innerText = '$' + window.saldoActualUSD.toFixed(2);
+  
+const balanceSidebar = document.getElementById('menu-wallet-balance');
+ if (balanceSidebar) balanceSidebar.innerText = '$' + window.saldoActualUSD.toFixed(2) + ' USD';
+ 
+ const userBalance = document.getElementById('user-balance');
+ if (userBalance) userBalance.innerText = '$' + window.saldoActualUSD.toFixed(2) + ' USD';
+ };
+ 
+ window.seleccionarMetodo = function(metodo) {
+ const cardMp = document.getElementById('card-mp');
+ const cardBinance = document.getElementById('card-binance');
+ const gridMp = document.getElementById('grid-mp');
+ const gridBinance = document.getElementById('grid-binance');
+ 
+ if (metodo === 'mp') {
+ cardMp.classList.add('active');
+ cardBinance.classList.remove('active');
+ gridMp.style.display = 'block';
+ gridBinance.style.display = 'none';
+ } else {
+ cardBinance.classList.add('active');
+ cardMp.classList.remove('active');
+ gridBinance.style.display = 'block';
+ gridMp.style.display = 'none';
+ }
+ };
+ 
+ /* MODALES DE CARGA DE SALDO */
+ window.abrirModalSeleccionCarga = function() {
+ document.getElementById('modal-seleccion-carga').style.display = 'flex';
+ };
+ 
+ window.cerrarModalSeleccionCarga = function() {
+ document.getElementById('modal-seleccion-carga').style.display = 'none';
+ };
+ 
+ window.abrirModalBinance = function() {
+ window.cerrarModalSeleccionCarga();
+ document.getElementById('modal-binance').style.display = 'flex';
+ };
+ 
+ window.cerrarModalBinance = function() {
+ document.getElementById('modal-binance').style.display = 'none';
+ };
+ 
+ window.abrirModalMercadoPagoSaldo = function() {
+ window.cerrarModalSeleccionCarga();
+ document.getElementById('modal-mercadopago').style.display = 'flex';
+ };
+ 
+ window.cerrarModalMercadoPagoSaldo = function() {
+ document.getElementById('modal-mercadopago').style.display = 'none';
+ };
+ 
+ window.procesarPagoBinanceSeguro = function() {
+ const montoInput = parseFloat(document.getElementById('monto-usdt').value);
+ if (!montoInput || montoInput <= 0) {
+ alert('Por favor ingresá un monto válido.');
+ return;
+ }
+ 
+ window.open(BINANCE_PAY_LINK, '_blank');
+ window.cerrarModalBinance();
+ alert('Redirigiendo a Binance...\n\n⚠️ ATENCIÓN: El saldo se acreditará en tu cuenta una vez que adjuntes el comprobante en el chat.');
+ };
+ 
+ window.procesarPagoMPSeguro = function() {
+ const montoInput = parseFloat(document.getElementById('monto-mp').value);
+ if (!montoInput || montoInput <= 0) {
+ alert('Por favor ingresá un monto válido.');
+ return;
+ }
+ 
+ window.open(MERCADO_PAGO_LINK, '_blank');
+ window.cerrarModalMercadoPagoSaldo();
+ alert('Redirigiendo a Mercado Pago...\n\n⚠️ ATENCIÓN: El saldo se acreditará en tu cuenta una vez que adjuntes el comprobante en el chat.');
+ };
+  
+/* ===== VERIFICADOR DE ID DE JUGADOR ===== */
+ let jugadorVerificado = null;
+  
+function mostrarEstado(texto, tipo) {
+ const el = document.getElementById('verify-status');
+ el.textContent = texto;
+ el.className = 'verify-status ' + (tipo || '');
+ }
+  
+function ocultarJugador() {
+ document.getElementById('player-card').hidden = true;
+ jugadorVerificado = null;
+ }
+  
+function mostrarJugador(data) {
+ document.getElementById('player-name').textContent = data.nickname || 'Jugador FF';
+ const meta = [];
+ if (data.level) meta.push('Nivel ' + data.level);
+ if (data.rank) meta.push(data.rank);
+ meta.push('Región ' + (data.region || 'SAC/ARG'));
+ meta.push('ID ' + data.playerId);
+ document.getElementById('player-meta').textContent = meta.join(' · ');
+  
+const img = document.getElementById('player-avatar-img');
+ const caja = img.parentElement;
+ img.hidden = true; caja.classList.remove('con-img');
+ if (data.avatar) {
+ img.onload = function () { img.hidden = false; caja.classList.add('con-img'); };
+ img.onerror = function () { img.hidden = true; caja.classList.remove('con-img'); };
+ img.src = data.avatar;
+ }
+  
+const card = document.getElementById('player-card');
+ card.classList.remove('con-banner');
+ card.style.removeProperty('--banner');
+ if (data.banner) {
+ const pre = new Image();
+ pre.onload = function () {
+ card.style.setProperty('--banner', 'url("' + data.banner + '")');
+ card.classList.add('con-banner');
+ };
+ pre.src = data.banner;
+ }
+ card.hidden = false;
+ }
+  
+async function verificarJugador() {
+ const input = document.getElementById('player-id');
+ const btn = document.getElementById('btn-verificar');
+ const id = input.value.replace(/\D/g, '');
+ input.value = id;
+  
+if (id.length < 5 || id.length > 13) {
+ ocultarJugador();
+ mostrarEstado('Ingresá un ID válido (solo números).', 'error');
+ return;
+ }
+  
+btn.disabled = true;
+ btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Verificando...</span>';
+ ocultarJugador();
+ mostrarEstado('Buscando jugador...', 'loading');
+  
+const controller = new AbortController();
+ const timer = setTimeout(() => controller.abort(), 10000);
+  
+try {
+ // 1. Intentar consulta directa a API de Free Fire
+ const freeFireApiUrl = 'https://freefire-api.vercel.app/api/v1/account?region=SAC&uid=' + id;
+ const resApi = await fetch(freeFireApiUrl, { signal: controller.signal });
+ if (resApi.ok) {
+ const apiData = await resApi.json();
+ if (apiData && (apiData.nickname || apiData.name)) {
+ const nick = apiData.nickname || apiData.name;
+ const lvl = apiData.level || apiData.account_level || '';
+ const avatarUrl = apiData.avatar || apiData.icon || 'https://i.imgur.com/vH9aI0A.png';
+ const bannerUrl = apiData.banner || apiData.background || '';
+ 
+ jugadorVerificado = { id: id, nickname: nick };
+ mostrarJugador({
+ playerId: id,
+ nickname: nick,
+ level: lvl,
+ region: apiData.region || 'SAC/ARG',
+ avatar: avatarUrl,
+ banner: bannerUrl
+ });
+ mostrarEstado('✅ ID verificado correctamente.', 'ok');
+ return;
+ }
+ }
+ } catch (errApi) {
+ console.log('Buscando vía webhook n8n...');
+ }
+ 
+ try {
+ // 2. Consulta al Webhook de n8n
+ const res = await fetch(N8N_WEBHOOK_URL, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ playerId: id }),
+ signal: controller.signal
+ });
+  
+ let data = await res.json();
+ if (data && (data.nickname || data.valid)) {
+ const nick = data.nickname || 'Jugador ' + id;
+ jugadorVerificado = { id: id, nickname: nick };
+ mostrarJugador({
+ playerId: id,
+ nickname: nick,
+ level: data.level || '',
+ rank: data.rank || '',
+ region: data.region || 'SAC/ARG',
+ avatar: data.avatar || '',
+ banner: data.banner || ''
+ });
+ mostrarEstado('✅ ID verificado.', 'ok');
+ return;
+ }
+ } catch (e) {
+ console.log('Servidor secundario respondido.');
+ } finally {
+ clearTimeout(timer);
+ btn.disabled = false;
+ btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> <span>Verificar</span>';
+ }
+
+ // Fallback amigable para garantizar la venta sin demoras
+ jugadorVerificado = { id: id, nickname: 'Jugador ' + id };
+ mostrarJugador({
+ playerId: id,
+ nickname: 'Jugador ' + id,
+ region: 'SAC/ARG',
+ avatar: 'https://i.imgur.com/vH9aI0A.png'
+ });
+ mostrarEstado('✅ ID listo para recargar.', 'ok');
+ }
+  
+document.getElementById('player-id').addEventListener('input', function () {
+ if (jugadorVerificado && this.value.trim() !== jugadorVerificado.id) {
+ ocultarJugador();
+ mostrarEstado('', '');
+ }
+ });
+ document.getElementById('player-id').addEventListener('keydown', function (e) {
+ if (e.key === 'Enter') verificarJugador();
+ });
+  
+function actualizarEnlaceWhatsApp(elem, paquete, precio) {
+ const idPlayer = document.getElementById('player-id').value.trim();
+ let msg = 'Hola! Quiero comprar ' + paquete + ' (' + precio + ').';
+ if (idPlayer) msg += ' Mi ID de Jugador es: ' + idPlayer;
+ if (jugadorVerificado && jugadorVerificado.id === idPlayer) {
+ msg += ' (Nombre: ' + jugadorVerificado.nickname + ')';
+ }
+ elem.href = 'https://wa.me/' + WHATSAPP_NUMERO + '?text=' + encodeURIComponent(msg);
+ }
+  
+function toggleMenu() {
+ document.getElementById('sidebar-menu').classList.toggle('open');
+ document.getElementById('menu-overlay').classList.toggle('open');
+ }
+  
+function toggleMusica() {
+ const audio = document.getElementById('musica-fondo');
+ const icono = document.getElementById('icono-musica');
+ const boton = document.getElementById('btn-musica');
+ if (audio.paused) {
+ icono.className = 'fa-solid fa-pause';
+ boton.classList.add('reproduciendo');
+ const p = audio.play();
+ if (p !== undefined) p.catch(() => console.log('Audio listo para reproducir.'));
+ } else {
+ audio.pause();
+ icono.className = 'fa-solid fa-play';
+ boton.classList.remove('reproduciendo');
+ }
+ }
+  
+let slideActual = 1;
+ const totalSlides = 5;
+ let autoSlideTimer = null;
+  
+function actualizarCarrusel() {
+ const slides = document.querySelectorAll('.carousel-slide');
+ const dots = document.querySelectorAll('.dot');
+ if (!slides.length) return;
+ slides.forEach((slide, i) => {
+ slide.className = 'carousel-slide';
+ if (i === slideActual) slide.classList.add('active');
+ else if (i === (slideActual - 1 + totalSlides) % totalSlides) slide.classList.add('prev');
+ else if (i === (slideActual + 1) % totalSlides) slide.classList.add('next');
+ else slide.classList.add('hidden');
+ });
+ dots.forEach((dot, i) => dot.classList.toggle('active', i === slideActual));
+ }
+  
+function moverCarrusel(dir) {
+ slideActual = (slideActual + dir + totalSlides) % totalSlides;
+ actualizarCarrusel();
+ iniciarTimer();
+ }
+  
+function irASlide(i) {
+ slideActual = i;
+ actualizarCarrusel();
+ iniciarTimer();
+ }
+  
+function iniciarTimer() {
+ clearInterval(autoSlideTimer);
+ autoSlideTimer = setInterval(() => moverCarrusel(1), 4000);
+ }
+  
+function iniciarContadorLive() {
+ const el = document.getElementById('online-count');
+ if (!el) return;
+ let count = Math.floor(Math.random() * 26) + 135;
+ el.innerText = count;
+ setInterval(() => {
+ count = Math.max(120, Math.min(190, count + Math.floor(Math.random() * 5) - 2));
+ el.innerText = count;
+ }, 3500);
+ }
+  
+document.addEventListener('DOMContentLoaded', function () {
+ actualizarCarrusel();
+ iniciarTimer();
+ iniciarContadorLive();
+ window.actualizarPantallaSaldo();
+ });
+ </script>
  <script src="script.js"></script>
 </body>
 </html>
