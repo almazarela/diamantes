@@ -1,19 +1,27 @@
-// Función para enviar mensajes y fotos al webhook de n8n (Modo Producción)
+// Variable global para almacenar el usuario activo
+let usuarioActualUUID = "663cc991-70d8-4ee2-a7f5-d9a56d13484f"; // UUID de Julian JP por defecto
+
+// Detectar sesión de Supabase si existe
+if (window.supabase) {
+  window.supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session && session.user) {
+      usuarioActualUUID = session.user.id;
+    }
+  });
+}
+
+// Función principal para enviar mensajes al Webhook de n8n
 async function enviarMensajeWebhook() {
   const urlWebhook = 'https://almazarela.app.n8n.cloud/webhook/14200234-eee8-4b90-a4a3-1306b12c377f';
 
-  // 1. Capturar el texto del input
-  const inputMensaje = document.getElementById('chat-user-input'); 
+  const inputMensaje = document.getElementById('chat-user-input');
   const textoMensaje = inputMensaje ? inputMensaje.value.trim() : '';
 
-  // 2. Capturar el archivo (foto) si el usuario seleccionó uno
   const inputArchivo = document.getElementById('chat-file-input');
   const archivo = inputArchivo && inputArchivo.files[0] ? inputArchivo.files[0] : null;
 
-  // Si no hay texto ni archivo, no hace nada
   if (!textoMensaje && !archivo) return;
 
-  // Función para convertir la imagen a Base64 y enviarla en el JSON
   const convertirBase64 = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -32,16 +40,14 @@ async function enviarMensajeWebhook() {
       nombreArchivo = archivo.name;
     }
 
-    // 3. Estructura con el UUID real de Supabase para JULIAN JP
     const payload = {
       tipo_evento: "CHAT_MENSAJE",
-      user_id: "663cc991-70d8-4ee2-a7f5-d9a56d13484f", // UUID válido de la cuenta JULIAN JP
+      user_id: usuarioActualUUID,
       text: textoMensaje,
-      archivo: archivoBase64,       
+      archivo: archivoBase64,
       nombre_archivo: nombreArchivo
     };
 
-    // 4. Enviar mediante POST
     const respuesta = await fetch(urlWebhook, {
       method: 'POST',
       headers: {
@@ -51,9 +57,6 @@ async function enviarMensajeWebhook() {
     });
 
     if (respuesta.ok) {
-      console.log('✅ Mensaje enviado con éxito');
-      
-      // Mostrar el mensaje en la interfaz
       const area = document.getElementById('chat-messages-container');
       if (area && textoMensaje) {
         const div = document.createElement('div');
@@ -63,13 +66,12 @@ async function enviarMensajeWebhook() {
         area.scrollTop = area.scrollHeight;
       }
 
-      // Limpiar campos
       if (inputMensaje) inputMensaje.value = '';
       if (inputArchivo) inputArchivo.value = '';
     } else {
-      console.error('❌ Error en el servidor:', respuesta.status);
+      console.error('Error al enviar el mensaje:', respuesta.status);
     }
   } catch (error) {
-    console.error('❌ Error de conexión:', error);
+    console.error('Error de red:', error);
   }
 }
