@@ -52,6 +52,17 @@ async function enviarMensajeWebhook() {
 
     if (respuesta.ok) {
       console.log('✅ Mensaje y foto enviados con éxito');
+      
+      // Mostrar visualmente el mensaje enviado en el chat
+      const area = document.getElementById('chat-messages-container');
+      if (area && textoMensaje) {
+        const div = document.createElement('div');
+        div.className = 'chat-message user-msg';
+        div.textContent = textoMensaje;
+        area.appendChild(div);
+        area.scrollTop = area.scrollHeight;
+      }
+
       // Limpiar campos
       if (inputMensaje) inputMensaje.value = '';
       if (inputArchivo) inputArchivo.value = '';
