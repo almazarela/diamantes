@@ -1,62 +1,13 @@
-// Configuración de Supabase y Clave Pública
-const SUPABASE_URL = "https://egtuaihydqmaqehavgrnd.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_fEVgUFX5bTcoMCqjsT44-A_tgW4pVeZ";
-
 // Variable global para almacenar el usuario activo
-let usuarioActualUUID = "9ea78e3d-c949-4c4d-a9d2-492d8567104b"; // UUID activo de Julian JP
+let usuarioActualUUID = "663cc991-70d8-4ee2-a7f5-d9a56d13484f"; // UUID de Julian JP por defecto
 
-// Inicializar cliente de Supabase
-let supabaseClient = null;
+// Detectar sesión de Supabase si existe
 if (window.supabase) {
-  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  
-  // Detectar sesión de Supabase si existe
-  supabaseClient.auth.getSession().then(({ data: { session } }) => {
+  window.supabase.auth.getSession().then(({ data: { session } }) => {
     if (session && session.user) {
       usuarioActualUUID = session.user.id;
     }
   });
-}
-
-// Escuchar mensajes nuevos en tiempo real al cargar la página
-document.addEventListener("DOMContentLoaded", () => {
-  escucharMensajesEnTiempoReal();
-});
-
-function escucharMensajesEnTiempoReal() {
-  if (!supabaseClient) return;
-
-  supabaseClient
-    .channel('mensajes-live')
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `user_id=eq.${usuarioActualUUID}`
-      },
-      (payload) => {
-        const nuevoMensaje = payload.new;
-        // Si el mensaje viene del administrador, mostrarlo en pantalla automáticamente
-        if (nuevoMensaje.sender_id !== usuarioActualUUID) {
-          mostrarMensajeEnChat(nuevoMensaje.content, 'admin-msg');
-        }
-      }
-    )
-    .subscribe();
-}
-
-// Auxiliar para dibujar el mensaje en la pantalla
-function mostrarMensajeEnChat(texto, clase) {
-  const area = document.getElementById('chat-messages-container');
-  if (area && texto) {
-    const div = document.createElement('div');
-    div.className = `chat-message ${clase}`;
-    div.textContent = texto;
-    area.appendChild(div);
-    area.scrollTop = area.scrollHeight;
-  }
 }
 
 // Función principal para enviar mensajes al Webhook de n8n
