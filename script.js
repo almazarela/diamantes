@@ -62,3 +62,7 @@ async function enviarMensajeWebhook() {
     console.error('❌ Error de conexión:', error);
   }
 }
+function LoginConGoogle(event) {
+event.preventDefault();
+console.log("Iniciando sesión...");
+}
