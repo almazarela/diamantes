@@ -32,12 +32,12 @@ async function enviarMensajeWebhook() {
       nombreArchivo = archivo.name;
     }
 
-    // 3. Estructura de los datos que van hacia n8n
+    // 3. Estructura de los datos adaptada a las columnas de tu Supabase (text, user_id, etc.)
     const payload = {
       tipo_evento: "CHAT_MENSAJE",
-      usuario_id: "333556673",
-      mensaje: textoMensaje,
-      archivo: archivoBase64,       // Aquí viaja la foto
+      user_id: "333556673",
+      text: textoMensaje,           // Cambiado de 'mensaje' a 'text' para que coincida con tu tabla
+      archivo: archivoBase64,       
       nombre_archivo: nombreArchivo
     };
 
