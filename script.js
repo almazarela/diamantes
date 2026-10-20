@@ -1,61 +1,50 @@
+// ==========================================
 // CONFIGURACIÓN SUPABASE
+// ==========================================
 const SUPABASE_URL = "https://egtuaihydqmaqehavgrnd.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_fEVgUFX5bTcoMCqjsT44-A_tgW4pVeZ";
 
 let supabaseClient = null;
 let usuarioActualUUID = "9ea78e3d-c949-4c4d-a9d2-492d8567104b";
 
-// Inicialización sincronizada con la carga del DOM
-document.addEventListener("DOMContentLoaded", () => {
-  try {
-    if (window.supabase && typeof window.supabase.createClient === 'function') {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      
-      supabaseClient.auth.getSession().then(({ data: { session } }) => {
-        if (session && session.user) {
-          usuarioActualUUID = session.user.id;
-          manejarSesionUsuario(session.user);
-        }
-      });
-
-      supabaseClient.auth.onAuthStateChange((event, session) => {
-        if (session && session.user) {
-          usuarioActualUUID = session.user.id;
-          manejarSesionUsuario(session.user);
-        } else {
-          usuarioActualUUID = "9ea78e3d-c949-4c4d-a9d2-492d8567104b";
-          const authForms = document.getElementById('auth-forms');
-          const userDashboard = document.getElementById('user-dashboard');
-          const panelAdmin = document.getElementById('admin-panel-section');
-          if (authForms) authForms.style.display = 'block';
-          if (userDashboard) userDashboard.style.display = 'none';
-          if (panelAdmin) panelAdmin.style.display = 'none';
-        }
-      });
+if (window.supabase) {
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
+  supabaseClient.auth.getSession().then(({ data: { session } }) => {
+    if (session && session.user) {
+      usuarioActualUUID = session.user.id;
+      manejarSesionUsuario(session.user);
     }
-  } catch (e) {
-    console.error("Error al inicializar Supabase:", e);
-  }
+  });
 
-  escucharMensajesEnTiempoReal();
-});
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (session && session.user) {
+      usuarioActualUUID = session.user.id;
+      manejarSesionUsuario(session.user);
+    } else {
+      usuarioActualUUID = "9ea78e3d-c949-4c4d-a9d2-492d8567104b";
+      const authForms = document.getElementById('auth-forms');
+      const userDashboard = document.getElementById('user-dashboard');
+      const panelAdmin = document.getElementById('admin-panel-section');
+      if (authForms) authForms.style.display = 'block';
+      if (userDashboard) userDashboard.style.display = 'none';
+      if (panelAdmin) panelAdmin.style.display = 'none';
+    }
+  });
+}
 
-// Autenticación Google orientada a producción
+// Iniciar sesión con Google de forma segura
 window.loginConGoogle = async function() {
-  if (!supabaseClient) {
-    alert("Supabase no está inicializado.");
-    return;
-  }
+  if (!supabaseClient) return;
   try {
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
-      options: { 
-        redirectTo: 'https://almazarela.github.io/diamantes/' 
-      }
+      options: { redirectTo: window.location.href }
     });
     if (error) throw error;
   } catch (err) {
     console.error("Error al iniciar sesión con Google:", err);
+    alert("No se pudo completar el inicio de sesión con Google.");
   }
 };
 
@@ -79,7 +68,9 @@ function manejarSesionUsuario(user) {
   }
 }
 
-// Modales y navegación
+// ==========================================
+// FUNCIONES DE MODALES Y BOTONES
+// ==========================================
 window.abrirModalSeleccionCarga = function() {
   const modal = document.getElementById('modal-seleccion-carga');
   if (modal) modal.style.display = 'flex';
@@ -91,7 +82,7 @@ window.cerrarModalSeleccionCarga = function() {
 };
 
 window.abrirModalBinance = function() {
-  window.cerrarModalSeleccionCarga();
+  cerrarModalSeleccionCarga();
   const modal = document.getElementById('modal-binance');
   if (modal) modal.style.display = 'flex';
 };
@@ -102,7 +93,7 @@ window.cerrarModalBinance = function() {
 };
 
 window.abrirModalMercadoPagoSaldo = function() {
-  window.cerrarModalSeleccionCarga();
+  cerrarModalSeleccionCarga();
   const modal = document.getElementById('modal-mercadopago');
   if (modal) modal.style.display = 'flex';
 };
@@ -112,22 +103,9 @@ window.cerrarModalMercadoPagoSaldo = function() {
   if (modal) modal.style.display = 'none';
 };
 
-window.procesarCargaBinanceModal = function() {
-  const input = document.getElementById('monto-usdt');
-  const monto = input ? input.value.trim() : '';
-  if(!monto) { alert("Ingresá un monto válido en USD"); return; }
-  alert("Solicitud de recarga USDT por $" + monto + " generada. Envianos el comprobante.");
-  window.cerrarModalBinance();
-};
-
-window.procesarCargaMPModal = function() {
-  const input = document.getElementById('monto-mp');
-  const monto = input ? input.value.trim() : '';
-  if(!monto) { alert("Ingresá un monto válido en ARS"); return; }
-  alert("Solicitud de recarga Mercado Pago por $" + monto + " ARS generada. Envianos el comprobante.");
-  window.cerrarModalMercadoPagoSaldo();
-};
-
+// ==========================================
+// VERIFICAR ID DE JUGADOR
+// ==========================================
 window.verificarJugador = function() {
   const inputId = document.getElementById('player-id');
   const status = document.getElementById('verify-status');
@@ -164,6 +142,9 @@ window.verificarJugador = function() {
   }, 800);
 };
 
+// ==========================================
+// SELECCIÓN DE MÉTODO DE PAGO
+// ==========================================
 window.seleccionarMetodo = function(metodo) {
   const cardMp = document.getElementById('card-mp');
   const cardBinance = document.getElementById('card-binance');
@@ -183,19 +164,15 @@ window.seleccionarMetodo = function(metodo) {
   }
 };
 
-window.actualizarEnlaceWhatsApp = function(elemento, paquete, precio) {
-  const playerIdInput = document.getElementById('player-id');
-  const playerId = playerIdInput ? playerIdInput.value.trim() : 'No ingresado';
-  const texto = `Hola! Quiero comprar ${paquete} por ${precio}. Mi ID de Free Fire es: ${playerId}`;
-  elemento.href = `https://wa.me/54911XXXXXXXX?text=${encodeURIComponent(texto)}`;
-};
-
+// ==========================================
+// CARRUSEL Y MENÚ LATERAL
+// ==========================================
 let slideActual = 1;
+
 window.moverCarrusel = function(direccion) {
   const track = document.getElementById('carousel-track');
   if (!track) return;
   const slides = track.getElementsByClassName('carousel-slide');
-  if (!slides || slides.length === 0) return;
   slideActual += direccion;
   if (slideActual >= slides.length) slideActual = 0;
   if (slideActual < 0) slideActual = slides.length - 1;
@@ -209,31 +186,34 @@ window.toggleMenu = function() {
   if (overlay) overlay.classList.toggle('active');
 };
 
+// ==========================================
+// CHAT EN TIEMPO REAL Y WEBHOOK N8N
+// ==========================================
+document.addEventListener("DOMContentLoaded", () => {
+  escucharMensajesEnTiempoReal();
+});
+
 function escucharMensajesEnTiempoReal() {
   if (!supabaseClient) return;
 
-  try {
-    supabaseClient
-      .channel('mensajes-live')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `user_id=eq.${usuarioActualUUID}`
-        },
-        (payload) => {
-          const nuevoMensaje = payload.new;
-          if (nuevoMensaje && nuevoMensaje.sender_id !== usuarioActualUUID) {
-            mostrarMensajeEnChat(nuevoMensaje.content, 'admin-msg');
-          }
+  supabaseClient
+    .channel('mensajes-live')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `user_id=eq.${usuarioActualUUID}`
+      },
+      (payload) => {
+        const nuevoMensaje = payload.new;
+        if (nuevoMensaje.sender_id !== usuarioActualUUID) {
+          mostrarMensajeEnChat(nuevoMensaje.content, 'admin-msg');
         }
-      )
-      .subscribe();
-  } catch (e) {
-    console.error("Error en tiempo real:", e);
-  }
+      }
+    )
+    .subscribe();
 }
 
 function mostrarMensajeEnChat(texto, clase) {
