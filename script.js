@@ -83,3 +83,51 @@ async function LoginConGoogle() {
     console.error('Error al iniciar sesión con Google:', error.message);
   }
 }
+async function buscarJugador() {
+  const inputID = document.getElementById('tu-id-del-input').value; // Asegurate de que el ID coincida con el de tu HTML
+  
+  if (!inputID) return alert("Por favor, ingresá un ID.");
+
+  const { data, error } = await window.supabase
+    .from('jugadores') // Nombre de tu tabla en Supabase
+    .select('*')
+    .eq('id_jugador', inputID) // Columna y valor a buscar
+    .single();
+
+  if (error || !data) {
+    alert("Jugador no encontrado.");
+  } else {
+    // Ejemplo para mostrar el nombre del jugador en tu interfaz
+    document.getElementById('elemento-para-mostrar-resultado').textContent = data.nombre;
+  }
+}
+async function buscarJugador() {
+  const inputID = document.getElementById('id_jugador').value;
+  
+  if (!inputID) return alert("Por favor, ingresá un ID.");
+
+  try {
+    const response = await fetch('https://almazarela.app.n8n.cloud/webhook/14200234-eee8-4b90-a4a3-1306b12c377f', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ id_jugador: inputID })
+    });
+
+    if (!response.ok) throw new Error('Error en la respuesta del servidor');
+
+    const data = await response.json();
+    
+    // Asumiendo que el webhook devuelve el nombre del jugador en data.nombre
+    if (data && data.nombre) {
+      document.querySelector('.player-name').textContent = data.nombre;
+      document.getElementById('player-card').classList.remove('hidden');
+    } else {
+      alert("Jugador no encontrado.");
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert("Hubo un problema al buscar el jugador.");
+  }
+}

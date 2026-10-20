@@ -45,7 +45,7 @@ body {
   font-family: 'Orbitron', sans-serif;
   font-weight: 800;
   padding: 10px 12px;
-  border-radius: 20px;
+  border-radius: 0px;
   font-size: 0.78rem;
   box-shadow: 0 0 18px rgb(5, 224, 122) rgb(27, 2, 255);
   display: flex;
@@ -1118,5 +1118,10 @@ footer {
   .player-card-con-banner {
     width: 100%;
     height: auto;
+  }
+}
+@media (max-width: 800px) {
+  .main-layout-grid {
+    grid-template-columns: 1fr;
   }
 }
