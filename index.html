@@ -6,7 +6,6 @@
   <title>Centro de Recargas - Free Fire</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
-  <script src="script.js" defer></script>
   
 <style>
   .verify-row { display: flex; gap: 10px; align-items: stretch; }
@@ -58,6 +57,7 @@
   .verify-status.error { color: #ff5c5c; }
   .verify-status.loading { color: #f3ba2f; }
   
+  /* TARJETAS ESTILO BONOXS LADO A LADO */
   .bonoxs-method-selector {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -323,7 +323,7 @@
   <p class="subtext">⚠️ Verificá bien tu ID antes de enviar el pedido.</p>
   </section>
   
-  <!-- PASO 2: MÉTODOS ESTILO BONOXS -->
+  <!-- PASO 2: MÉTODOS COMPRIMIDOS ESTILO BONOXS -->
   <section class="card">
   <div class="step-title">
   <span class="badge">2</span>
@@ -331,6 +331,7 @@
   </div>
   
   <div class="bonoxs-method-selector">
+  <!-- TARJETA MERCADO PAGO -->
   <div class="bonoxs-card active" id="card-mp" onclick="seleccionarMetodo('mp')">
   <div class="bonoxs-card-badge">ARS</div>
   <div class="bonoxs-card-icon"><i class="fa-solid fa-wallet"></i></div>
@@ -339,6 +340,7 @@
   <span class="btn-bonoxs-select"><i class="fa-solid fa-chevron-down"></i> Ver Paquetes ARS</span>
   </div>
   
+  <!-- TARJETA BINANCE USDT -->
   <div class="bonoxs-card" id="card-binance" onclick="seleccionarMetodo('binance')">
   <div class="bonoxs-card-badge usdt-badge">USDT</div>
   <div class="bonoxs-card-icon binance-icon"><i class="fa-brands fa-bitcoin"></i></div>
@@ -348,6 +350,7 @@
   </div>
   </div>
   
+  <!-- CONTENEDOR EXPANDIDO: MERCADO PAGO -->
   <div id="grid-mp" class="diamonds-grid-container">
   <div class="expanded-box-header">
   <i class="fa-solid fa-bolt" style="color: #009ee3;"></i> <span>Paquetes Mercado Pago (ARS)</span>
@@ -392,6 +395,7 @@
   </div>
   </div>
   
+  <!-- CONTENEDOR EXPANDIDO: BINANCE USDT -->
   <div id="grid-binance" class="diamonds-grid-container" style="display: none;">
   <div class="expanded-box-header binance-header">
   <i class="fa-brands fa-bitcoin" style="color: #f3ba2f;"></i> <span>Paquetes Binance USDT (USD)</span>
@@ -435,11 +439,13 @@
   </div>
   </div>
   </div>
+  
   </section>
   </div>
   
-  <!-- COLUMNA DERECHA: CHAT EN VIVO -->
+  <!-- COLUMNA DERECHA: CHAT EN VIVO Y BIENVENIDA -->
   <div class="right-widgets-col">
+  
   <div class="chat-widget-card">
   <div class="chat-widget-header">
   <span><i class="fa-solid fa-comments"></i> CHAT EN VIVO: ALMA ZARELA</span>
@@ -449,13 +455,13 @@
   <div class="chat-message admin-msg">HOLA, ¿en qué te puedo ayudar hoy? Iniciá sesión con Google para guardar tu historial de compras.</div>
   </div>
   <div class="chat-input-area">
-   <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarMensajeWebhook()">
+   <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarComprobanteSupabase()">
    <button type="button" class="btn-attach" onclick="document.getElementById('chat-file-input').click()" title="Adjuntar Comprobante">
-     <i class="fa-solid fa-paperclip"></i>
+    <i class="fa-solid fa-paperclip"></i>
    </button>
-   <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí..." onkeydown="if(event.key === 'Enter'){ enviarMensajeWebhook(); }">
-   <button type="button" class="btn-send" onclick="enviarMensajeWebhook()" title="Enviar mensaje">
-     <i class="fa-solid fa-paper-plane"></i>
+   <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí..." onkeydown="if(event.key === 'Enter'){ enviarMensajeSupabase(); }">
+   <button type="button" class="btn-send" onclick="enviarMensajeSupabase()" title="Enviar mensaje">
+    <i class="fa-solid fa-paper-plane"></i>
    </button>
   </div>
   </div>
@@ -511,6 +517,7 @@
   </div>
   </section>
   
+  <!-- PANEL DE ADMINISTRADOR -->
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="step-title">
   <span class="badge" style="background: #f3ba2f; color:#000;"><i class="fa-solid fa-shield-halved"></i></span>
@@ -522,7 +529,7 @@
   <p style="font-size: 12px; color: #666;">Cargando lista de clientes...</p>
   </div>
   <div style="flex: 2; min-width: 250px; background: #0e0f16; border-radius: 8px; padding: 12px; display: flex; flex-direction: column;" id="admin-chat-view">
-  <p style="font-size: 13px; color: #888; text-align: center; margin-auto;">Seleccioná un usuario de la izquierda</p>
+  <p style="font-size: 13px; color: #888; text-align: center; margin: auto;">Seleccioná un usuario de la izquierda</p>
   </div>
   </div>
   </section>
@@ -559,14 +566,18 @@
   <img src="disco.jpg" id="imagen-disco" alt="Disco de Música" onerror="this.style.opacity='0';">
   <i id="icono-musica" class="fa-solid fa-play"></i>
   </button>
-
-  <!-- Script único de Supabase (sin webhooks duplicados ni conflictos) -->
+  
+  <!-- SCRIPT CON SUPABASE -->
   <script type="module">
   import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
   
   const SUPABASE_URL = 'https://egtuaihydqkmaqehgrnd.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_fEVgUFX5bTcoMCqjsT44-A_tgW4pVeZ';
+  
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
+  const WEBHOOK_INICIO_SESION = 'https://almazarela.app.n8n.cloud/webhook-test/0764aae1-cc1b-4f67-9635-5c44ceac4544';
+  const WEBHOOK_CHAT_CLIENTES = 'https://almazarela.app.n8n.cloud/webhook-test/0764aae1-cc1b-4f67-9635-5c44ceac4544';
   
   let usuarioActual = null;
   
@@ -600,6 +611,21 @@
       document.getElementById('user-dashboard').style.display = 'block';
       document.getElementById('user-email-display').innerText = user.email;
       
+      if (event === 'SIGNED_IN') {
+        fetch(WEBHOOK_INICIO_SESION, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'inicio_sesion',
+            uid: user.id,
+            email: user.email,
+            displayName: user.user_metadata?.full_name || user.email,
+            photoURL: user.user_metadata?.avatar_url || '',
+            timestamp: new Date().toISOString()
+          })
+        }).catch(err => console.error("Error enviando inicio de sesión al webhook:", err));
+      }
+      
       if (user.email === 'almita.zarela@gmail.com' || user.email.includes('admin')) {
         document.getElementById('admin-panel-section').style.display = 'block';
       }
@@ -609,6 +635,89 @@
       document.getElementById('admin-panel-section').style.display = 'none';
     }
   });
+  
+  window.enviarMensajeSupabase = async function() {
+    const input = document.getElementById('chat-user-input');
+    const texto = input.value.trim();
+    if (!texto) return;
+    
+    if (!usuarioActual) {
+      alert("Por favor iniciá sesión para enviar mensajes.");
+      window.loginConGoogle();
+      return;
+    }
+    
+    const mensajeData = {
+      event: 'mensaje_chat',
+      sender: usuarioActual.email,
+      uid: usuarioActual.id,
+      text: texto,
+      timestamp: new Date().toISOString()
+    };
+    
+    try {
+      const area = document.getElementById('chat-messages-container');
+      const div = document.createElement('div');
+      div.className = 'chat-message user-msg';
+      div.textContent = texto;
+      area.appendChild(div);
+      area.scrollTop = area.scrollHeight;
+      
+      fetch(WEBHOOK_CHAT_CLIENTES, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(mensajeData)
+      }).catch(err => console.error("Error enviando mensaje al webhook chat-clientes:", err));
+      
+      input.value = '';
+    } catch (e) {
+      console.error("Error enviando mensaje: ", e);
+    }
+  };
+  
+  window.enviarComprobanteSupabase = async function() {
+    const fileInput = document.getElementById('chat-file-input');
+    const file = fileInput.files[0];
+    if (!file) return;
+    
+    if (!usuarioActual) {
+      alert("Iniciá sesión para adjuntar comprobantes.");
+      fileInput.value = '';
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      const base64Image = e.target.result;
+      const textoAdjunto = '📄 Comprobante adjunto: ' + file.name;
+      
+      try {
+        const area = document.getElementById('chat-messages-container');
+        const div = document.createElement('div');
+        div.className = 'chat-message user-msg';
+        div.innerHTML = `<div>${textoAdjunto}</div><img src="${base64Image}" style="max-width:150px; border-radius:8px; margin-top:5px;">`;
+        area.appendChild(div);
+        area.scrollTop = area.scrollHeight;
+        
+        await fetch(WEBHOOK_CHAT_CLIENTES, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'comprobante_adjunto',
+            sender: usuarioActual.email,
+            uid: usuarioActual.id,
+            text: textoAdjunto,
+            imagenBase64: base64Image,
+            timestamp: new Date().toISOString()
+          })
+        });
+        fileInput.value = '';
+      } catch (err) {
+        console.error("Error al enviar comprobante:", err);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
   </script>
 </body>
 </html>
