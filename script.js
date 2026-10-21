@@ -566,44 +566,27 @@ async function cargarPanelAdmin() {
 // ------------------------- PANEL ADMIN: MENSAJES Y SALDO ---------------
 const MSG = {
   tabla: "messages",
-  userCol: "user_id",
-  // Nombres de columna posibles: se detectan solos a partir de las filas existentes
-  fechaCols: ["created_at", "inserted_at", "fecha", "timestamp"],
-  textoCols: ["content", "text", "message", "mensaje", "body", "texto"],
-  imagenCols: ["image_url", "file_url", "archivo_url", "attachment_url", "comprobante_url", "media_url", "imagen", "archivo", "image", "file"],
-  remitenteCols: ["sender", "role", "sender_type", "from", "autor", "is_admin", "from_admin", "is_from_admin"],
-  adminValores: ["admin", "assistant", "support", "soporte", "staff", "agent", "administrador"],
-  bucket: "",   // si guardás solo la ruta del archivo en Storage, poné acá el nombre del bucket
+  userCol: "user_id",        // dueño de la conversación (el cliente)
+  senderCol: "sender_id",    // quién envió ese mensaje
+  textoCol: "content",
+  archivoCol: "file_url",
+  leidoCol: "is_read",
+  fechaCol: "created_at",
+  bucket: "",                // solo si file_url guarda una ruta de Storage en vez de una URL completa
 };
 const RPC_SALDO = "admin_ajustar_saldo";
 
-let esquemaMsg = { texto: "content", imagen: null, remitente: null, remitenteBool: false };
 let clienteSel = null;      // { id, etiqueta, saldo, btn }
 let pollAdmin = null;
 let firmaMsgs = "";
 
 function detenerPollAdmin() { clearInterval(pollAdmin); pollAdmin = null; clienteSel = null; }
 
-const primeraCol = (fila, cols) => cols.find((c) => c in fila) || null;
-
-function inferirEsquema(filas) {
-  if (!filas.length) return;
-  const f = filas[0];
-  const remitente = primeraCol(f, MSG.remitenteCols);
-  esquemaMsg = {
-    texto: primeraCol(f, MSG.textoCols) || esquemaMsg.texto,
-    imagen: primeraCol(f, MSG.imagenCols),
-    remitente,
-    remitenteBool: remitente ? typeof f[remitente] === "boolean" : false,
-  };
-}
-
+// Mensaje del cliente: lo envió el mismo usuario dueño de la conversación (o no tiene remitente).
+// Cualquier otro remitente (vos, el admin) se muestra como respuesta del administrador.
 function esDelAdmin(fila) {
-  const c = esquemaMsg.remitente;
-  if (!c) return false;
-  const v = fila[c];
-  if (typeof v === "boolean") return v === true;
-  return typeof v === "string" && MSG.adminValores.includes(v.toLowerCase());
+  const remitente = fila[MSG.senderCol];
+  return !!remitente && remitente !== fila[MSG.userCol];
 }
 
 // Solo https o imágenes data: (evita javascript: y otros esquemas)
@@ -723,13 +706,14 @@ function construirVistaCliente() {
 }
 
 async function pedirMensajes(userId) {
-  let q = supabase.from(MSG.tabla).select("*").eq(MSG.userCol, userId);
-  let r = await q.order("created_at", { ascending: false }).limit(200);
-  if (r.error && columnaNoExiste(r.error)) {
-    r = await supabase.from(MSG.tabla).select("*").eq(MSG.userCol, userId).limit(200);
-  } else if (!r.error) {
-    r.data = (r.data || []).reverse();   // más viejo arriba
-  }
+  // Los 200 más recientes, mostrados del más viejo al más nuevo
+  const r = await supabase
+    .from(MSG.tabla)
+    .select(`id, ${MSG.userCol}, ${MSG.senderCol}, ${MSG.textoCol}, ${MSG.archivoCol}, ${MSG.leidoCol}, ${MSG.fechaCol}`)
+    .eq(MSG.userCol, userId)
+    .order(MSG.fechaCol, { ascending: false })
+    .limit(200);
+  if (!r.error) r.data = (r.data || []).reverse();
   return r;
 }
 
@@ -755,7 +739,6 @@ async function refrescarMensajes(forzar) {
   }
 
   const filas = data || [];
-  inferirEsquema(filas);
   const ultima = filas[filas.length - 1];
   const firma = filas.length + "|" + (ultima ? JSON.stringify(ultima).length : 0);
   if (!forzar && firma === firmaMsgs) return;   // sin novedades: no tocar el scroll
@@ -778,33 +761,49 @@ async function refrescarMensajes(forzar) {
       "max-width:80%;padding:7px 10px;border-radius:10px;font-size:13px;word-break:break-word;color:#fff;" +
       (mio ? "align-self:flex-end;background:#7a5a00;" : "align-self:flex-start;background:#1f2937;");
 
-    const texto = f[esquemaMsg.texto];
+    const texto = f[MSG.textoCol];
     if (texto) {
       const t = document.createElement("div");
       t.textContent = String(texto);
       burbuja.appendChild(t);
     }
 
-    const bruto = esquemaMsg.imagen ? f[esquemaMsg.imagen] : null;
-    if (bruto) {
-      const img = document.createElement("img");
-      img.alt = "Comprobante";
-      img.style.cssText = "display:block;max-width:100%;max-height:180px;margin-top:6px;border-radius:6px;cursor:zoom-in;";
-      const url = urlSegura(bruto);
-      const conectar = (u) => { img.src = u; img.addEventListener("click", () => abrirImagen(u)); };
+    const archivo = f[MSG.archivoCol];
+    if (archivo) {
+      const conectar = (u) => {
+        const img = document.createElement("img");
+        img.alt = "Comprobante";
+        img.style.cssText = "display:block;max-width:100%;max-height:180px;margin-top:6px;border-radius:6px;cursor:zoom-in;";
+        img.addEventListener("click", () => abrirImagen(u));
+        // Si no es una imagen (ej. un PDF), se reemplaza por un enlace
+        img.addEventListener("error", () => {
+          const a = document.createElement("a");
+          a.href = u; a.target = "_blank"; a.rel = "noopener noreferrer";
+          a.textContent = "📎 Ver archivo adjunto";
+          a.style.cssText = "display:inline-block;margin-top:6px;color:#7fd1ff;font-size:12px;";
+          img.replaceWith(a);
+        });
+        img.src = u;
+        burbuja.appendChild(img);
+      };
+      const url = urlSegura(archivo);
       if (url) conectar(url);
-      else if (MSG.bucket && typeof bruto === "string") {
-        supabase.storage.from(MSG.bucket).createSignedUrl(bruto, 3600).then(({ data: d }) => { if (d && d.signedUrl) conectar(d.signedUrl); });
+      else if (MSG.bucket && typeof archivo === "string") {
+        supabase.storage.from(MSG.bucket).createSignedUrl(archivo, 3600)
+          .then(({ data: d }) => { if (d && d.signedUrl) conectar(d.signedUrl); });
+      } else {
+        const aviso = document.createElement("div");
+        aviso.style.cssText = "font-size:11px;color:#f3ba2f;margin-top:4px;";
+        aviso.textContent = "📎 Archivo adjunto (ruta sin URL pública)";
+        burbuja.appendChild(aviso);
       }
-      burbuja.appendChild(img);
     }
-    if (!texto && !bruto) burbuja.textContent = "(mensaje sin contenido)";
+    if (!texto && !archivo) burbuja.textContent = "(mensaje sin contenido)";
 
-    const fc = primeraCol(f, MSG.fechaCols);
-    if (fc && f[fc]) {
+    if (f[MSG.fechaCol]) {
       const h = document.createElement("div");
       h.style.cssText = "font-size:10px;color:#9aa;margin-top:3px;text-align:right;";
-      const d = new Date(f[fc]);
+      const d = new Date(f[MSG.fechaCol]);
       h.textContent = isNaN(d) ? "" : d.toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
       burbuja.appendChild(h);
     }
@@ -820,8 +819,13 @@ async function responderCliente() {
   const texto = inp ? inp.value.trim() : "";
   if (!sel || !texto) return;
 
-  const fila = { [MSG.userCol]: sel.id, [esquemaMsg.texto]: texto };
-  if (esquemaMsg.remitente) fila[esquemaMsg.remitente] = esquemaMsg.remitenteBool ? true : "admin";
+  if (!usuarioActual) return mostrarAviso("Tu sesión expiró. Volvé a iniciar sesión.", "error");
+  const fila = {
+    [MSG.userCol]: sel.id,            // conversación del cliente
+    [MSG.senderCol]: usuarioActual.id, // enviado por el admin
+    [MSG.textoCol]: texto,
+    [MSG.leidoCol]: false,
+  };
 
   btn.disabled = true;
   try {
@@ -833,6 +837,7 @@ async function responderCliente() {
     console.error("No se pudo enviar la respuesta:", err);
     mostrarAviso(
       columnaNoExiste(err) ? "Los nombres de columnas de messages no coinciden: ajustá MSG en script.js."
+      : err.code === "23503" ? "El administrador no tiene un perfil válido para enviar mensajes."
       : err.code === "42501" ? "Sin permiso para responder: ejecutá admin_panel.sql."
       : "No se pudo enviar la respuesta.",
       "error"
