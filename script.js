@@ -189,8 +189,8 @@ function estadoVerificacion(texto, clase) {
 
 function pintarJugador(data, id, validado) {
   const card = $("player-card");
-  const nombre = validado ? nombreDe(data) : "ID " + id;
-  $("player-name").textContent = nombre;
+  const real = validado ? String(nombreDe(data)) : "";
+  $("player-name").textContent = validado ? (real.startsWith("@") ? real : "@" + real) : "ID " + id;
 
   const meta = [];
   if (validado) {
@@ -198,14 +198,12 @@ function pintarJugador(data, id, validado) {
     if (data.region) meta.push(data.region);
     meta.push("ID " + id);
   } else {
-    meta.push("Nombre no disponible: confirmá que el ID sea el correcto");
+    meta.push("Confirmá que este ID sea el correcto antes de pagar");
   }
   $("player-meta").textContent = meta.join(" · ");
 
-  card.querySelector(".player-label").textContent = validado ? "Jugador verificado" : "ID ingresado (sin validar)";
-  const ok = card.querySelector(".player-ok");
-  ok.className = (validado ? "fa-solid fa-circle-check" : "fa-solid fa-circle-exclamation") + " player-ok";
-  ok.style.color = validado ? "" : "#f3ba2f";
+  // Mismo diseño verde en ambos casos; solo "Jugador verificado" se usa si n8n confirmó un nombre real
+  card.querySelector(".player-label").textContent = validado ? "Jugador verificado" : "ID listo para recargar";
 
   const img = $("player-avatar-img");
   const avatar = card.querySelector(".player-avatar");
@@ -254,7 +252,7 @@ async function verificarJugador() {
     console.warn("Verificación automática no disponible:", motivo);
     pintarJugador({}, id, false);
     jugadorVerificado = { id, nombre: null, validado: false };
-    estadoVerificacion("ID cargado, pero no pudimos validar el nombre. Revisá que sea correcto antes de comprar.", "loading");
+    estadoVerificacion("ID cargado. Revisá que sea correcto antes de comprar.", "ok");
   };
 
   try {
