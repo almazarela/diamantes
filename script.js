@@ -22,10 +22,11 @@ const CONFIG = {
   BINANCE_PAY_URL: "",
   MP_PAY_URL: "",
 
-  // Tabla de billetera en Supabase (AJUSTAR a tu esquema real)
-  TABLA_PERFILES: "perfiles",
+  // Tabla de billetera en Supabase (se crea con el SQL de profiles.sql)
+  TABLA_PERFILES: "profiles",
   COL_ID: "id",
-  COL_SALDO: "saldo",
+  COL_EMAIL: "email",
+  COL_SALDO: "saldo_usd",
 
   MAX_ARCHIVO_MB: 5,
   TIMEOUT_MS: 15000,
@@ -186,19 +187,29 @@ function estadoVerificacion(texto, clase) {
   el.className = "verify-status" + (clase ? " " + clase : "");
 }
 
-function pintarJugador(data, id) {
+function pintarJugador(data, id, validado) {
   const card = $("player-card");
-  const nombre = data.nombre || data.name || data.nickname || data.nick;
+  const nombre = validado ? nombreDe(data) : "ID " + id;
   $("player-name").textContent = nombre;
+
   const meta = [];
-  if (data.nivel || data.level) meta.push("Nivel " + (data.nivel || data.level));
-  if (data.region) meta.push(data.region);
-  meta.push("ID " + id);
+  if (validado) {
+    if (data.nivel || data.level) meta.push("Nivel " + (data.nivel || data.level));
+    if (data.region) meta.push(data.region);
+    meta.push("ID " + id);
+  } else {
+    meta.push("Nombre no disponible: confirmá que el ID sea el correcto");
+  }
   $("player-meta").textContent = meta.join(" · ");
+
+  card.querySelector(".player-label").textContent = validado ? "Jugador verificado" : "ID ingresado (sin validar)";
+  const ok = card.querySelector(".player-ok");
+  ok.className = (validado ? "fa-solid fa-circle-check" : "fa-solid fa-circle-exclamation") + " player-ok";
+  ok.style.color = validado ? "" : "#f3ba2f";
 
   const img = $("player-avatar-img");
   const avatar = card.querySelector(".player-avatar");
-  const urlAvatar = data.avatar || data.avatar_url;
+  const urlAvatar = validado && (data.avatar || data.avatar_url);
   if (urlAvatar && /^https:\/\//i.test(urlAvatar)) {
     img.src = urlAvatar;
     img.hidden = false;
@@ -209,7 +220,7 @@ function pintarJugador(data, id) {
     avatar.classList.remove("con-img");
   }
 
-  const banner = data.banner || data.banner_url;
+  const banner = validado && (data.banner || data.banner_url);
   if (banner && /^https:\/\//i.test(banner)) {
     card.style.setProperty("--banner", `url("${encodeURI(banner)}")`);
     card.classList.add("con-banner");
@@ -218,6 +229,8 @@ function pintarJugador(data, id) {
   }
   card.hidden = false;
 }
+
+const nombreDe = (d) => d && (d.nombre || d.name || d.nickname || d.nick);
 
 async function verificarJugador() {
   const input = $("player-id");
@@ -235,24 +248,35 @@ async function verificarJugador() {
 
   btn.disabled = true;
   estadoVerificacion("Verificando ID…", "loading");
+
+  // Si no se puede validar el nombre, el ID igual queda cargado para el pedido (modo manual)
+  const modoManual = (motivo) => {
+    console.warn("Verificación automática no disponible:", motivo);
+    pintarJugador({}, id, false);
+    jugadorVerificado = { id, nombre: null, validado: false };
+    estadoVerificacion("ID cargado, pero no pudimos validar el nombre. Revisá que sea correcto antes de comprar.", "loading");
+  };
+
   try {
     const res = await postWebhook({ tipo_evento: "VERIFICAR_JUGADOR", id_jugador: id });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const data = await res.json();
-    const nombre = data && (data.nombre || data.name || data.nickname || data.nick);
-    if (!nombre) {
+    if (!res.ok) return modoManual("HTTP " + res.status);
+
+    let data = null;
+    try { data = await res.json(); } catch (_) { return modoManual("respuesta sin JSON"); }
+    if (Array.isArray(data)) data = data[0];   // n8n a veces responde con un array
+
+    // n8n puede avisar explícitamente que el ID no existe
+    if (data && (data.encontrado === false || data.found === false)) {
       estadoVerificacion("Jugador no encontrado. Revisá el ID.", "error");
       return;
     }
-    pintarJugador(data, id);
-    jugadorVerificado = { id, nombre };
+    if (!nombreDe(data)) return modoManual("el webhook no devolvió nombre");
+
+    pintarJugador(data, id, true);
+    jugadorVerificado = { id, nombre: nombreDe(data), validado: true };
     estadoVerificacion("ID verificado correctamente.", "ok");
   } catch (err) {
-    console.error("Error al verificar jugador:", err);
-    estadoVerificacion(
-      err.name === "AbortError" ? "El servidor tardó demasiado. Reintentá." : "No se pudo verificar ahora. Reintentá en unos minutos.",
-      "error"
-    );
+    modoManual(err.name === "AbortError" ? "timeout" : err.message || err);
   } finally {
     btn.disabled = false;
   }
@@ -269,7 +293,7 @@ function actualizarEnlaceWhatsApp(el, paquete, precio) {
     $("player-id")?.focus();
     return;
   }
-  const nombre = jugadorVerificado && jugadorVerificado.id === id ? ` (${jugadorVerificado.nombre})` : "";
+  const nombre = jugadorVerificado && jugadorVerificado.validado && jugadorVerificado.id === id ? ` (${jugadorVerificado.nombre})` : "";
   const texto = `Hola! Quiero recargar ${paquete} por ${precio}.\nMi ID de Free Fire: ${id}${nombre}`;
   el.href = `https://wa.me/${CONFIG.WHATSAPP_NUMBER}?text=${encodeURIComponent(texto)}`;
   el.rel = "noopener noreferrer";
@@ -429,7 +453,14 @@ function pintarSaldo(n) {
   $("user-balance").textContent = v + " USD";
 }
 
+let perfilesDisponible = true;   // pasa a false si la tabla no existe: no se vuelve a consultar
+
+function tablaNoExiste(err) {
+  return !!err && (err.code === "PGRST205" || err.code === "42P01" || /Could not find the table|does not exist/i.test(err.message || ""));
+}
+
 async function cargarSaldo(user) {
+  if (!perfilesDisponible) return pintarSaldo(0);
   try {
     const { data, error } = await supabase
       .from(CONFIG.TABLA_PERFILES)
@@ -439,40 +470,61 @@ async function cargarSaldo(user) {
     if (error) throw error;
     pintarSaldo(data ? data[CONFIG.COL_SALDO] : 0);
   } catch (err) {
-    console.warn("No se pudo leer el saldo (revisá tabla/columnas/RLS):", err.message || err);
+    if (tablaNoExiste(err)) {
+      perfilesDisponible = false;
+      console.warn(`La tabla ${CONFIG.TABLA_PERFILES} no existe todavía: ejecutá profiles.sql en Supabase.`);
+    } else {
+      console.warn("No se pudo leer el saldo:", err.message || err);
+    }
     pintarSaldo(0);
   }
+}
+
+function mensajeLista(lista, texto, color) {
+  lista.replaceChildren();
+  const p = document.createElement("p");
+  p.style.cssText = `font-size:12px;color:${color};`;
+  p.textContent = texto;
+  lista.appendChild(p);
 }
 
 async function cargarPanelAdmin() {
   const lista = $("admin-users-list");
   const vista = $("admin-chat-view");
   if (!lista) return;
-  lista.replaceChildren();
+  if (!perfilesDisponible) return mensajeLista(lista, "Falta crear la tabla de perfiles en Supabase.", "#f3ba2f");
   try {
-    const { data, error } = await supabase.from(CONFIG.TABLA_PERFILES).select("*").limit(50);
+    const { data, error } = await supabase
+      .from(CONFIG.TABLA_PERFILES)
+      .select(`${CONFIG.COL_ID}, ${CONFIG.COL_EMAIL}, ${CONFIG.COL_SALDO}`)
+      .order(CONFIG.COL_EMAIL, { ascending: true })
+      .limit(100);
     if (error) throw error;
-    if (!data || !data.length) {
-      lista.innerHTML = '<p style="font-size:12px;color:#666;">Sin clientes todavía.</p>';
-      return;
-    }
+    if (!data || !data.length) return mensajeLista(lista, "Sin clientes todavía.", "#666");
+
+    lista.replaceChildren();
     data.forEach((fila) => {
+      const etiqueta = fila[CONFIG.COL_EMAIL] || String(fila[CONFIG.COL_ID]).slice(0, 8);
       const b = document.createElement("button");
-      const etiqueta = fila.email || fila.nombre || String(fila[CONFIG.COL_ID]).slice(0, 8);
       b.textContent = `${etiqueta} · ${formatoUSD(fila[CONFIG.COL_SALDO])}`;
       b.style.cssText = "display:block;width:100%;text-align:left;margin-bottom:6px;padding:8px;background:#161822;color:#fff;border:1px solid #2b3544;border-radius:6px;cursor:pointer;font-size:12px;";
       b.addEventListener("click", () => {
         vista.replaceChildren();
         const p = document.createElement("p");
-        p.style.cssText = "font-size:13px;color:#ddd;";
+        p.style.cssText = "font-size:13px;color:#ddd;word-break:break-all;";
         p.textContent = `Cliente: ${etiqueta} | ID: ${fila[CONFIG.COL_ID]} | Saldo: ${formatoUSD(fila[CONFIG.COL_SALDO])}`;
         vista.appendChild(p);
       });
       lista.appendChild(b);
     });
   } catch (err) {
-    console.warn("No se pudo cargar el panel admin:", err.message || err);
-    lista.innerHTML = '<p style="font-size:12px;color:#ff5c5c;">No se pudo cargar la lista (revisá tabla y políticas RLS).</p>';
+    if (tablaNoExiste(err)) {
+      perfilesDisponible = false;
+      mensajeLista(lista, "Falta crear la tabla de perfiles en Supabase.", "#f3ba2f");
+    } else {
+      console.warn("No se pudo cargar el panel admin:", err.message || err);
+      mensajeLista(lista, "No se pudo cargar la lista (revisá las políticas RLS).", "#ff5c5c");
+    }
   }
 }
 
@@ -488,7 +540,9 @@ function notificarLogin(user) {
 
 supabase.auth.onAuthStateChange((evento, session) => {
   const user = session ? session.user : null;
-  renderSesion(user);
+  // TOKEN_REFRESHED / foco de pestaña disparan eventos con el mismo usuario: no recargar todo
+  if (user && usuarioActual && user.id === usuarioActual.id) usuarioActual = user;
+  else renderSesion(user);
   if (user && evento === "SIGNED_IN") {
     notificarLogin(user);
     // Limpia el access_token de la barra de direcciones
