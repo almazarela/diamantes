@@ -30,6 +30,7 @@ const CONFIG = {
   COL_ADMIN: "is_admin",
   COL_SALDO: "saldo_usd",
 
+  BUCKET_COMPROBANTES: "comprobantes",   // bucket PRIVADO de Storage (lo crea chat_cliente.sql)
   MAX_ARCHIVO_MB: 5,
   TIMEOUT_MS: 15000,
 };
@@ -327,21 +328,117 @@ function toggleMusica() {
 }
 
 // ------------------------- CHAT / WEBHOOK ----------------------------
-const aBase64 = (file) => new Promise((resolve, reject) => {
-  const r = new FileReader();
-  r.onload = () => resolve(r.result);
-  r.onerror = reject;
-  r.readAsDataURL(file);
-});
+// Formatos que acepta el bucket de comprobantes
+const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
-function agregarMensajeChat(texto, clase) {
-  const area = $("chat-messages-container");
-  if (!area) return;
-  const div = document.createElement("div");
-  div.className = "chat-message " + clase;
-  div.textContent = texto;
-  area.appendChild(div);
-  area.scrollTop = area.scrollHeight;
+let pollChat = null;
+let firmaChat = "";
+const cacheUrls = new Map();   // ruta -> { url, vence }
+
+// Devuelve una URL mostrable: https / data:image directas, o una URL firmada si es una ruta del bucket
+async function resolverArchivo(valor) {
+  const directa = urlSegura(valor);
+  if (directa) return directa;
+  if (typeof valor !== "string" || !valor) return null;
+  const c = cacheUrls.get(valor);
+  if (c && c.vence > Date.now()) return c.url;
+  const { data, error } = await supabase.storage.from(CONFIG.BUCKET_COMPROBANTES).createSignedUrl(valor, 3600);
+  if (error || !data) return null;
+  cacheUrls.set(valor, { url: data.signedUrl, vence: Date.now() + 50 * 60 * 1000 });
+  return data.signedUrl;
+}
+
+function limpiarChatCliente() {
+  const cont = $("chat-messages-container");
+  if (!cont) return;
+  [...cont.children].filter((el) => !el.dataset.fijo).forEach((el) => el.remove());
+}
+
+function detenerChatCliente() {
+  clearInterval(pollChat);
+  pollChat = null;
+  firmaChat = "";
+  limpiarChatCliente();
+}
+
+function iniciarChatCliente() {
+  clearInterval(pollChat);
+  firmaChat = "";
+  cargarHistorialCliente(true);
+  pollChat = setInterval(() => { if (!document.hidden) cargarHistorialCliente(false); }, 8000);
+}
+
+async function cargarHistorialCliente(forzar) {
+  const cont = $("chat-messages-container");
+  const yo = usuarioActual;
+  if (!cont || !yo) return;
+
+  const { data, error } = await supabase
+    .from(MSG.tabla)
+    .select(`id, ${MSG.userCol}, ${MSG.senderCol}, ${MSG.textoCol}, ${MSG.archivoCol}, ${MSG.fechaCol}`)
+    .eq(MSG.userCol, yo.id)
+    .order(MSG.fechaCol, { ascending: false })
+    .limit(200);
+  if (usuarioActual !== yo) return;   // cerró sesión mientras cargaba
+  if (error) {
+    if (forzar) console.warn("No se pudo cargar el historial del chat:", error.message || error);
+    return;
+  }
+
+  const filas = (data || []).reverse();
+  const ultima = filas[filas.length - 1];
+  const firma = filas.length + "|" + (ultima ? ultima.id : "");
+  if (!forzar && firma === firmaChat) return;
+  firmaChat = firma;
+
+  const alFinal = forzar || cont.scrollHeight - cont.scrollTop - cont.clientHeight < 60;
+  limpiarChatCliente();
+  for (const f of filas) {
+    const div = document.createElement("div");
+    div.className = "chat-message " + (esDelAdmin(f) ? "admin-msg" : "user-msg");
+    const texto = f[MSG.textoCol];
+    if (texto) {
+      const t = document.createElement("div");
+      t.textContent = String(texto);
+      div.appendChild(t);
+    }
+    if (f[MSG.archivoCol]) {
+      const img = document.createElement("img");
+      img.alt = "Comprobante";
+      img.style.cssText = "display:block;max-width:100%;max-height:200px;margin-top:6px;border-radius:8px;cursor:zoom-in;";
+      div.appendChild(img);
+      resolverArchivo(f[MSG.archivoCol]).then((u) => {
+        if (!u) { img.replaceWith(Object.assign(document.createElement("span"), { textContent: "📎 Comprobante enviado" })); return; }
+        img.src = u;
+        img.addEventListener("click", () => abrirImagen(u));
+        img.addEventListener("error", () => {
+          const a = Object.assign(document.createElement("a"), { href: u, target: "_blank", rel: "noopener noreferrer", textContent: "📎 Ver archivo adjunto" });
+          img.replaceWith(a);
+        });
+      });
+    }
+    if (!texto && !f[MSG.archivoCol]) div.textContent = "(mensaje sin contenido)";
+    cont.appendChild(div);
+  }
+  if (alFinal) cont.scrollTop = cont.scrollHeight;
+}
+
+// Aviso a n8n (notificación al admin). Es opcional: si falla, el mensaje igual quedó guardado.
+async function notificarChatN8n(texto, ruta, nombreArchivo) {
+  let urlFirmada = null;
+  if (ruta) {
+    const { data } = await supabase.storage.from(CONFIG.BUCKET_COMPROBANTES).createSignedUrl(ruta, 7 * 24 * 3600);
+    urlFirmada = data ? data.signedUrl : null;
+  }
+  await postWebhook({
+    tipo_evento: "CHAT_MENSAJE",
+    user_id: usuarioActual.id,
+    email: usuarioActual.email,
+    text: texto,
+    nombre_archivo: nombreArchivo || "",
+    file_path: ruta || "",
+    archivo_url: urlFirmada || "",
+  }, 15000);
 }
 
 async function enviarMensajeWebhook() {
@@ -352,6 +449,17 @@ async function enviarMensajeWebhook() {
   const archivo = inputArchivo && inputArchivo.files[0] ? inputArchivo.files[0] : null;
   if (!texto && !archivo) return;
 
+  if (!usuarioActual) {
+    mostrarAviso("Iniciá sesión con Google para chatear y enviar comprobantes.", "error");
+    if (inputArchivo) inputArchivo.value = "";
+    if (!$("sidebar-menu")?.classList.contains("open")) toggleMenu();
+    return;
+  }
+  if (archivo && !TIPOS_IMAGEN.includes(archivo.type)) {
+    mostrarAviso("Formato no admitido. Usá JPG, PNG, WebP o GIF.", "error");
+    inputArchivo.value = "";
+    return;
+  }
   if (archivo && archivo.size > CONFIG.MAX_ARCHIVO_MB * 1024 * 1024) {
     mostrarAviso(`La imagen supera ${CONFIG.MAX_ARCHIVO_MB} MB.`, "error");
     inputArchivo.value = "";
@@ -360,30 +468,38 @@ async function enviarMensajeWebhook() {
 
   enviandoChat = true;
   try {
-    const payload = {
-      tipo_evento: "CHAT_MENSAJE",
-      user_id: usuarioActual ? usuarioActual.id : null,
-      email: usuarioActual ? usuarioActual.email : null,
-      text: texto,
-      archivo: archivo ? await aBase64(archivo) : "",
-      nombre_archivo: archivo ? archivo.name : "",
-    };
-    const res = await postWebhook(payload, 30000);
-    if (!res.ok) throw new Error("HTTP " + res.status);
+    let ruta = null;
+    if (archivo) {
+      const ext = (archivo.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+      ruta = `${usuarioActual.id}/${Date.now()}.${ext}`;   // la carpeta = ID del usuario (lo exige la política)
+      const { error: errSubida } = await supabase.storage
+        .from(CONFIG.BUCKET_COMPROBANTES)
+        .upload(ruta, archivo, { contentType: archivo.type, upsert: false });
+      if (errSubida) throw errSubida;
+    }
 
-    if (texto) agregarMensajeChat(texto, "user-msg");
-    if (archivo) agregarMensajeChat("📎 Comprobante enviado: " + archivo.name, "user-msg");
+    const { error } = await supabase.from(MSG.tabla).insert({
+      [MSG.userCol]: usuarioActual.id,
+      [MSG.senderCol]: usuarioActual.id,
+      [MSG.textoCol]: texto,
+      [MSG.archivoCol]: ruta,
+      [MSG.leidoCol]: false,
+    });
+    if (error) throw error;
+
     if (inputMensaje) inputMensaje.value = "";
-
-    // Si n8n responde con JSON {reply: "..."} lo mostramos como mensaje del admin
-    try {
-      const data = await res.json();
-      const r = data && (data.reply || data.respuesta);
-      if (typeof r === "string" && r) agregarMensajeChat(r, "admin-msg");
-    } catch (_) { /* respuesta sin JSON: normal */ }
+    await cargarHistorialCliente(true);
+    notificarChatN8n(texto, ruta, archivo ? archivo.name : "")
+      .catch((err) => console.warn("No se pudo avisar a n8n:", err.message || err));
   } catch (err) {
     console.error("Error al enviar el mensaje:", err);
-    mostrarAviso("No se pudo enviar el mensaje. Reintentá.", "error");
+    const msg = String((err && err.message) || "");
+    mostrarAviso(
+      /bucket not found/i.test(msg) ? "Falta crear el almacenamiento de comprobantes: ejecutá chat_cliente.sql."
+      : /row-level security|42501/i.test(msg + (err.code || "")) ? "Sin permiso para enviar: ejecutá chat_cliente.sql."
+      : "No se pudo enviar el mensaje. Reintentá.",
+      "error"
+    );
   } finally {
     if (inputArchivo) inputArchivo.value = "";
     enviandoChat = false;
@@ -443,6 +559,9 @@ function renderSesion(user) {
   if (logueado) {
     // setTimeout evita bloquear el cliente de Supabase dentro de onAuthStateChange
     setTimeout(() => cargarPerfilYSaldo(user, esAdminEmail), 0);
+    setTimeout(iniciarChatCliente, 0);
+  } else {
+    detenerChatCliente();
   }
 }
 
@@ -572,7 +691,7 @@ const MSG = {
   archivoCol: "file_url",
   leidoCol: "is_read",
   fechaCol: "created_at",
-  bucket: "",                // solo si file_url guarda una ruta de Storage en vez de una URL completa
+  bucket: CONFIG.BUCKET_COMPROBANTES,   // file_url guarda la ruta del archivo dentro de este bucket
 };
 const RPC_SALDO = "admin_ajustar_saldo";
 
@@ -898,6 +1017,10 @@ function notificarLogin(user) {
   postWebhook({ tipo_evento: "LOGIN", user_id: user.id, email: user.email, fecha: new Date().toISOString() }, 10000)
     .catch((err) => console.warn("No se pudo notificar el login:", err.message || err));
 }
+
+// El saludo inicial del chat no se borra al cargar el historial (los módulos corren con el DOM ya listo)
+const saludoChat = $("chat-messages-container")?.firstElementChild;
+if (saludoChat) saludoChat.dataset.fijo = "1";
 
 supabase.auth.onAuthStateChange((evento, session) => {
   const user = session ? session.user : null;
