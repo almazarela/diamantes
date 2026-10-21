@@ -22,10 +22,12 @@ const CONFIG = {
   BINANCE_PAY_URL: "",
   MP_PAY_URL: "",
 
-  // Tabla de billetera en Supabase (se crea con el SQL de profiles.sql)
+  // Tabla de perfiles en Supabase (columnas: id, email, full_name, avatar_url, is_admin, created_at + saldo_usd de profiles.sql)
   TABLA_PERFILES: "profiles",
   COL_ID: "id",
   COL_EMAIL: "email",
+  COL_NOMBRE: "full_name",
+  COL_ADMIN: "is_admin",
   COL_SALDO: "saldo_usd",
 
   MAX_ARCHIVO_MB: 5,
@@ -409,13 +411,14 @@ async function logoutGoogle() {
 }
 
 function renderSesion(user) {
+  if (!user) detenerPollAdmin();
   usuarioActual = user;
   const logueado = !!user;
-  const esAdmin = logueado && (user.email || "").toLowerCase() === CONFIG.ADMIN_EMAIL.toLowerCase();
+  const esAdminEmail = logueado && (user.email || "").toLowerCase() === CONFIG.ADMIN_EMAIL.toLowerCase();
 
   $("auth-forms").style.display = logueado ? "none" : "block";
   $("user-dashboard").style.display = logueado ? "block" : "none";
-  $("admin-panel-section").style.display = esAdmin ? "block" : "none";
+  $("admin-panel-section").style.display = esAdminEmail ? "block" : "none";
   if (logueado) $("user-email-display").textContent = user.email;
 
   // Sidebar: botón de login o de logout
@@ -439,8 +442,7 @@ function renderSesion(user) {
 
   if (logueado) {
     // setTimeout evita bloquear el cliente de Supabase dentro de onAuthStateChange
-    setTimeout(() => cargarSaldo(user), 0);
-    if (esAdmin) setTimeout(cargarPanelAdmin, 0);
+    setTimeout(() => cargarPerfilYSaldo(user, esAdminEmail), 0);
   }
 }
 
@@ -451,14 +453,46 @@ function pintarSaldo(n) {
   $("user-balance").textContent = v + " USD";
 }
 
-let perfilesDisponible = true;   // pasa a false si la tabla no existe: no se vuelve a consultar
+let perfilesDisponible = true;   // false si la tabla no existe: no se vuelve a consultar
+let saldoDisponible = true;     // false si falta la columna de saldo: no se vuelve a consultar
 
-function tablaNoExiste(err) {
-  return !!err && (err.code === "PGRST205" || err.code === "42P01" || /Could not find the table|does not exist/i.test(err.message || ""));
+const tablaNoExiste = (err) =>
+  !!err && (err.code === "PGRST205" || err.code === "42P01" || /Could not find the table|relation .* does not exist/i.test(err.message || ""));
+const columnaNoExiste = (err) =>
+  !!err && (err.code === "42703" || err.code === "PGRST204" || /column .* does not exist|Could not find the .* column/i.test(err.message || ""));
+
+async function cargarPerfilYSaldo(user, esAdminEmail) {
+  let esAdmin = esAdminEmail;
+  if (perfilesDisponible) {
+    try {
+      // Solo columnas que existen en tu tabla
+      const { data, error } = await supabase
+        .from(CONFIG.TABLA_PERFILES)
+        .select(`${CONFIG.COL_ID}, ${CONFIG.COL_EMAIL}, ${CONFIG.COL_NOMBRE}, ${CONFIG.COL_ADMIN}`)
+        .eq(CONFIG.COL_ID, user.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (data) {
+        const nombre = data[CONFIG.COL_NOMBRE] || (user.user_metadata && user.user_metadata.full_name);
+        $("user-email-display").textContent = nombre ? `${nombre} (${user.email})` : user.email;
+        if (data[CONFIG.COL_ADMIN] === true) esAdmin = true;   // solo visual: los datos los protege RLS
+      }
+    } catch (err) {
+      if (tablaNoExiste(err)) {
+        perfilesDisponible = false;
+        console.warn(`La tabla ${CONFIG.TABLA_PERFILES} no existe.`);
+      } else {
+        console.warn("No se pudo leer el perfil:", err.message || err);
+      }
+    }
+  }
+  $("admin-panel-section").style.display = esAdmin ? "block" : "none";
+  await cargarSaldo(user);
+  if (esAdmin) await cargarPanelAdmin();
 }
 
 async function cargarSaldo(user) {
-  if (!perfilesDisponible) return pintarSaldo(0);
+  if (!perfilesDisponible || !saldoDisponible) return pintarSaldo(0);
   try {
     const { data, error } = await supabase
       .from(CONFIG.TABLA_PERFILES)
@@ -468,9 +502,11 @@ async function cargarSaldo(user) {
     if (error) throw error;
     pintarSaldo(data ? data[CONFIG.COL_SALDO] : 0);
   } catch (err) {
-    if (tablaNoExiste(err)) {
+    if (columnaNoExiste(err)) {
+      saldoDisponible = false;
+      console.warn(`Falta la columna ${CONFIG.COL_SALDO} en ${CONFIG.TABLA_PERFILES}: ejecutá profiles.sql.`);
+    } else if (tablaNoExiste(err)) {
       perfilesDisponible = false;
-      console.warn(`La tabla ${CONFIG.TABLA_PERFILES} no existe todavía: ejecutá profiles.sql en Supabase.`);
     } else {
       console.warn("No se pudo leer el saldo:", err.message || err);
     }
@@ -490,39 +526,361 @@ async function cargarPanelAdmin() {
   const lista = $("admin-users-list");
   const vista = $("admin-chat-view");
   if (!lista) return;
-  if (!perfilesDisponible) return mensajeLista(lista, "Falta crear la tabla de perfiles en Supabase.", "#f3ba2f");
-  try {
-    const { data, error } = await supabase
-      .from(CONFIG.TABLA_PERFILES)
-      .select(`${CONFIG.COL_ID}, ${CONFIG.COL_EMAIL}, ${CONFIG.COL_SALDO}`)
-      .order(CONFIG.COL_EMAIL, { ascending: true })
-      .limit(100);
-    if (error) throw error;
-    if (!data || !data.length) return mensajeLista(lista, "Sin clientes todavía.", "#666");
+  if (!perfilesDisponible) return mensajeLista(lista, "Falta la tabla de perfiles en Supabase.", "#f3ba2f");
 
-    lista.replaceChildren();
-    data.forEach((fila) => {
-      const etiqueta = fila[CONFIG.COL_EMAIL] || String(fila[CONFIG.COL_ID]).slice(0, 8);
-      const b = document.createElement("button");
-      b.textContent = `${etiqueta} · ${formatoUSD(fila[CONFIG.COL_SALDO])}`;
-      b.style.cssText = "display:block;width:100%;text-align:left;margin-bottom:6px;padding:8px;background:#161822;color:#fff;border:1px solid #2b3544;border-radius:6px;cursor:pointer;font-size:12px;";
-      b.addEventListener("click", () => {
-        vista.replaceChildren();
-        const p = document.createElement("p");
-        p.style.cssText = "font-size:13px;color:#ddd;word-break:break-all;";
-        p.textContent = `Cliente: ${etiqueta} | ID: ${fila[CONFIG.COL_ID]} | Saldo: ${formatoUSD(fila[CONFIG.COL_SALDO])}`;
-        vista.appendChild(p);
-      });
-      lista.appendChild(b);
-    });
-  } catch (err) {
-    if (tablaNoExiste(err)) {
+  const base = [CONFIG.COL_ID, CONFIG.COL_EMAIL, CONFIG.COL_NOMBRE, CONFIG.COL_ADMIN];
+  let data = null, error = null;
+  for (let intento = 0; intento < 2; intento++) {
+    const cols = saldoDisponible ? [...base, CONFIG.COL_SALDO] : base;
+    ({ data, error } = await supabase
+      .from(CONFIG.TABLA_PERFILES)
+      .select(cols.join(", "))
+      .order(CONFIG.COL_EMAIL, { ascending: true })
+      .limit(100));
+    if (error && columnaNoExiste(error) && saldoDisponible) { saldoDisponible = false; continue; }  // reintenta sin saldo
+    break;
+  }
+
+  if (error) {
+    if (tablaNoExiste(error)) {
       perfilesDisponible = false;
-      mensajeLista(lista, "Falta crear la tabla de perfiles en Supabase.", "#f3ba2f");
-    } else {
-      console.warn("No se pudo cargar el panel admin:", err.message || err);
-      mensajeLista(lista, "No se pudo cargar la lista (revisá las políticas RLS).", "#ff5c5c");
+      return mensajeLista(lista, "Falta la tabla de perfiles en Supabase.", "#f3ba2f");
     }
+    console.warn("No se pudo cargar el panel admin:", error.message || error);
+    return mensajeLista(lista, "No se pudo cargar la lista (revisá las políticas RLS).", "#ff5c5c");
+  }
+  if (!data || !data.length) return mensajeLista(lista, "Sin clientes todavía.", "#666");
+
+  lista.replaceChildren();
+  data.forEach((fila) => {
+    const etiqueta = fila[CONFIG.COL_NOMBRE] || fila[CONFIG.COL_EMAIL] || String(fila[CONFIG.COL_ID]).slice(0, 8);
+    const saldoTxt = saldoDisponible ? " · " + formatoUSD(fila[CONFIG.COL_SALDO]) : "";
+    const b = document.createElement("button");
+    b.textContent = `${etiqueta}${fila[CONFIG.COL_ADMIN] ? " ★" : ""}${saldoTxt}`;
+    b.style.cssText = "display:block;width:100%;text-align:left;margin-bottom:6px;padding:8px;background:#161822;color:#fff;border:1px solid #2b3544;border-radius:6px;cursor:pointer;font-size:12px;";
+    b.addEventListener("click", () => seleccionarCliente(fila, b, etiqueta));
+    lista.appendChild(b);
+  });
+}
+
+// ------------------------- PANEL ADMIN: MENSAJES Y SALDO ---------------
+const MSG = {
+  tabla: "messages",
+  userCol: "user_id",
+  // Nombres de columna posibles: se detectan solos a partir de las filas existentes
+  fechaCols: ["created_at", "inserted_at", "fecha", "timestamp"],
+  textoCols: ["content", "text", "message", "mensaje", "body", "texto"],
+  imagenCols: ["image_url", "file_url", "archivo_url", "attachment_url", "comprobante_url", "media_url", "imagen", "archivo", "image", "file"],
+  remitenteCols: ["sender", "role", "sender_type", "from", "autor", "is_admin", "from_admin", "is_from_admin"],
+  adminValores: ["admin", "assistant", "support", "soporte", "staff", "agent", "administrador"],
+  bucket: "",   // si guardás solo la ruta del archivo en Storage, poné acá el nombre del bucket
+};
+const RPC_SALDO = "admin_ajustar_saldo";
+
+let esquemaMsg = { texto: "content", imagen: null, remitente: null, remitenteBool: false };
+let clienteSel = null;      // { id, etiqueta, saldo, btn }
+let pollAdmin = null;
+let firmaMsgs = "";
+
+function detenerPollAdmin() { clearInterval(pollAdmin); pollAdmin = null; clienteSel = null; }
+
+const primeraCol = (fila, cols) => cols.find((c) => c in fila) || null;
+
+function inferirEsquema(filas) {
+  if (!filas.length) return;
+  const f = filas[0];
+  const remitente = primeraCol(f, MSG.remitenteCols);
+  esquemaMsg = {
+    texto: primeraCol(f, MSG.textoCols) || esquemaMsg.texto,
+    imagen: primeraCol(f, MSG.imagenCols),
+    remitente,
+    remitenteBool: remitente ? typeof f[remitente] === "boolean" : false,
+  };
+}
+
+function esDelAdmin(fila) {
+  const c = esquemaMsg.remitente;
+  if (!c) return false;
+  const v = fila[c];
+  if (typeof v === "boolean") return v === true;
+  return typeof v === "string" && MSG.adminValores.includes(v.toLowerCase());
+}
+
+// Solo https o imágenes data: (evita javascript: y otros esquemas)
+function urlSegura(v) {
+  if (typeof v !== "string") return null;
+  if (/^https:\/\//i.test(v)) return v;
+  if (/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(v)) return v;
+  return null;
+}
+
+async function abrirImagen(url) {
+  try {
+    if (url.startsWith("data:")) {
+      const blob = await (await fetch(url)).blob();   // Chrome bloquea abrir data: directamente
+      window.open(URL.createObjectURL(blob), "_blank");
+    } else {
+      window.open(url, "_blank", "noopener");
+    }
+  } catch (err) { mostrarAviso("No se pudo abrir la imagen.", "error"); }
+}
+
+function creaBoton(texto, estilo) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = texto;
+  b.style.cssText = "padding:9px 14px;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px;" + estilo;
+  return b;
+}
+const ESTILO_INPUT = "padding:9px;border-radius:6px;border:1px solid #2b3544;background:#161822;color:#fff;font-size:13px;min-width:0;";
+
+function seleccionarCliente(fila, btn, etiqueta) {
+  document.querySelectorAll("#admin-users-list button").forEach((x) => (x.style.borderColor = "#2b3544"));
+  btn.style.borderColor = "#f3ba2f";
+  clienteSel = {
+    id: fila[CONFIG.COL_ID],
+    etiqueta,
+    email: fila[CONFIG.COL_EMAIL] || "-",
+    saldo: saldoDisponible ? Number(fila[CONFIG.COL_SALDO]) || 0 : null,
+    btn,
+  };
+  firmaMsgs = "";
+  construirVistaCliente();
+  refrescarMensajes(true);
+  clearInterval(pollAdmin);
+  pollAdmin = setInterval(() => { if (!document.hidden) refrescarMensajes(false); }, 8000);
+}
+
+function construirVistaCliente() {
+  const vista = $("admin-chat-view");
+  vista.replaceChildren();
+  vista.style.justifyContent = "flex-start";
+
+  const cab = document.createElement("div");
+  cab.style.cssText = "font-size:13px;color:#ddd;margin-bottom:10px;word-break:break-all;";
+  const nombre = document.createElement("strong");
+  nombre.textContent = clienteSel.etiqueta;
+  const sub = document.createElement("div");
+  sub.style.cssText = "font-size:11px;color:#888;";
+  sub.textContent = clienteSel.email + " · " + clienteSel.id;
+  cab.append(nombre, sub);
+  vista.appendChild(cab);
+
+  // --- Saldo ---
+  if (clienteSel.saldo !== null) {
+    const caja = document.createElement("div");
+    caja.style.cssText = "background:#161822;border:1px solid #2b3544;border-radius:8px;padding:10px;margin-bottom:10px;";
+    const saldoTxt = document.createElement("div");
+    saldoTxt.id = "admin-saldo-actual";
+    saldoTxt.style.cssText = "font-size:13px;color:#2ecc71;font-weight:700;margin-bottom:8px;";
+    saldoTxt.textContent = "Saldo actual: " + formatoUSD(clienteSel.saldo);
+
+    const fila = document.createElement("div");
+    fila.style.cssText = "display:flex;gap:6px;flex-wrap:wrap;";
+    const modo = document.createElement("select");
+    modo.id = "admin-modo";
+    modo.style.cssText = ESTILO_INPUT;
+    [["sumar", "Sumar / restar"], ["establecer", "Establecer total"]].forEach(([v, t]) => {
+      const o = document.createElement("option"); o.value = v; o.textContent = t; modo.appendChild(o);
+    });
+    const monto = document.createElement("input");
+    monto.id = "admin-monto"; monto.type = "number"; monto.step = "0.01"; monto.placeholder = "Monto USD";
+    monto.style.cssText = ESTILO_INPUT + "width:110px;";
+    const nota = document.createElement("input");
+    nota.id = "admin-nota"; nota.type = "text"; nota.maxLength = 120; nota.placeholder = "Nota (opcional)";
+    nota.style.cssText = ESTILO_INPUT + "flex:1;min-width:120px;";
+    const ok = creaBoton("Acreditar / Cargar Saldo", "background:#2ecc71;color:#000;");
+    ok.id = "admin-btn-saldo";
+    ok.addEventListener("click", ajustarSaldoCliente);
+    fila.append(modo, monto, nota, ok);
+    caja.append(saldoTxt, fila);
+    vista.appendChild(caja);
+  }
+
+  // --- Conversación ---
+  const msgs = document.createElement("div");
+  msgs.id = "admin-msgs";
+  msgs.style.cssText = "background:#0b0c12;border-radius:8px;padding:8px;height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px;";
+  const cargando = document.createElement("p");
+  cargando.style.cssText = "font-size:12px;color:#666;margin:auto;";
+  cargando.textContent = "Cargando mensajes…";
+  msgs.appendChild(cargando);
+  vista.appendChild(msgs);
+
+  // --- Responder ---
+  const resp = document.createElement("div");
+  resp.style.cssText = "display:flex;gap:6px;";
+  const inp = document.createElement("input");
+  inp.id = "admin-respuesta"; inp.type = "text"; inp.placeholder = "Responder al cliente…"; inp.maxLength = 1000;
+  inp.style.cssText = ESTILO_INPUT + "flex:1;";
+  const env = creaBoton("Enviar", "background:#f3ba2f;color:#000;");
+  env.id = "admin-btn-responder";
+  const enviar = () => responderCliente();
+  env.addEventListener("click", enviar);
+  inp.addEventListener("keydown", (e) => { if (e.key === "Enter") enviar(); });
+  resp.append(inp, env);
+  vista.appendChild(resp);
+}
+
+async function pedirMensajes(userId) {
+  let q = supabase.from(MSG.tabla).select("*").eq(MSG.userCol, userId);
+  let r = await q.order("created_at", { ascending: false }).limit(200);
+  if (r.error && columnaNoExiste(r.error)) {
+    r = await supabase.from(MSG.tabla).select("*").eq(MSG.userCol, userId).limit(200);
+  } else if (!r.error) {
+    r.data = (r.data || []).reverse();   // más viejo arriba
+  }
+  return r;
+}
+
+async function refrescarMensajes(forzar) {
+  const sel = clienteSel;
+  const cont = $("admin-msgs");
+  if (!sel || !cont) return;
+  const { data, error } = await pedirMensajes(sel.id);
+  if (clienteSel !== sel) return;   // el admin cambió de cliente mientras cargaba
+
+  if (error) {
+    console.warn("No se pudieron leer los mensajes:", error.message || error);
+    if (forzar) {
+      cont.replaceChildren();
+      const p = document.createElement("p");
+      p.style.cssText = "font-size:12px;color:#ff5c5c;margin:auto;text-align:center;";
+      p.textContent = tablaNoExiste(error)
+        ? "La tabla de mensajes no existe."
+        : "No se pudieron cargar los mensajes (revisá las políticas RLS de messages).";
+      cont.appendChild(p);
+    }
+    return;
+  }
+
+  const filas = data || [];
+  inferirEsquema(filas);
+  const ultima = filas[filas.length - 1];
+  const firma = filas.length + "|" + (ultima ? JSON.stringify(ultima).length : 0);
+  if (!forzar && firma === firmaMsgs) return;   // sin novedades: no tocar el scroll
+  firmaMsgs = firma;
+
+  const alFinal = cont.scrollHeight - cont.scrollTop - cont.clientHeight < 40 || forzar;
+  cont.replaceChildren();
+  if (!filas.length) {
+    const p = document.createElement("p");
+    p.style.cssText = "font-size:12px;color:#666;margin:auto;";
+    p.textContent = "Este cliente todavía no envió mensajes.";
+    cont.appendChild(p);
+    return;
+  }
+
+  filas.forEach((f) => {
+    const mio = esDelAdmin(f);
+    const burbuja = document.createElement("div");
+    burbuja.style.cssText =
+      "max-width:80%;padding:7px 10px;border-radius:10px;font-size:13px;word-break:break-word;color:#fff;" +
+      (mio ? "align-self:flex-end;background:#7a5a00;" : "align-self:flex-start;background:#1f2937;");
+
+    const texto = f[esquemaMsg.texto];
+    if (texto) {
+      const t = document.createElement("div");
+      t.textContent = String(texto);
+      burbuja.appendChild(t);
+    }
+
+    const bruto = esquemaMsg.imagen ? f[esquemaMsg.imagen] : null;
+    if (bruto) {
+      const img = document.createElement("img");
+      img.alt = "Comprobante";
+      img.style.cssText = "display:block;max-width:100%;max-height:180px;margin-top:6px;border-radius:6px;cursor:zoom-in;";
+      const url = urlSegura(bruto);
+      const conectar = (u) => { img.src = u; img.addEventListener("click", () => abrirImagen(u)); };
+      if (url) conectar(url);
+      else if (MSG.bucket && typeof bruto === "string") {
+        supabase.storage.from(MSG.bucket).createSignedUrl(bruto, 3600).then(({ data: d }) => { if (d && d.signedUrl) conectar(d.signedUrl); });
+      }
+      burbuja.appendChild(img);
+    }
+    if (!texto && !bruto) burbuja.textContent = "(mensaje sin contenido)";
+
+    const fc = primeraCol(f, MSG.fechaCols);
+    if (fc && f[fc]) {
+      const h = document.createElement("div");
+      h.style.cssText = "font-size:10px;color:#9aa;margin-top:3px;text-align:right;";
+      const d = new Date(f[fc]);
+      h.textContent = isNaN(d) ? "" : d.toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
+      burbuja.appendChild(h);
+    }
+    cont.appendChild(burbuja);
+  });
+  if (alFinal) cont.scrollTop = cont.scrollHeight;
+}
+
+async function responderCliente() {
+  const sel = clienteSel;
+  const inp = $("admin-respuesta");
+  const btn = $("admin-btn-responder");
+  const texto = inp ? inp.value.trim() : "";
+  if (!sel || !texto) return;
+
+  const fila = { [MSG.userCol]: sel.id, [esquemaMsg.texto]: texto };
+  if (esquemaMsg.remitente) fila[esquemaMsg.remitente] = esquemaMsg.remitenteBool ? true : "admin";
+
+  btn.disabled = true;
+  try {
+    const { error } = await supabase.from(MSG.tabla).insert(fila);
+    if (error) throw error;
+    inp.value = "";
+    await refrescarMensajes(true);
+  } catch (err) {
+    console.error("No se pudo enviar la respuesta:", err);
+    mostrarAviso(
+      columnaNoExiste(err) ? "Los nombres de columnas de messages no coinciden: ajustá MSG en script.js."
+      : err.code === "42501" ? "Sin permiso para responder: ejecutá admin_panel.sql."
+      : "No se pudo enviar la respuesta.",
+      "error"
+    );
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function ajustarSaldoCliente() {
+  const sel = clienteSel;
+  const btn = $("admin-btn-saldo");
+  if (!sel || !btn) return;
+  const modo = $("admin-modo").value;
+  const monto = Math.round(parseFloat($("admin-monto").value) * 100) / 100;
+  const nota = $("admin-nota").value.trim();
+
+  if (!Number.isFinite(monto) || monto === 0 && modo === "sumar") return mostrarAviso("Ingresá un monto válido.", "error");
+  if (Math.abs(monto) > 100000) return mostrarAviso("El monto es demasiado alto.", "error");
+  if (modo === "establecer" && monto < 0) return mostrarAviso("El saldo total no puede ser negativo.", "error");
+
+  const resumen = modo === "sumar"
+    ? `${monto >= 0 ? "Sumar" : "Restar"} ${formatoUSD(Math.abs(monto))} a ${sel.etiqueta}`
+    : `Establecer el saldo de ${sel.etiqueta} en ${formatoUSD(monto)}`;
+  if (!window.confirm(resumen + "?\n\nSaldo actual: " + formatoUSD(sel.saldo))) return;
+
+  btn.disabled = true;
+  try {
+    const { data, error } = await supabase.rpc(RPC_SALDO, { p_user_id: sel.id, p_monto: monto, p_modo: modo, p_nota: nota || null });
+    if (error) throw error;
+    const nuevo = Number(data);
+    sel.saldo = nuevo;
+    $("admin-saldo-actual").textContent = "Saldo actual: " + formatoUSD(nuevo);
+    sel.btn.textContent = `${sel.etiqueta}${sel.btn.textContent.includes("★") ? " ★" : ""} · ${formatoUSD(nuevo)}`;
+    if (usuarioActual && usuarioActual.id === sel.id) pintarSaldo(nuevo);
+    $("admin-monto").value = ""; $("admin-nota").value = "";
+    mostrarAviso("Saldo actualizado: " + formatoUSD(nuevo), "ok");
+  } catch (err) {
+    console.error("Error al ajustar saldo:", err);
+    mostrarAviso(
+      err.code === "PGRST202" ? "Falta crear la función en Supabase: ejecutá admin_panel.sql."
+      : err.code === "42501" ? "No autorizado para modificar saldos."
+      : /negativ|check constraint/i.test(err.message || "") ? "El saldo no puede quedar negativo."
+      : "No se pudo actualizar el saldo.",
+      "error"
+    );
+  } finally {
+    btn.disabled = false;
   }
 }
 
