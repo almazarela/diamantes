@@ -6,7 +6,8 @@
   <title>Centro de Recargas - Free Fire</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
-  <script src="script.js" defer></script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%92%8E%3C/text%3E%3C/svg%3E">
+  <script type="module" src="script.js"></script>
   
 <style>
   .verify-row { display: flex; gap: 10px; align-items: stretch; }
@@ -551,64 +552,11 @@
   <p>© Tienda de Recargas Independiente. Todos los derechos reservados.</p>
   </footer>
   
-  <audio id="musica-fondo" loop preload="auto">
-  <source src="musica.mp3" type="audio/mpeg">
-  </audio>
+  <audio id="musica-fondo" loop preload="none" data-src="musica.mp3"></audio>
   
   <button id="btn-musica" class="btn-musica-flotante" onclick="toggleMusica()" aria-label="Reproducir Música">
-  <img src="disco.jpg" id="imagen-disco" alt="Disco de Música" onerror="this.style.opacity='0';">
+  <img data-src="disco.jpg" id="imagen-disco" alt="Disco de Música" onerror="this.style.opacity='0';">
   <i id="icono-musica" class="fa-solid fa-play"></i>
   </button>
-
-  <!-- Script único de Supabase (sin webhooks duplicados ni conflictos) -->
-  <script type="module">
-  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
-  
-  const SUPABASE_URL = 'https://egtuaihydqkmaqehgrnd.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_fEVgUFX5bTcoMCqjsT44-A_tgW4pVeZ';
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  
-  let usuarioActual = null;
-  
-  window.loginConGoogle = async function() {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: window.location.href }
-      });
-      if (error) throw error;
-    } catch (error) {
-      console.error("Error al iniciar sesión con Supabase:", error);
-      alert("No se pudo completar el inicio de sesión.");
-    }
-  };
-
-  window.logoutGoogle = async function() {
-    await supabase.auth.signOut();
-    document.getElementById('auth-forms').style.display = 'block';
-    document.getElementById('user-dashboard').style.display = 'none';
-    document.getElementById('admin-panel-section').style.display = 'none';
-    usuarioActual = null;
-  };
-  
-  supabase.auth.onAuthStateChange(async (event, session) => {
-    const user = session?.user || null;
-    usuarioActual = user;
-    
-    if (user) {
-      document.getElementById('auth-forms').style.display = 'none';
-      document.getElementById('user-dashboard').style.display = 'block';
-      document.getElementById('user-email-display').innerText = user.email;
-      
-      if (user.email === 'almita.zarela@gmail.com' || user.email.includes('admin')) {
-        document.getElementById('admin-panel-section').style.display = 'block';
-      }
-    } else {
-      document.getElementById('auth-forms').style.display = 'block';
-      document.getElementById('user-dashboard').style.display = 'none';
-      document.getElementById('admin-panel-section').style.display = 'none';
-    }
-  });
-  </script>
 </body>
 </html>
