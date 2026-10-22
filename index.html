@@ -14,8 +14,8 @@
   .verify-row input { flex: 1; min-width: 0; }
   .btn-verificar {
   display: inline-flex; align-items: center; gap: 8px;
-  padding: 0 18px; border: none; border-radius: 12px; cursor: pointer;
-  font-weight: 700; font-size: 14px; color: #ffffff; white-space: nowrap;
+  padding: 0 24px; min-height: 52px; flex-shrink: 0; justify-content: center; border: none; border-radius: 12px; cursor: pointer;
+  font-weight: 700; font-size: 15px; color: #ffffff; white-space: nowrap;
   background: linear-gradient(135deg, #ff3b3b, #ff7a18);
   box-shadow: 0 4px 14px rgba(255, 40, 40, 0.568);
   transition: transform .15s ease, opacity .15s ease;
@@ -126,8 +126,7 @@
   
   @keyframes aparecer { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
   @media (max-width: 480px) {
-  .btn-verificar span { display: none; }
-  .btn-verificar { padding: 0 14px; }
+  .btn-verificar { padding: 0 16px; font-size: 14px; }
   }
   
   /* ===== Encabezado: saldos ===== */
@@ -139,14 +138,14 @@
   .navbar {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-areas: "menu logo wallet" "menu region wallet";
+  grid-template-areas: "menu region wallet" "menu logo wallet";
   align-items: center; column-gap: 10px; row-gap: 4px;
   padding: 10px 12px;
   }
   .nav-left, .header-right-group { display: contents; }
   .menu-toggle-btn { grid-area: menu; }
-  .navbar .logo { grid-area: logo; align-self: end; }
-  .navbar .region { grid-area: region; align-self: start; justify-self: start; font-size: 0.68rem; padding: 3px 8px; }
+  .navbar .logo { grid-area: logo; align-self: start; }
+  .navbar .region { grid-area: region; align-self: end; justify-self: start; font-size: 0.68rem; padding: 3px 8px; }
   .navbar .header-wallet-container { grid-area: wallet; flex-direction: row !important; align-items: center !important; gap: 6px !important; }
   .saldo-badges { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 3px; }
   .saldo-usd-badge { justify-content: space-between; padding: 4px 8px; font-size: 0.62rem; gap: 4px; letter-spacing: 0; white-space: nowrap; }
@@ -174,6 +173,43 @@
   .bonoxs-card p { font-size: 10px; margin-bottom: 10px; }
   .bonoxs-card-badge { font-size: 9px; }
   .btn-bonoxs-select { font-size: 10.5px; padding: 6px 8px; white-space: normal; }
+  }
+  
+  /* ===== Tarjeta del jugador: banner por defecto + confirmación verde ===== */
+  .player-card {
+  background:
+  linear-gradient(90deg, rgba(8, 12, 20, .55), rgba(8, 12, 20, .10)),
+  radial-gradient(circle at 88% 15%, rgba(46, 204, 113, .38), transparent 55%),
+  radial-gradient(circle at 8% 110%, rgba(255, 122, 24, .34), transparent 55%),
+  linear-gradient(135deg, #10233a, #0b1a2b);
+  box-shadow: 0 0 0 1px rgba(46, 204, 113, .25), 0 6px 22px rgba(0, 0, 0, .45), 0 0 18px rgba(46, 204, 113, .12);
+  min-height: 84px;
+  }
+  .player-card.con-banner { background-size: cover; background-position: center; }
+  .player-avatar { width: 60px; height: 60px; font-size: 24px; }
+  .player-label { color: #7dffb0; opacity: 1; font-weight: 700; }
+  .player-name { font-weight: 800; }
+  .player-ok {
+  flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 20px; color: #04170c; background: #2ecc71; box-shadow: 0 0 14px rgba(46, 204, 113, .65);
+  }
+
+  /* ===== Paquetes de diamantes: tarjetas compactas ===== */
+  .diamond-box { background: linear-gradient(180deg, #272b41, #1c1f30); border-top: 2px solid #f3ba2f; }
+  .diamond-box .price { display: inline-block; padding: 2px 12px; border-radius: 999px; background: rgba(255, 255, 255, .07); }
+  @media (max-width: 600px) {
+  .grid-diamonds { gap: 8px; }
+  .diamond-box { padding: 9px 6px 11px; gap: 3px; border-radius: 12px; }
+  .diamond-box .icon { font-size: 1.35rem; line-height: 1; }
+  .diamond-box h4 { font-size: 0.86rem; line-height: 1.15; margin: 0; }
+  .diamond-box .price { font-size: 0.8rem; padding: 2px 9px; }
+  .btn-buy {
+  width: 86%; padding: 6px 0; margin-top: 4px; font-size: 0.72rem; letter-spacing: 1px;
+  box-shadow: 0 4px 9px rgba(98, 29, 225, .75);
+  }
+  .player-avatar { width: 52px; height: 52px; font-size: 21px; }
+  .player-name { font-size: 16px; }
   }
   </style>
 </head>
@@ -367,7 +403,7 @@
   </div>
   
   <div class="input-group verify-row">
-  <input type="text" inputmode="numeric" autocomplete="off" placeholder="Introduce el ID del jugador..." id="player-id">
+  <input type="text" inputmode="numeric" autocomplete="off" placeholder="Tu ID de jugador" id="player-id">
   <button type="button" id="btn-verificar" class="btn-verificar" onclick="verificarJugador()">
   <i class="fa-solid fa-magnifying-glass"></i> <span>Verificar</span>
   </button>
@@ -410,37 +446,37 @@
   <span class="icon">💎</span>
   <h4>110 Diamantes</h4> 
   <p class="price">ARS $1.463</p>
-  <a href="#" role="button" class="btn-buy" onclick="comprarPaquete(event, 'ff-110', 'ARS')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy" aria-label="Comprar con saldo en pesos (ARS)" onclick="comprarPaquete(event, 'ff-110', 'ARS')">Comprar</a>
   </div>
   <div class="diamond-box">
   <span class="icon">💎</span>
   <h4>341 Diamantes</h4>
   <p class="price">ARS $4.555</p>
-  <a href="#" role="button" class="btn-buy" onclick="comprarPaquete(event, 'ff-341', 'ARS')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy" aria-label="Comprar con saldo en pesos (ARS)" onclick="comprarPaquete(event, 'ff-341', 'ARS')">Comprar</a>
   </div>
   <div class="diamond-box">
   <span class="icon">💎</span>
   <h4>572 Diamantes</h4>
   <p class="price">ARS $8.059</p>
-  <a href="#" role="button" class="btn-buy" onclick="comprarPaquete(event, 'ff-572', 'ARS')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy" aria-label="Comprar con saldo en pesos (ARS)" onclick="comprarPaquete(event, 'ff-572', 'ARS')">Comprar</a>
   </div>
   <div class="diamond-box">
   <span class="icon">💎</span>
   <h4>1.166 Diamantes</h4>
   <p class="price">ARS $14.690</p>
-  <a href="#" role="button" class="btn-buy" onclick="comprarPaquete(event, 'ff-1166', 'ARS')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy" aria-label="Comprar con saldo en pesos (ARS)" onclick="comprarPaquete(event, 'ff-1166', 'ARS')">Comprar</a>
   </div>
   <div class="diamond-box">
   <span class="icon">💎</span>
   <h4>2.398 Diamantes</h4>
   <p class="price">ARS $27.602</p>
-  <a href="#" role="button" class="btn-buy" onclick="comprarPaquete(event, 'ff-2398', 'ARS')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy" aria-label="Comprar con saldo en pesos (ARS)" onclick="comprarPaquete(event, 'ff-2398', 'ARS')">Comprar</a>
   </div>
   <div class="diamond-box">
   <span class="icon">💎</span>
   <h4>6.160 Diamantes</h4>
   <p class="price">ARS $67.750</p>
-  <a href="#" role="button" class="btn-buy" onclick="comprarPaquete(event, 'ff-6160', 'ARS')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy" aria-label="Comprar con saldo en pesos (ARS)" onclick="comprarPaquete(event, 'ff-6160', 'ARS')">Comprar</a>
   </div>
   </div>
   </div>
@@ -454,37 +490,37 @@
   <span class="icon">💎</span>
   <h4>110 Diamantes</h4>
   <p class="price usdt-price">USD 0,86</p>
-  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-110', 'USD')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy btn-usdt" aria-label="Comprar con saldo en dólares (USD)" onclick="comprarPaquete(event, 'ff-110', 'USD')">Comprar</a>
   </div>
   <div class="diamond-box reseller-box">
   <span class="icon">💎</span>
   <h4>341 Diamantes</h4>
   <p class="price usdt-price">USD 2,45</p>
-  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-341', 'USD')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy btn-usdt" aria-label="Comprar con saldo en dólares (USD)" onclick="comprarPaquete(event, 'ff-341', 'USD')">Comprar</a>
   </div>
   <div class="diamond-box reseller-box">
   <span class="icon">💎</span>
   <h4>572 Diamantes</h4>
   <p class="price usdt-price">USD 4,16</p>
-  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-572', 'USD')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy btn-usdt" aria-label="Comprar con saldo en dólares (USD)" onclick="comprarPaquete(event, 'ff-572', 'USD')">Comprar</a>
   </div>
   <div class="diamond-box reseller-box">
   <span class="icon">💎</span>
   <h4>1.166 Diamantes</h4>
   <p class="price usdt-price">USD 8,27</p>
-  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-1166', 'USD')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy btn-usdt" aria-label="Comprar con saldo en dólares (USD)" onclick="comprarPaquete(event, 'ff-1166', 'USD')">Comprar</a>
   </div>
   <div class="diamond-box reseller-box">
   <span class="icon">💎</span>
   <h4>2.398 Diamantes</h4>
   <p class="price usdt-price">USD 16,10</p>
-  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-2398', 'USD')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy btn-usdt" aria-label="Comprar con saldo en dólares (USD)" onclick="comprarPaquete(event, 'ff-2398', 'USD')">Comprar</a>
   </div>
   <div class="diamond-box reseller-box">
   <span class="icon">💎</span>
   <h4>6.160 Diamantes</h4>
   <p class="price usdt-price">USD 40,55</p>
-  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-6160', 'USD')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy btn-usdt" aria-label="Comprar con saldo en dólares (USD)" onclick="comprarPaquete(event, 'ff-6160', 'USD')">Comprar</a>
   </div>
   </div>
   </div>
