@@ -86,6 +86,15 @@ const formatoARS = (n) => "$" + (Number(n) || 0).toLocaleString("es-AR", { minim
 const formatoMoneda = (m, n) => (m === "ARS" ? formatoARS(n) : formatoUSD(n));
 const conCodigo = (m, n) => `${m} ${formatoMoneda(m, n)}`;
 
+// Corta cualquier espera de red que se cuelgue (nada de pantallas bloqueadas para siempre)
+function conTimeout(promesa, ms) {
+  let t;
+  const corte = new Promise((_, rechazar) => {
+    t = setTimeout(() => rechazar(Object.assign(new Error("timeout"), { name: "TimeoutError" })), ms);
+  });
+  return Promise.race([Promise.resolve(promesa), corte]).finally(() => clearTimeout(t));
+}
+
 // ------------------------- MENÚ LATERAL ------------------------------
 function toggleMenu() {
   const menu = $("sidebar-menu");
@@ -197,53 +206,109 @@ function estadoVerificacion(texto, clase) {
   el.className = "verify-status" + (clase ? " " + clase : "");
 }
 
-function pintarJugador(data, id, validado) {
+// --- Limpieza de lo que devuelve n8n: cualquier campo puede venir vacío, nulo, con otro tipo o con basura ---
+const TEXTO_BASURA = /^(null|undefined|nan|\[object object\]|n\/a|none|-+)$/i;
+function limpio(v, max = 40) {
+  if (v === null || v === undefined || typeof v === "object" || typeof v === "boolean") return "";
+  const t = String(v).replace(/[\u0000-\u001f\u007f<>]/g, " ").replace(/\s+/g, " ").trim();
+  return !t || TEXTO_BASURA.test(t) ? "" : t.slice(0, max);
+}
+function primerTexto(obj, claves, max) {
+  for (const k of claves) { const t = limpio(obj && obj[k], max); if (t) return t; }
+  return "";
+}
+// Solo https y sin caracteres que rompan un url("...") de CSS
+function urlHttps(v) {
+  const t = typeof v === "string" ? v.trim() : "";
+  if (!/^https:\/\/[^\s"'()<>\\]+$/i.test(t)) return "";
+  try { return new URL(t).href; } catch (_) { return ""; }
+}
+const ANIDADOS = ["json", "data", "player", "jugador", "result", "resultado"];
+const CLAVES_NOMBRE = ["nombre", "name", "nickname", "nick", "username", "player_name", "nombre_jugador"];
+
+// Devuelve { noEncontrado, nombre, avatar, banner, nivel, region } con todo ya limpio ("" / null si falta)
+function normalizarJugador(crudo) {
+  let d = Array.isArray(crudo) ? crudo[0] : crudo;
+  if (typeof d === "string") { try { d = JSON.parse(d); } catch (_) { d = null; } }
+  for (let i = 0; i < 3 && d && typeof d === "object" && !primerTexto(d, CLAVES_NOMBRE, 32); i++) {
+    const clave = ANIDADOS.find((k) => d[k] && typeof d[k] === "object");   // n8n a veces anida: { json: {...} }
+    if (!clave) break;
+    d = Array.isArray(d[clave]) ? d[clave][0] : d[clave];
+  }
+  const vacio = { noEncontrado: false, nombre: "", avatar: "", banner: "", nivel: null, region: "" };
+  if (!d || typeof d !== "object") return vacio;
+  const nivel = parseInt(d.nivel ?? d.level, 10);
+  return {
+    noEncontrado: [d.encontrado, d.found, d.existe, d.exists].some((v) => v === false || v === "false"),
+    nombre: primerTexto(d, CLAVES_NOMBRE, 32),
+    avatar: urlHttps(d.avatar || d.avatar_url || d.avatarUrl || d.icon || d.foto),
+    banner: urlHttps(d.banner || d.banner_url || d.bannerUrl),
+    nivel: nivel > 0 && nivel < 1000 ? nivel : null,
+    region: primerTexto(d, ["region", "server", "servidor"], 12),
+  };
+}
+// Hay "prueba" de que el jugador existe aunque n8n no haya mandado el nombre
+const tieneEvidencia = (j) => !!(j.nombre || j.avatar || j.banner || j.nivel);
+
+let pintadoSeq = 0;
+function pintarJugador(info, id, validado) {
+  const mi = ++pintadoSeq;
   const card = $("player-card");
-  const real = validado ? String(nombreDe(data)) : "";
-  $("player-name").textContent = validado ? (real.startsWith("@") ? real : "@" + real) : "ID " + id;
+  const j = validado ? info : { nombre: "", avatar: "", banner: "", nivel: null, region: "" };
+
+  // Nombre: el real, o un nombre genérico si n8n solo confirmó que el ID existe
+  const real = j.nombre ? (j.nombre.startsWith("@") ? j.nombre : "@" + j.nombre) : "@JUGADOR_FF";
+  $("player-name").textContent = validado ? real : "ID " + id;
 
   const meta = [];
   if (validado) {
-    if (data.nivel || data.level) meta.push("Nivel " + (data.nivel || data.level));
-    if (data.region) meta.push(data.region);
+    if (j.nivel) meta.push("Nivel " + j.nivel);
+    if (j.region) meta.push(j.region);
     meta.push("ID " + id);
   } else {
     meta.push("Confirmá que este ID sea el correcto antes de pagar");
   }
   $("player-meta").textContent = meta.join(" · ");
 
-  // Mismo diseño verde en ambos casos; solo "Jugador verificado" se usa si n8n confirmó un nombre real
+  // Mismo diseño verde en ambos casos; "Jugador verificado" solo si n8n confirmó que el jugador existe
   card.querySelector(".player-label").textContent = validado ? "Jugador verificado" : "ID listo para recargar";
 
+  // Avatar: si falta o no carga, queda el ícono por defecto (nunca una imagen rota)
   const img = $("player-avatar-img");
   const avatar = card.querySelector(".player-avatar");
-  const urlAvatar = validado && (data.avatar || data.avatar_url);
-  if (urlAvatar && /^https:\/\//i.test(urlAvatar)) {
-    img.src = urlAvatar;
-    img.hidden = false;
-    avatar.classList.add("con-img");
-    img.onerror = () => { img.hidden = true; avatar.classList.remove("con-img"); };
+  const sinImagen = () => { img.hidden = true; img.removeAttribute("src"); avatar.classList.remove("con-img"); };
+  img.onerror = sinImagen;
+  if (j.avatar) {
+    img.referrerPolicy = "no-referrer";
+    img.onload = () => { if (mi === pintadoSeq) { img.hidden = false; avatar.classList.add("con-img"); } };
+    img.src = j.avatar;
   } else {
-    img.hidden = true;
-    avatar.classList.remove("con-img");
+    sinImagen();
   }
 
-  const banner = validado && (data.banner || data.banner_url);
-  if (banner && /^https:\/\//i.test(banner)) {
-    card.style.setProperty("--banner", `url("${encodeURI(banner)}")`);
-    card.classList.add("con-banner");
-  } else {
-    card.classList.remove("con-banner");
+  // Banner: solo se aplica cuando la imagen realmente cargó (si no, queda el fondo verde normal)
+  card.classList.remove("con-banner");
+  card.style.removeProperty("--banner");
+  if (j.banner) {
+    const pre = new Image();
+    pre.referrerPolicy = "no-referrer";
+    pre.onload = () => {
+      if (mi !== pintadoSeq) return;
+      card.style.setProperty("--banner", `url("${j.banner}")`);
+      card.classList.add("con-banner");
+    };
+    pre.src = j.banner;
   }
   card.hidden = false;
 }
 
-const nombreDe = (d) => d && (d.nombre || d.name || d.nickname || d.nick);
+let verifSeq = 0;
 
 async function verificarJugador() {
   const input = $("player-id");
   const btn = $("btn-verificar");
   const id = (input?.value || "").trim();
+  const mi = ++verifSeq;
 
   $("player-card").hidden = true;
   jugadorVerificado = null;
@@ -259,6 +324,7 @@ async function verificarJugador() {
 
   // Si no se puede validar el nombre, el ID igual queda cargado para el pedido (modo manual)
   const modoManual = (motivo) => {
+    if (mi !== verifSeq) return;
     console.warn("Verificación automática no disponible:", motivo);
     pintarJugador({}, id, false);
     jugadorVerificado = { id, nombre: null, validado: false };
@@ -267,27 +333,42 @@ async function verificarJugador() {
 
   try {
     const res = await postWebhook({ tipo_evento: "VERIFICAR_JUGADOR", id_jugador: id });
+    if (mi !== verifSeq) return;   // el usuario cambió el ID o volvió a tocar Verificar
     if (!res.ok) return modoManual("HTTP " + res.status);
 
-    let data = null;
-    try { data = await res.json(); } catch (_) { return modoManual("respuesta sin JSON"); }
-    if (Array.isArray(data)) data = data[0];   // n8n a veces responde con un array
+    let crudo = null;
+    try { crudo = await conTimeout(res.json(), 8000); } catch (_) { return modoManual("respuesta sin JSON"); }
+    if (mi !== verifSeq) return;
 
-    // n8n puede avisar explícitamente que el ID no existe
-    if (data && (data.encontrado === false || data.found === false)) {
+    const info = normalizarJugador(crudo);
+    if (info.noEncontrado) {   // n8n avisó explícitamente que el ID no existe
       estadoVerificacion("Jugador no encontrado. Revisá el ID.", "error");
       return;
     }
-    if (!nombreDe(data)) return modoManual("el webhook no devolvió nombre");
+    if (!tieneEvidencia(info)) return modoManual("el webhook no devolvió datos del jugador");
 
-    pintarJugador(data, id, true);
-    jugadorVerificado = { id, nombre: nombreDe(data), validado: true };
+    pintarJugador(info, id, true);
+    jugadorVerificado = { id, nombre: info.nombre || null, validado: true };
     estadoVerificacion("ID verificado correctamente.", "ok");
   } catch (err) {
     modoManual(err.name === "AbortError" ? "timeout" : err.message || err);
   } finally {
-    btn.disabled = false;
+    if (mi === verifSeq) btn.disabled = false;
   }
+}
+
+// Si el usuario cambia el ID, la tarjeta anterior ya no corresponde: se oculta y se descarta
+function alEditarId() {
+  const id = ($("player-id")?.value || "").trim();
+  if (jugadorVerificado && jugadorVerificado.id === id) return;
+  verifSeq++;                      // invalida cualquier verificación en curso
+  pintadoSeq++;
+  jugadorVerificado = null;
+  const card = $("player-card");
+  if (card) card.hidden = true;
+  estadoVerificacion("", "");
+  const btn = $("btn-verificar");
+  if (btn) btn.disabled = false;
 }
 
 // ------------------------- BOTONES DE COMPRA (WhatsApp) --------------
@@ -834,6 +915,8 @@ async function cargarPanelAdmin(silencioso = false) {
     clientesAdmin = data || [];
     await cargarResumenActividad();
     renderListaClientes();
+    programarOrdenes();
+    if (vistaAdmin === "ordenes") renderOrdenesAdmin();   // los nombres de clientes ya están disponibles
 
     if (!pollLista) {
       pollLista = setInterval(() => { if (!document.hidden) cargarPanelAdmin(true); }, 10000);
@@ -841,6 +924,275 @@ async function cargarPanelAdmin(silencioso = false) {
   } finally {
     cargandoLista = false;
   }
+}
+
+// ------------------------- PANEL ADMIN: HISTORIAL DE ÓRDENES ------------
+// Lee ordenes_recarga (el admin ve todas por RLS) y permite reenviar a n8n las que quedaron
+// en 'error_envio' o 'pendiente' con la función SQL admin_reenviar_orden (pines_y_compras.sql).
+const RPC_REENVIAR = "admin_reenviar_orden";
+const ESTADOS_ORDEN = {
+  pendiente:   { texto: "Pendiente",          color: "#f3ba2f" },
+  error_envio: { texto: "Error de envío",     color: "#ff5c5c" },
+  completada:  { texto: "Completada",         color: "#2ecc71" },
+  fallida:     { texto: "Fallida (devuelta)", color: "#ff8a65" },
+};
+const REENVIABLES = new Set(["pendiente", "error_envio"]);
+
+let ordenesAdmin = [];
+let ordenesError = "";              // mensaje si no se pudo cargar
+let ordenesColsMoneda = true;       // false si falta ejecutar doble_saldo.sql (columnas moneda / precio_cobrado)
+let cargandoOrdenes = false;
+let ultimaCargaOrdenes = 0;
+let vistaAdmin = "clientes";
+let filtroOrdenesInicial = true;    // la primera vez muestra "Requieren atención" solo si hay alguna
+const reenviando = new Set();
+
+const atencion = (o) => REENVIABLES.has(o.estado);
+const fechaCorta = (v) => {
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+};
+
+function mostrarVistaAdmin(vista) {
+  vistaAdmin = vista === "ordenes" ? "ordenes" : "clientes";
+  const ord = vistaAdmin === "ordenes";
+  $("admin-vista-clientes").hidden = ord;
+  $("admin-vista-ordenes").hidden = !ord;
+  [["clientes", "admin-tab-clientes"], ["ordenes", "admin-tab-ordenes"]].forEach(([v, id]) => {
+    const t = $(id);
+    t.classList.toggle("activa", v === vistaAdmin);
+    t.setAttribute("aria-selected", String(v === vistaAdmin));
+  });
+  if (ord) cargarOrdenesAdmin(false);
+}
+
+function actualizarAlertaOrdenes() {
+  const n = ordenesAdmin.filter((o) => o.estado === "error_envio").length;
+  const b = $("admin-ordenes-alerta");
+  if (!b) return;
+  b.hidden = n === 0;
+  b.textContent = n > 99 ? "99+" : String(n);
+  b.title = n === 1 ? "1 orden con error de envío" : n + " órdenes con error de envío";
+}
+
+async function cargarOrdenesAdmin(silencioso = false) {
+  const lista = $("admin-ordenes-lista");
+  if (!lista || cargandoOrdenes || !usuarioActual) return;
+  cargandoOrdenes = true;
+  try {
+    if (!silencioso && !ordenesAdmin.length) mensajeLista(lista, "Cargando historial…", "#666");
+    let data = null, error = null;
+    for (let intento = 0; intento < 2; intento++) {
+      const cols = ["id", "user_id", "paquete_id", "id_jugador", "diamantes", "precio_usd", "estado", "detalle", "envio_error", "created_at", "updated_at",
+        ...(ordenesColsMoneda ? ["moneda", "precio_cobrado"] : [])];
+      ({ data, error } = await conTimeout(
+        supabase.from("ordenes_recarga").select(cols.join(", ")).order("created_at", { ascending: false }).limit(150), 15000));
+      if (error && ordenesColsMoneda && columnaNoExiste(error)) { ordenesColsMoneda = false; continue; }
+      break;
+    }
+    if (error) {
+      console.warn("No se pudo cargar el historial de órdenes:", error.message || error);
+      ordenesError = tablaNoExiste(error)
+        ? "Falta la tabla de órdenes: ejecutá pines_y_compras.sql en Supabase."
+        : "No se pudo cargar el historial (revisá las políticas RLS de ordenes_recarga).";
+    } else {
+      ordenesError = "";
+      ordenesAdmin = Array.isArray(data) ? data : [];
+    }
+  } catch (err) {
+    console.warn("Historial de órdenes sin respuesta:", err.message || err);
+    ordenesError = "El historial tardó demasiado en responder. Probá de nuevo con “Actualizar”.";
+  } finally {
+    cargandoOrdenes = false;
+    ultimaCargaOrdenes = Date.now();
+  }
+  actualizarAlertaOrdenes();
+  renderOrdenesAdmin();
+}
+
+// Recarga liviana desde el sondeo del panel: cada 10 s si el historial está a la vista, si no cada 30 s (para la alerta)
+function programarOrdenes() {
+  const espera = vistaAdmin === "ordenes" ? 9000 : 29000;
+  if (Date.now() - ultimaCargaOrdenes >= espera) cargarOrdenesAdmin(true);
+}
+
+function etiquetaCliente(userId) {
+  const f = clientesAdmin.find((c) => c[CONFIG.COL_ID] === userId);
+  return f ? (f[CONFIG.COL_NOMBRE] || f[CONFIG.COL_EMAIL] || String(userId).slice(0, 8)) : String(userId || "").slice(0, 8);
+}
+function emailCliente(userId) {
+  const f = clientesAdmin.find((c) => c[CONFIG.COL_ID] === userId);
+  return (f && f[CONFIG.COL_EMAIL]) || "";
+}
+
+function montoOrden(o) {
+  const m = o.moneda === "ARS" ? "ARS" : "USD";
+  const valor = o.precio_cobrado != null && o.precio_cobrado !== "" ? o.precio_cobrado : o.precio_usd;
+  return conCodigo(m, valor);
+}
+
+function filtrarOrdenes() {
+  const filtro = $("ord-filtro")?.value || "todas";
+  const q = ($("ord-buscar")?.value || "").trim().toLowerCase();
+  return ordenesAdmin.filter((o) => {
+    if (filtro === "atencion" ? !atencion(o) : filtro !== "todas" && o.estado !== filtro) return false;
+    if (!q) return true;
+    const texto = [o.id, o.id_jugador, o.paquete_id, etiquetaCliente(o.user_id), emailCliente(o.user_id)].join(" ").toLowerCase();
+    return texto.includes(q);
+  });
+}
+
+function crearFilaOrden(k, v) {
+  const f = document.createElement("div");
+  f.className = "ord-fila";
+  const a = document.createElement("span"); a.textContent = k;
+  const b = document.createElement("b"); b.textContent = v;
+  f.append(a, b);
+  return f;
+}
+
+function renderOrdenesAdmin() {
+  const lista = $("admin-ordenes-lista");
+  const resumen = $("ord-resumen");
+  if (!lista) return;
+
+  if (ordenesError && !ordenesAdmin.length) {
+    if (resumen) resumen.textContent = "";
+    return mensajeLista(lista, ordenesError, "#ff5c5c");
+  }
+  // Primera vez: si hay órdenes con problemas se muestran primero; si no, todas
+  if (filtroOrdenesInicial && ordenesAdmin.length) {
+    filtroOrdenesInicial = false;
+    if ($("ord-filtro")) $("ord-filtro").value = ordenesAdmin.some(atencion) ? "atencion" : "todas";
+  }
+  const filas = filtrarOrdenes();
+  const nAtencion = ordenesAdmin.filter(atencion).length;
+  if (resumen) {
+    resumen.textContent = `Mostrando ${filas.length} de ${ordenesAdmin.length} órdenes · ${nAtencion} requieren atención` + (ordenesError ? " · " + ordenesError : "");
+  }
+  const scroll = lista.scrollTop;
+  lista.replaceChildren();
+  if (!filas.length) {
+    return mensajeLista(lista, ordenesAdmin.length ? "No hay órdenes con ese filtro." : "Todavía no hay órdenes de recarga.", "#888");
+  }
+
+  filas.forEach((o) => {
+    const est = ESTADOS_ORDEN[o.estado] || { texto: String(o.estado || "?"), color: "#8b93a7" };
+    const card = document.createElement("div");
+    card.className = "ord-card";
+    card.style.setProperty("--est", est.color);
+
+    const top = document.createElement("div");
+    top.className = "ord-top";
+    const titulo = document.createElement("div");
+    titulo.className = "ord-titulo";
+    titulo.textContent = `#${o.id} · ${o.diamantes ? o.diamantes + " 💎" : o.paquete_id}`;
+    const badge = document.createElement("span");
+    badge.className = "ord-estado";
+    badge.textContent = est.texto;
+    top.append(titulo, badge);
+    card.appendChild(top);
+
+    card.append(
+      crearFilaOrden("Cliente", etiquetaCliente(o.user_id) || "-"),
+      crearFilaOrden("ID Free Fire", String(o.id_jugador || "-")),
+      crearFilaOrden("Monto", montoOrden(o)),
+      crearFilaOrden("Fecha", fechaCorta(o.created_at)),
+    );
+    const motivo = o.envio_error || (o.estado === "fallida" ? o.detalle : "");
+    if (motivo) {
+      const e = document.createElement("div");
+      e.className = "ord-error";
+      e.textContent = (o.envio_error ? "Error: " : "Motivo: ") + motivo;
+      card.appendChild(e);
+    }
+
+    const acciones = document.createElement("div");
+    acciones.className = "ord-acciones";
+    if (REENVIABLES.has(o.estado)) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "ord-btn";
+      b.dataset.accion = "reenviar";
+      b.dataset.orden = String(o.id);
+      const ocupada = reenviando.has(o.id);
+      b.disabled = ocupada;
+      b.textContent = ocupada ? "Reenviando…" : "🔁 Reenviar a n8n";
+      b.addEventListener("click", () => reenviarOrden(o, b));
+      acciones.appendChild(b);
+    }
+    if (o.user_id && clientesAdmin.some((c) => c[CONFIG.COL_ID] === o.user_id)) {
+      const v = document.createElement("button");
+      v.type = "button";
+      v.className = "ord-btn sec";
+      v.textContent = "Ver cliente";
+      v.addEventListener("click", () => {
+        const fila = clientesAdmin.find((c) => c[CONFIG.COL_ID] === o.user_id);
+        mostrarVistaAdmin("clientes");
+        seleccionarCliente(fila, fila[CONFIG.COL_NOMBRE] || fila[CONFIG.COL_EMAIL] || String(o.user_id).slice(0, 8));
+        $("admin-vista-clientes").scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      acciones.appendChild(v);
+    }
+    if (acciones.childElementCount) card.appendChild(acciones);
+    lista.appendChild(card);
+  });
+  lista.scrollTop = scroll;
+}
+
+function textoErrorReenvio(err) {
+  const msg = String((err && err.message) || "");
+  if (err && err.name === "TimeoutError") return "Tardó demasiado en responder. Actualizá la lista para ver cómo quedó la orden antes de reintentar.";
+  if (err && err.code === "PGRST202") return "Falta la función admin_reenviar_orden: ejecutá pines_y_compras.sql en Supabase.";
+  if (msg.includes("No autorizado") || (err && err.code === "42501")) return "Tu usuario no tiene permiso de administrador en la base de datos.";
+  if (msg.includes("ORDEN_NO_ENCONTRADA")) return "La orden ya no existe.";
+  if (msg.includes("cerrada")) return "Esa orden ya estaba cerrada: actualizá la lista.";
+  return "No se pudo reenviar la orden. Probá de nuevo en un momento.";
+}
+
+async function reenviarOrden(o, boton) {
+  if (reenviando.has(o.id)) return;
+  const pendiente = o.estado === "pendiente";
+  const ok = await mostrarConfirmacion({
+    tono: "warn", icono: "🔁", titulo: `Reenviar orden #${o.id}`,
+    texto: pendiente
+      ? "Esta orden figura como pendiente. Si n8n todavía la está procesando, reenviarla podría acreditar los diamantes dos veces."
+      : "Se vuelve a enviar la recarga a n8n con el PIN que ya está reservado. No se cobra de nuevo.",
+    filas: [
+      ["Cliente", etiquetaCliente(o.user_id) || "-"],
+      ["ID Free Fire", String(o.id_jugador || "-")],
+      ["Paquete", o.diamantes ? o.diamantes + " 💎" : String(o.paquete_id)],
+      ["Monto", montoOrden(o)],
+    ],
+    confirmar: "Reenviar ahora",
+  });
+  if (!ok) return;
+
+  reenviando.add(o.id);
+  if (boton) { boton.disabled = true; boton.textContent = "Reenviando…"; }
+  try {
+    const { data, error } = await conTimeout(supabase.rpc(RPC_REENVIAR, { p_orden_id: o.id }), 25000);
+    if (error) throw error;
+    const nuevo = typeof data === "string" ? data : (data && data.estado) || "";
+    reenviando.delete(o.id);
+    ultimaCargaOrdenes = 0;
+    await cargarOrdenesAdmin(true);
+    if (nuevo === "error_envio") mostrarAviso(`La orden #${o.id} sigue con error de envío: revisá el detalle y el flujo de n8n.`, "error");
+    else mostrarAviso(`Orden #${o.id} reenviada a n8n.` + (ESTADOS_ORDEN[nuevo] ? ` Estado: ${ESTADOS_ORDEN[nuevo].texto}.` : ""), "ok");
+  } catch (err) {
+    console.warn("No se pudo reenviar la orden:", err.message || err);
+    reenviando.delete(o.id);
+    mostrarAviso(textoErrorReenvio(err), "error");
+    renderOrdenesAdmin();
+  } finally {
+    reenviando.delete(o.id);
+  }
+}
+
+function iniciarHistorialAdmin() {
+  $("ord-filtro")?.addEventListener("change", renderOrdenesAdmin);
+  $("ord-buscar")?.addEventListener("input", renderOrdenesAdmin);
+  $("ord-refrescar")?.addEventListener("click", () => cargarOrdenesAdmin(false));
 }
 
 // ------------------------- PANEL ADMIN: MENSAJES Y SALDO ---------------
@@ -864,6 +1216,8 @@ function detenerPollAdmin() {
   clearInterval(pollAdmin); pollAdmin = null;
   clearInterval(pollLista); pollLista = null;
   clienteSel = null; clientesAdmin = []; resumenAdmin = new Map();
+  ordenesAdmin = []; ordenesError = ""; ultimaCargaOrdenes = 0; filtroOrdenesInicial = true; reenviando.clear();
+  if ($("admin-vista-ordenes")) { mostrarVistaAdmin("clientes"); actualizarAlertaOrdenes(); }
 }
 
 // Mensaje del cliente: lo envió el mismo usuario dueño de la conversación (o no tiene remitente).
@@ -930,7 +1284,14 @@ function construirVistaCliente() {
   const sub = document.createElement("div");
   sub.style.cssText = "font-size:11px;color:#888;";
   sub.textContent = clienteSel.email + " · " + clienteSel.id;
-  cab.append(nombre, sub);
+  const verOrdenes = creaBoton("🧾 Ver sus órdenes", "background:#1d2740;color:#7dd3fc;border:1px solid #3f557f;margin-top:6px;padding:6px 10px;font-size:12px;");
+  verOrdenes.addEventListener("click", () => {
+    if ($("ord-buscar")) $("ord-buscar").value = clienteSel.email && clienteSel.email !== "-" ? clienteSel.email : clienteSel.etiqueta;
+    if ($("ord-filtro")) $("ord-filtro").value = "todas";
+    filtroOrdenesInicial = false;
+    mostrarVistaAdmin("ordenes");
+  });
+  cab.append(nombre, sub, verOrdenes);
   vista.appendChild(cab);
 
   // --- Saldos (USD y ARS, independientes) ---
@@ -1715,9 +2076,20 @@ function inyectarEstilosCompra() {
 let dialogoResolver = null;
 inyectarEstilosCompra();   // desde el inicio: incluye las reglas del header en celulares
 
+// Toques en los primeros 350 ms de un diálogo: se ignoran (suelen ser el segundo toque de un doble toque)
+const toqueFantasma = (ov) => Date.now() - Number(ov.dataset.desde || 0) < 350;
+
+let focoPrevio = null;   // elemento que tenía el foco antes de abrir el diálogo
+function ocultarDialogo(ov) {
+  ov.style.display = "none";
+  const f = focoPrevio;
+  focoPrevio = null;
+  if (f && document.contains(f) && typeof f.focus === "function") { try { f.focus({ preventScroll: true }); } catch (_) { /* nada */ } }
+}
+
 function cerrarCompra() {
   const ov = $("modal-compra");
-  if (ov) ov.style.display = "none";
+  if (ov) ocultarDialogo(ov);
   if (dialogoResolver) { const r = dialogoResolver; dialogoResolver = null; r(false); }
 }
 
@@ -1730,7 +2102,7 @@ function mostrarDialogo({ tono = "warn", icono = "", titulo, texto = "", chip = 
     ov.id = "modal-compra";
     ov.setAttribute("role", "dialog");
     ov.setAttribute("aria-modal", "true");
-    ov.addEventListener("click", (e) => { if (e.target === ov && !ov.dataset.bloqueado) cerrarCompra(); });
+    ov.addEventListener("click", (e) => { if (e.target === ov && !ov.dataset.bloqueado && !toqueFantasma(ov)) cerrarCompra(); });
     document.body.appendChild(ov);
   }
   const t = TONOS[tono] || TONOS.warn;
@@ -1774,8 +2146,9 @@ function mostrarDialogo({ tono = "warn", icono = "", titulo, texto = "", chip = 
       el.className = "mc-btn" + (b.primario ? " primario" : "") + (b.verde ? " verde" : "");
       el.textContent = b.texto;
       el.addEventListener("click", () => {
+        if (toqueFantasma(ov)) return;   // doble toque sobre COMPRAR: el 2.º no debe caer sobre el diálogo recién abierto
         const r = dialogoResolver; dialogoResolver = null;
-        ov.style.display = "none";
+        ocultarDialogo(ov);
         if (b.accion) b.accion();
         if (r) r(b.valor === undefined ? true : b.valor);
       });
@@ -1785,6 +2158,8 @@ function mostrarDialogo({ tono = "warn", icono = "", titulo, texto = "", chip = 
   }
   ov.appendChild(card);
   ov.dataset.bloqueado = cargando ? "1" : "";
+  ov.dataset.desde = String(Date.now());
+  if (ov.style.display !== "flex") focoPrevio = document.activeElement;
   ov.style.display = "flex";
   (card.querySelector(".mc-btn.primario") || card.querySelector("button"))?.focus();
 }
@@ -1805,7 +2180,15 @@ function mostrarConfirmacion({ tono = "warn", icono = "❓", titulo, texto, fila
 
 document.addEventListener("keydown", (e) => {
   const ov = $("modal-compra");
-  if (e.key === "Escape" && ov && ov.style.display === "flex" && !ov.dataset.bloqueado) cerrarCompra();
+  if (!ov || ov.style.display !== "flex") return;
+  if (e.key === "Escape" && !ov.dataset.bloqueado) cerrarCompra();
+  if (e.key === "Tab") {   // el foco no se escapa a la página que está detrás del diálogo
+    e.preventDefault();
+    const bs = [...ov.querySelectorAll("button")];
+    if (!bs.length) return;
+    const i = bs.indexOf(document.activeElement);
+    bs[e.shiftKey ? (i <= 0 ? bs.length - 1 : i - 1) : (i === bs.length - 1 ? 0 : i + 1)].focus();
+  }
 });
 
 // ------------------------- COMPRA DE PAQUETES CON SALDO ---------------
@@ -1825,7 +2208,10 @@ async function esperarOrden(ordenId) {
   const fin = Date.now() + CONFIG.ESPERA_ORDEN_MS;
   while (Date.now() < fin) {
     await dormir(2000);
-    const { data, error } = await supabase.from("ordenes_recarga").select("estado").eq("id", ordenId).maybeSingle();
+    let respuesta;
+    try { respuesta = await conTimeout(supabase.from("ordenes_recarga").select("estado").eq("id", ordenId).maybeSingle(), 8000); }
+    catch (_) { continue; }   // una consulta colgada no frena la espera
+    const { data, error } = respuesta;
     if (error || !data) continue;
     if (data.estado === "completada" || data.estado === "fallida") return data.estado;
     if (data.estado === "error_envio") return "pendiente";   // no tiene sentido seguir esperando
@@ -1912,7 +2298,8 @@ async function comprarPaquete(ev, paqueteId, moneda = "USD") {
   btn?.setAttribute("aria-disabled", "true");
   const ctxError = { moneda, saldo: saldos[moneda], precio, nombre, id };
   try {
-    await cargarSaldo(usuarioActual);   // saldo al día antes de confirmar (puede haberse acreditado recién)
+    // saldo al día antes de confirmar (puede haberse acreditado recién); si tarda, se sigue con el que está en pantalla
+    try { await conTimeout(cargarSaldo(usuarioActual), 8000); } catch (_) { /* sin bloqueo */ }
     ctxError.saldo = saldos[moneda];
     const saldo = saldos[moneda];
 
@@ -1935,12 +2322,12 @@ async function comprarPaquete(ev, paqueteId, moneda = "USD") {
 
     mostrarDialogo({ tono: "warn", titulo: "Procesando tu compra…", texto: "No cierres esta ventana.", cargando: true });
 
-    const { data, error } = await supabase.rpc(RPC_COMPRA, {
+    const { data, error } = await conTimeout(supabase.rpc(RPC_COMPRA, {
       p_paquete_id: paqueteId,
       p_id_jugador: id,
       p_moneda: moneda,
       p_precio_esperado: precio,
-    });
+    }), 30000);
     if (error) return mostrarErrorCompra(error, ctxError);
 
     const orden = data || {};
@@ -2025,6 +2412,8 @@ document.addEventListener("DOMContentLoaded", () => {
   $("carousel-wrapper")?.addEventListener("mouseenter", () => clearInterval(timerCarrusel));
   $("carousel-wrapper")?.addEventListener("mouseleave", reiniciarAutoplay);
   $("player-id")?.addEventListener("keydown", (e) => { if (e.key === "Enter") verificarJugador(); });
+  $("player-id")?.addEventListener("input", alEditarId);
+  iniciarHistorialAdmin();
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") { cerrarTodosLosModales(); if ($("sidebar-menu")?.classList.contains("open")) toggleMenu(); }
   });
@@ -2048,5 +2437,6 @@ Object.assign(window, {
   toggleMusica,
   enviarMensajeWebhook,
   comprarPaquete,
+  mostrarVistaAdmin,
   loginConGoogle, logoutGoogle,
 });

@@ -232,6 +232,76 @@
   .chat-input-area .btn-attach:active, .chat-input-area .btn-send:active { transform: scale(.94); }
   .chat-input-area .btn-attach:focus-visible, .chat-input-area .btn-send:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
   @media (max-width: 600px) { .chat-widget-card { height: 350px; } }
+
+  /* ===== Blindaje anti-desborde horizontal (celulares de 320 px en adelante) ===== */
+  html, body { max-width: 100%; overflow-x: hidden; }
+  @supports (overflow: clip) { html, body { overflow-x: clip; } }
+  img, video, canvas, svg { max-width: 100%; }
+  .card, .navbar, .hero-banner-section, .left-content-col, .right-widgets-col { min-width: 0; max-width: 100%; }
+  .card h3, .card p, .card span, .card strong { overflow-wrap: anywhere; }
+  #admin-panel-section { overflow: hidden; }
+  #admin-panel-section input, #admin-panel-section select, #admin-panel-section button { max-width: 100%; }
+
+  /* ===== Panel admin: pestañas ===== */
+  .admin-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .admin-tab {
+  flex: 1 1 150px; min-width: 0; padding: 10px 12px; border-radius: 10px; cursor: pointer;
+  background: #161822; color: #aeb6c8; border: 1px solid #2b3544; font-weight: 700; font-size: 13px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-align: center;
+  }
+  .admin-tab:hover { filter: brightness(1.2); }
+  .admin-tab.activa { background: rgba(243, 186, 47, .14); color: #f3ba2f; border-color: #f3ba2f; }
+  .admin-tab:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .admin-alerta {
+  min-width: 20px; padding: 1px 7px; border-radius: 999px; background: #ff5c5c; color: #fff;
+  font-size: 11px; font-weight: 800; line-height: 1.5;
+  }
+  .admin-alerta[hidden] { display: none; }
+  #admin-vista-clientes[hidden], #admin-vista-ordenes[hidden] { display: none; }
+
+  /* ===== Panel admin: historial de órdenes ===== */
+  .ord-barra { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .ord-barra select, .ord-barra input {
+  padding: 9px 10px; border-radius: 8px; border: 1px solid #2b3544; background: #161822; color: #fff;
+  font-size: 13px; min-width: 0; height: 40px;
+  }
+  .ord-barra select { flex: 0 1 190px; }
+  .ord-barra input { flex: 1 1 180px; }
+  .ord-btn-refrescar {
+  flex: 0 0 auto; height: 40px; padding: 0 14px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 13px;
+  background: #1d2740; color: #7dd3fc; border: 1px solid #3f557f;
+  }
+  .ord-btn-refrescar:hover { filter: brightness(1.2); }
+  .ord-resumen { font-size: 12px; color: #8b93a7; margin: 0 0 10px; }
+  .ord-lista {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap: 10px;
+  max-height: min(70vh, 600px); overflow-y: auto; overscroll-behavior: contain; padding-right: 2px;
+  }
+  .ord-lista > p { grid-column: 1 / -1; }
+  .ord-card {
+  min-width: 0; background: #0e0f16; border: 1px solid #2b3544; border-left: 4px solid var(--est, #2b3544);
+  border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;
+  }
+  .ord-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .ord-titulo { font-weight: 800; font-size: 14px; color: #fff; min-width: 0; overflow-wrap: anywhere; }
+  .ord-estado {
+  font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  color: var(--est); background: rgba(255, 255, 255, .07); background: color-mix(in srgb, var(--est) 16%, transparent); border: 1px solid var(--est);
+  }
+  .ord-fila { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
+  .ord-fila span { color: #8b93a7; flex: 0 0 auto; }
+  .ord-fila b { color: #e6ebf0; font-weight: 600; text-align: right; min-width: 0; overflow-wrap: anywhere; }
+  .ord-error { font-size: 11.5px; color: #ffb4b4; background: rgba(255, 92, 92, .10); border-radius: 6px; padding: 6px 8px; overflow-wrap: anywhere; }
+  .ord-acciones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+  .ord-btn {
+  flex: 1 1 120px; min-height: 38px; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 12.5px;
+  border: none; background: linear-gradient(135deg, #ffd45a, #f3ba2f); color: #10120a;
+  }
+  .ord-btn.sec { background: #161822; color: #aeb6c8; border: 1px solid #2b3544; font-weight: 700; }
+  .ord-btn:disabled { opacity: .55; cursor: wait; }
+  .ord-btn:hover:not(:disabled) { filter: brightness(1.1); }
+  .ord-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  @media (max-width: 600px) { .ord-barra select, .ord-barra input, .ord-btn-refrescar { flex: 1 1 100%; } }
   </style>
 </head>
 <body>
@@ -625,8 +695,15 @@
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="step-title">
   <span class="badge" style="background: #f3ba2f; color:#000;"><i class="fa-solid fa-shield-halved"></i></span>
-  <h3 style="color: #f3ba2f;">PANEL ADMINISTRADOR - MENSAJES Y SALDOS</h3>
+  <h3 style="color: #f3ba2f;">PANEL ADMINISTRADOR</h3>
   </div>
+
+  <div class="admin-tabs" role="tablist" aria-label="Secciones del panel">
+  <button type="button" id="admin-tab-clientes" class="admin-tab activa" role="tab" aria-selected="true" aria-controls="admin-vista-clientes" onclick="mostrarVistaAdmin('clientes')">💬 Mensajes y saldos</button>
+  <button type="button" id="admin-tab-ordenes" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-ordenes" onclick="mostrarVistaAdmin('ordenes')">🧾 Historial de órdenes <span id="admin-ordenes-alerta" class="admin-alerta" hidden>0</span></button>
+  </div>
+
+  <div id="admin-vista-clientes" role="tabpanel">
   <p style="font-size: 13px; color: #aaa; margin-bottom: 12px;">Seleccioná un cliente para ver sus comprobantes y acreditarle saldo:</p>
   <div style="display: flex; gap: 15px; flex-wrap: wrap;">
   <div style="flex: 1; min-width: 200px; background: #0e0f16; border-radius: 8px; padding: 10px; min-height: 200px; max-height: min(60vh, 420px); align-self: flex-start; overflow-y: auto; overscroll-behavior: contain;" id="admin-users-list">
@@ -634,6 +711,26 @@
   </div>
   <div style="flex: 2; min-width: 250px; background: #0e0f16; border-radius: 8px; padding: 12px; display: flex; flex-direction: column;" id="admin-chat-view">
   <p style="font-size: 13px; color: #888; text-align: center; margin: auto;">Seleccioná un usuario de la izquierda</p>
+  </div>
+  </div>
+  </div>
+
+  <div id="admin-vista-ordenes" role="tabpanel" hidden>
+  <div class="ord-barra">
+  <select id="ord-filtro" aria-label="Filtrar por estado">
+  <option value="atencion">⚠️ Requieren atención</option>
+  <option value="todas">Todas</option>
+  <option value="error_envio">Error de envío</option>
+  <option value="pendiente">Pendientes</option>
+  <option value="completada">Completadas</option>
+  <option value="fallida">Fallidas</option>
+  </select>
+  <input type="search" id="ord-buscar" placeholder="Buscar cliente, ID o N° de orden" aria-label="Buscar órdenes" autocomplete="off">
+  <button type="button" id="ord-refrescar" class="ord-btn-refrescar" aria-label="Actualizar historial" title="Actualizar"><i class="fa-solid fa-rotate"></i> <span>Actualizar</span></button>
+  </div>
+  <p id="ord-resumen" class="ord-resumen" aria-live="polite"></p>
+  <div id="admin-ordenes-lista" class="ord-lista">
+  <p style="font-size: 12px; color: #666;">Cargando historial...</p>
   </div>
   </div>
   </section>
