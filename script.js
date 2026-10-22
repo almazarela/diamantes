@@ -1140,6 +1140,8 @@ const REENVIABLES = new Set(["pendiente", "error_envio"]);
 let ordenesAdmin = [];
 let ordenesError = "";              // mensaje si no se pudo cargar
 let ordenesColsMoneda = true;       // false si falta ejecutar doble_saldo.sql (columnas moneda / precio_cobrado)
+let ordenesColsEnvio = true;        // false si falta ejecutar n8n_envio_fix.sql (n8n_http_status / enviado_at)
+let revisarEnviosDisponible = true; // false si falta la función admin_revisar_envios (n8n_envio_fix.sql)
 let cargandoOrdenes = false;
 let ultimaCargaOrdenes = 0;
 let vistaAdmin = "clientes";
@@ -1180,13 +1182,24 @@ async function cargarOrdenesAdmin(silencioso = false) {
   cargandoOrdenes = true;
   try {
     if (!silencioso && !ordenesAdmin.length) mensajeLista(lista, "Cargando historial…", "#666");
+    // Antes de listar, la base mira qué respondió n8n a los envíos recientes (los que fallaron pasan a "error de envío")
+    if (revisarEnviosDisponible) {
+      try {
+        const { error: eRev } = await conTimeout(supabase.rpc("admin_revisar_envios"), 8000);
+        if (eRev && eRev.code === "PGRST202") revisarEnviosDisponible = false;
+      } catch (_) { /* si no responde, se lista igual */ }
+    }
     let data = null, error = null;
-    for (let intento = 0; intento < 2; intento++) {
+    for (let intento = 0; intento < 3; intento++) {
       const cols = ["id", "user_id", "paquete_id", "id_jugador", "diamantes", "precio_usd", "estado", "detalle", "envio_error", "created_at", "updated_at",
-        ...(ordenesColsMoneda ? ["moneda", "precio_cobrado"] : [])];
+        ...(ordenesColsMoneda ? ["moneda", "precio_cobrado"] : []),
+        ...(ordenesColsEnvio ? ["n8n_http_status", "enviado_at"] : [])];
       ({ data, error } = await conTimeout(
         supabase.from("ordenes_recarga").select(cols.join(", ")).order("created_at", { ascending: false }).limit(150), 15000));
-      if (error && ordenesColsMoneda && columnaNoExiste(error)) { ordenesColsMoneda = false; continue; }
+      if (error && columnaNoExiste(error)) {
+        if (ordenesColsEnvio && /n8n_http_status|enviado_at/.test(String(error.message || ""))) { ordenesColsEnvio = false; continue; }
+        if (ordenesColsMoneda) { ordenesColsMoneda = false; continue; }
+      }
       break;
     }
     if (error) {
@@ -1298,6 +1311,10 @@ function renderOrdenesAdmin() {
       crearFilaOrden("Monto", montoOrden(o)),
       crearFilaOrden("Fecha", fechaCorta(o.created_at)),
     );
+    if (o.n8n_http_status) {
+      const okHttp = o.n8n_http_status >= 200 && o.n8n_http_status < 300;
+      card.appendChild(crearFilaOrden("Envío a n8n", okHttp ? `Recibida (HTTP ${o.n8n_http_status})` : `Rechazada (HTTP ${o.n8n_http_status})`));
+    }
     const motivo = o.envio_error || (o.estado === "fallida" ? o.detalle : "");
     if (motivo) {
       const e = document.createElement("div");
@@ -1369,15 +1386,38 @@ async function reenviarOrden(o, boton) {
 
   reenviando.add(o.id);
   if (boton) { boton.disabled = true; boton.textContent = "Reenviando…"; }
+  const cerrar = [{ texto: "Cerrar", primario: true }];
   try {
     const { data, error } = await conTimeout(supabase.rpc(RPC_REENVIAR, { p_orden_id: o.id }), 25000);
     if (error) throw error;
     const nuevo = typeof data === "string" ? data : (data && data.estado) || "";
+
+    // El envío es asíncrono: "pendiente" solo significa que quedó en cola. La respuesta real de n8n se consulta aparte.
+    let verif = null;
+    if (nuevo === "pendiente" && revisarEnviosDisponible) {
+      if (boton) boton.textContent = "Verificando con n8n…";
+      verif = await verificarEnvioN8n(o.id);
+    }
     reenviando.delete(o.id);
     ultimaCargaOrdenes = 0;
     await cargarOrdenesAdmin(true);
-    if (nuevo === "error_envio") mostrarAviso(`La orden #${o.id} sigue con error de envío: revisá el detalle y el flujo de n8n.`, "error");
-    else mostrarAviso(`Orden #${o.id} reenviada a n8n.` + (ESTADOS_ORDEN[nuevo] ? ` Estado: ${ESTADOS_ORDEN[nuevo].texto}.` : ""), "ok");
+
+    const actual = ordenesAdmin.find((x) => x.id === o.id);
+    const motivoError = (verif && verif.envio_error) || (actual && actual.envio_error) || "";
+    if (nuevo === "error_envio" || (verif && verif.estado === "error_envio")) {
+      mostrarDialogo({
+        tono: "error", icono: "⚠️", titulo: `La orden #${o.id} no llegó a n8n`,
+        texto: motivoError || "n8n no aceptó el envío. Revisá el flujo y probá de nuevo.",
+        nota: "Corregí el problema y volvé a tocar «Reenviar». El saldo y el PIN de la orden siguen reservados.",
+        botones: cerrar,
+      });
+    } else if (verif && verif.n8n_http_status) {
+      mostrarAviso(`n8n recibió la orden #${o.id} (HTTP ${verif.n8n_http_status}). La acreditación se confirma cuando n8n avise el resultado.`, "ok");
+    } else if (verif && verif.sinRespuesta) {
+      mostrarAviso(`Orden #${o.id} enviada, pero n8n todavía no respondió. Tocá «Actualizar» en unos segundos.`, "info");
+    } else {
+      mostrarAviso(`Orden #${o.id} puesta en cola para n8n.` + (revisarEnviosDisponible ? "" : " Ejecutá n8n_envio_fix.sql para confirmar la respuesta de n8n."), "info");
+    }
   } catch (err) {
     console.warn("No se pudo reenviar la orden:", err.message || err);
     reenviando.delete(o.id);
@@ -1386,6 +1426,23 @@ async function reenviarOrden(o, boton) {
   } finally {
     reenviando.delete(o.id);
   }
+}
+
+// Espera (hasta ~10 s) la respuesta HTTP de n8n a un envío. Devuelve el estado de la orden, { sinRespuesta } o null si la función no existe.
+async function verificarEnvioN8n(ordenId) {
+  for (let i = 0; i < 5; i++) {
+    await dormir(i === 0 ? 1500 : 2000);
+    let r;
+    try { r = await conTimeout(supabase.rpc("admin_revisar_envios", { p_orden_id: ordenId }), 8000); }
+    catch (_) { continue; }
+    if (r.error) {
+      if (r.error.code === "PGRST202") { revisarEnviosDisponible = false; return null; }
+      continue;
+    }
+    const d = r.data || {};
+    if (d.estado !== "pendiente" || d.n8n_http_status) return d;
+  }
+  return { sinRespuesta: true };
 }
 
 function iniciarHistorialAdmin() {
