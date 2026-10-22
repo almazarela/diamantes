@@ -641,45 +641,143 @@ function mensajeLista(lista, texto, color) {
   lista.appendChild(p);
 }
 
-async function cargarPanelAdmin() {
-  const lista = $("admin-users-list");
-  const vista = $("admin-chat-view");
-  if (!lista) return;
-  if (!perfilesDisponible) return mensajeLista(lista, "Falta la tabla de perfiles en Supabase.", "#f3ba2f");
+const RPC_RESUMEN = "admin_resumen_actividad";
+const RPC_LEIDOS = "admin_marcar_leidos";
 
-  const base = [CONFIG.COL_ID, CONFIG.COL_EMAIL, CONFIG.COL_NOMBRE, CONFIG.COL_ADMIN];
-  let data = null, error = null;
-  for (let intento = 0; intento < 2; intento++) {
-    const cols = saldoDisponible ? [...base, CONFIG.COL_SALDO] : base;
-    ({ data, error } = await supabase
-      .from(CONFIG.TABLA_PERFILES)
-      .select(cols.join(", "))
-      .order(CONFIG.COL_EMAIL, { ascending: true })
-      .limit(100));
-    if (error && columnaNoExiste(error) && saldoDisponible) { saldoDisponible = false; continue; }  // reintenta sin saldo
-    break;
-  }
+let clientesAdmin = [];            // filas de profiles
+let resumenAdmin = new Map();      // id -> { ultima (ms), noLeidos }
+let resumenDisponible = true;      // false si falta ejecutar admin_actividad.sql
+let leidosDisponible = true;
+let pollLista = null;
+let cargandoLista = false;
 
+function tiempoRelativo(ms) {
+  if (!ms) return "sin actividad";
+  const min = Math.floor((Date.now() - ms) / 60000);
+  if (min < 1) return "ahora";
+  if (min < 60) return `hace ${min} min`;
+  if (min < 1440) return `hace ${Math.floor(min / 60)} h`;
+  if (min < 10080) return `hace ${Math.floor(min / 1440)} d`;
+  return new Date(ms).toLocaleDateString("es-AR");
+}
+
+async function cargarResumenActividad() {
+  if (!resumenDisponible) return;
+  const { data, error } = await supabase.rpc(RPC_RESUMEN);
   if (error) {
-    if (tablaNoExiste(error)) {
-      perfilesDisponible = false;
-      return mensajeLista(lista, "Falta la tabla de perfiles en Supabase.", "#f3ba2f");
+    if (error.code === "PGRST202") {
+      resumenDisponible = false;
+      console.warn("Falta la función admin_resumen_actividad: ejecutá admin_actividad.sql para ordenar por actividad y ver no leídos.");
+    } else {
+      console.warn("No se pudo leer la actividad de clientes:", error.message || error);   // se conserva el resumen anterior
     }
-    console.warn("No se pudo cargar el panel admin:", error.message || error);
-    return mensajeLista(lista, "No se pudo cargar la lista (revisá las políticas RLS).", "#ff5c5c");
+    return;
   }
-  if (!data || !data.length) return mensajeLista(lista, "Sin clientes todavía.", "#666");
+  resumenAdmin = new Map((data || []).map((r) => [
+    r.cliente_id,
+    { ultima: r.ultima_actividad ? new Date(r.ultima_actividad).getTime() : 0, noLeidos: Number(r.no_leidos) || 0 },
+  ]));
+}
 
+// Marca actividad "ahora" para un cliente (respuesta enviada, saldo acreditado) sin esperar al servidor
+function tocarActividad(id) {
+  const r = resumenAdmin.get(id) || { ultima: 0, noLeidos: 0 };
+  r.ultima = Date.now();
+  resumenAdmin.set(id, r);
+  renderListaClientes();
+}
+
+function renderListaClientes() {
+  const lista = $("admin-users-list");
+  if (!lista) return;
+  if (!clientesAdmin.length) return mensajeLista(lista, "Sin clientes todavía.", "#666");
+
+  const dato = (f) => resumenAdmin.get(f[CONFIG.COL_ID]) || { ultima: 0, noLeidos: 0 };
+  const filas = [...clientesAdmin].sort((a, b) => {
+    const d = dato(b).ultima - dato(a).ultima;   // más reciente arriba
+    return d !== 0 ? d : String(a[CONFIG.COL_EMAIL] || "").localeCompare(String(b[CONFIG.COL_EMAIL] || ""));
+  });
+
+  const scroll = lista.scrollTop;
   lista.replaceChildren();
-  data.forEach((fila) => {
-    const etiqueta = fila[CONFIG.COL_NOMBRE] || fila[CONFIG.COL_EMAIL] || String(fila[CONFIG.COL_ID]).slice(0, 8);
+  filas.forEach((fila) => {
+    const id = fila[CONFIG.COL_ID];
+    const { ultima, noLeidos } = dato(fila);
+    const seleccionado = clienteSel && clienteSel.id === id;
+    const etiqueta = fila[CONFIG.COL_NOMBRE] || fila[CONFIG.COL_EMAIL] || String(id).slice(0, 8);
     const saldoTxt = saldoDisponible ? " · " + formatoUSD(fila[CONFIG.COL_SALDO]) : "";
+
     const b = document.createElement("button");
-    b.textContent = `${etiqueta}${fila[CONFIG.COL_ADMIN] ? " ★" : ""}${saldoTxt}`;
-    b.style.cssText = "display:block;width:100%;text-align:left;margin-bottom:6px;padding:8px;background:#161822;color:#fff;border:1px solid #2b3544;border-radius:6px;cursor:pointer;font-size:12px;";
-    b.addEventListener("click", () => seleccionarCliente(fila, b, etiqueta));
+    b.type = "button";
+    b.setAttribute("aria-label", noLeidos ? `${etiqueta}, ${noLeidos} mensajes sin leer` : etiqueta);
+    const borde = seleccionado ? "#f3ba2f" : noLeidos ? "#3b82f6" : "#2b3544";
+    const fondo = noLeidos ? "#10264a" : "#161822";
+    b.style.cssText =
+      `display:block;width:100%;text-align:left;margin-bottom:6px;padding:8px;background:${fondo};color:#fff;` +
+      `border:1px solid ${borde};border-radius:6px;cursor:pointer;font-size:12px;` +
+      (noLeidos ? "box-shadow:0 0 0 1px #3b82f6;" : "");
+
+    const fila1 = document.createElement("div");
+    fila1.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:6px;";
+    const nombre = document.createElement("span");
+    nombre.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" + (noLeidos ? "font-weight:700;" : "");
+    nombre.textContent = `${etiqueta}${fila[CONFIG.COL_ADMIN] ? " ★" : ""}${saldoTxt}`;
+    fila1.appendChild(nombre);
+    if (noLeidos) {
+      const badge = document.createElement("span");
+      badge.textContent = noLeidos > 99 ? "99+" : String(noLeidos);
+      badge.style.cssText = "flex:none;min-width:18px;padding:1px 6px;border-radius:10px;background:#3b82f6;color:#fff;font-size:11px;font-weight:700;text-align:center;";
+      fila1.appendChild(badge);
+    }
+    const fila2 = document.createElement("div");
+    fila2.style.cssText = "font-size:10px;color:" + (noLeidos ? "#9ec5ff" : "#888") + ";margin-top:2px;";
+    fila2.textContent = noLeidos ? `${noLeidos} sin leer · ${tiempoRelativo(ultima)}` : tiempoRelativo(ultima);
+    b.append(fila1, fila2);
+
+    b.addEventListener("click", () => seleccionarCliente(fila, etiqueta));
     lista.appendChild(b);
   });
+  lista.scrollTop = scroll;
+}
+
+async function cargarPanelAdmin(silencioso = false) {
+  const lista = $("admin-users-list");
+  if (!lista || cargandoLista) return;
+  if (!perfilesDisponible) return silencioso || mensajeLista(lista, "Falta la tabla de perfiles en Supabase.", "#f3ba2f");
+  cargandoLista = true;
+  try {
+    const base = [CONFIG.COL_ID, CONFIG.COL_EMAIL, CONFIG.COL_NOMBRE, CONFIG.COL_ADMIN];
+    let data = null, error = null;
+    for (let intento = 0; intento < 2; intento++) {
+      const cols = saldoDisponible ? [...base, CONFIG.COL_SALDO] : base;
+      ({ data, error } = await supabase
+        .from(CONFIG.TABLA_PERFILES)
+        .select(cols.join(", "))
+        .order(CONFIG.COL_EMAIL, { ascending: true })
+        .limit(200));
+      if (error && columnaNoExiste(error) && saldoDisponible) { saldoDisponible = false; continue; }  // reintenta sin saldo
+      break;
+    }
+
+    if (error) {
+      if (tablaNoExiste(error)) {
+        perfilesDisponible = false;
+        return silencioso || mensajeLista(lista, "Falta la tabla de perfiles en Supabase.", "#f3ba2f");
+      }
+      console.warn("No se pudo cargar el panel admin:", error.message || error);
+      return silencioso || mensajeLista(lista, "No se pudo cargar la lista (revisá las políticas RLS).", "#ff5c5c");
+    }
+
+    clientesAdmin = data || [];
+    await cargarResumenActividad();
+    renderListaClientes();
+
+    if (!pollLista) {
+      pollLista = setInterval(() => { if (!document.hidden) cargarPanelAdmin(true); }, 10000);
+    }
+  } finally {
+    cargandoLista = false;
+  }
 }
 
 // ------------------------- PANEL ADMIN: MENSAJES Y SALDO ---------------
@@ -699,7 +797,11 @@ let clienteSel = null;      // { id, etiqueta, saldo, btn }
 let pollAdmin = null;
 let firmaMsgs = "";
 
-function detenerPollAdmin() { clearInterval(pollAdmin); pollAdmin = null; clienteSel = null; }
+function detenerPollAdmin() {
+  clearInterval(pollAdmin); pollAdmin = null;
+  clearInterval(pollLista); pollLista = null;
+  clienteSel = null; clientesAdmin = []; resumenAdmin = new Map();
+}
 
 // Mensaje del cliente: lo envió el mismo usuario dueño de la conversación (o no tiene remitente).
 // Cualquier otro remitente (vos, el admin) se muestra como respuesta del administrador.
@@ -736,16 +838,15 @@ function creaBoton(texto, estilo) {
 }
 const ESTILO_INPUT = "padding:9px;border-radius:6px;border:1px solid #2b3544;background:#161822;color:#fff;font-size:13px;min-width:0;";
 
-function seleccionarCliente(fila, btn, etiqueta) {
-  document.querySelectorAll("#admin-users-list button").forEach((x) => (x.style.borderColor = "#2b3544"));
-  btn.style.borderColor = "#f3ba2f";
+function seleccionarCliente(fila, etiqueta) {
   clienteSel = {
     id: fila[CONFIG.COL_ID],
     etiqueta,
     email: fila[CONFIG.COL_EMAIL] || "-",
     saldo: saldoDisponible ? Number(fila[CONFIG.COL_SALDO]) || 0 : null,
-    btn,
+    fila,
   };
+  renderListaClientes();   // resalta el cliente elegido
   firmaMsgs = "";
   construirVistaCliente();
   refrescarMensajes(true);
@@ -836,6 +937,21 @@ async function pedirMensajes(userId) {
   return r;
 }
 
+async function marcarLeidos(sel) {
+  const { error } = await supabase.rpc(RPC_LEIDOS, { p_user_id: sel.id });
+  if (error) {
+    if (error.code === "PGRST202") {
+      leidosDisponible = false;
+      console.warn("Falta la función admin_marcar_leidos: ejecutá admin_actividad.sql.");
+    } else {
+      console.warn("No se pudo marcar como leído:", error.message || error);
+    }
+    return;
+  }
+  const r = resumenAdmin.get(sel.id);
+  if (r) { r.noLeidos = 0; renderListaClientes(); }
+}
+
 async function refrescarMensajes(forzar) {
   const sel = clienteSel;
   const cont = $("admin-msgs");
@@ -859,9 +975,12 @@ async function refrescarMensajes(forzar) {
 
   const filas = data || [];
   const ultima = filas[filas.length - 1];
-  const firma = filas.length + "|" + (ultima ? JSON.stringify(ultima).length : 0);
+  const firma = filas.length + "|" + (ultima ? ultima.id : "");
   if (!forzar && firma === firmaMsgs) return;   // sin novedades: no tocar el scroll
   firmaMsgs = firma;
+
+  // Al ver los mensajes del cliente, quedan marcados como leídos
+  if (leidosDisponible && filas.some((f) => !esDelAdmin(f) && f[MSG.leidoCol] !== true)) marcarLeidos(sel);
 
   const alFinal = cont.scrollHeight - cont.scrollTop - cont.clientHeight < 40 || forzar;
   cont.replaceChildren();
@@ -951,6 +1070,7 @@ async function responderCliente() {
     const { error } = await supabase.from(MSG.tabla).insert(fila);
     if (error) throw error;
     inp.value = "";
+    tocarActividad(sel.id);
     await refrescarMensajes(true);
   } catch (err) {
     console.error("No se pudo enviar la respuesta:", err);
@@ -990,7 +1110,8 @@ async function ajustarSaldoCliente() {
     const nuevo = Number(data);
     sel.saldo = nuevo;
     $("admin-saldo-actual").textContent = "Saldo actual: " + formatoUSD(nuevo);
-    sel.btn.textContent = `${sel.etiqueta}${sel.btn.textContent.includes("★") ? " ★" : ""} · ${formatoUSD(nuevo)}`;
+    if (sel.fila) sel.fila[CONFIG.COL_SALDO] = nuevo;
+    tocarActividad(sel.id);
     if (usuarioActual && usuarioActual.id === sel.id) pintarSaldo(nuevo);
     $("admin-monto").value = ""; $("admin-nota").value = "";
     mostrarAviso("Saldo actualizado: " + formatoUSD(nuevo), "ok");
