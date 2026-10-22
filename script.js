@@ -355,6 +355,10 @@ function limpiarChatCliente() {
 }
 
 function detenerChatCliente() {
+  respuestaPendiente.cliente = null;
+  renderBarraRespuesta("cliente");
+  renderBarraFijados("cliente", []);
+  cerrarMenuMensaje();
   clearInterval(pollChat);
   pollChat = null;
   firmaChat = "";
@@ -373,12 +377,7 @@ async function cargarHistorialCliente(forzar) {
   const yo = usuarioActual;
   if (!cont || !yo) return;
 
-  const { data, error } = await supabase
-    .from(MSG.tabla)
-    .select(`id, ${MSG.userCol}, ${MSG.senderCol}, ${MSG.textoCol}, ${MSG.archivoCol}, ${MSG.fechaCol}`)
-    .eq(MSG.userCol, yo.id)
-    .order(MSG.fechaCol, { ascending: false })
-    .limit(200);
+  const { data, error } = await consultarMensajes(yo.id);
   if (usuarioActual !== yo) return;   // cerró sesión mientras cargaba
   if (error) {
     if (forzar) console.warn("No se pudo cargar el historial del chat:", error.message || error);
@@ -387,12 +386,15 @@ async function cargarHistorialCliente(forzar) {
 
   const filas = (data || []).reverse();
   const ultima = filas[filas.length - 1];
-  const firma = filas.length + "|" + (ultima ? ultima.id : "");
+  const firma = firmaDe(filas);
   if (!forzar && firma === firmaChat) return;
   firmaChat = firma;
 
   const alFinal = forzar || cont.scrollHeight - cont.scrollTop - cont.clientHeight < 60;
+  cerrarMenuMensaje();
   limpiarChatCliente();
+  renderBarraFijados("cliente", filas);
+  renderBarraRespuesta("cliente");
   for (const f of filas) {
     const div = document.createElement("div");
     div.className = "chat-message " + (esDelAdmin(f) ? "admin-msg" : "user-msg");
@@ -418,6 +420,7 @@ async function cargarHistorialCliente(forzar) {
       });
     }
     if (!texto && !f[MSG.archivoCol]) div.textContent = "(mensaje sin contenido)";
+    adornarMensaje(div, f, "cliente", filas);
     cont.appendChild(div);
   }
   if (alFinal) cont.scrollTop = cont.scrollHeight;
@@ -478,15 +481,18 @@ async function enviarMensajeWebhook() {
       if (errSubida) throw errSubida;
     }
 
-    const { error } = await supabase.from(MSG.tabla).insert({
+    const nuevo = {
       [MSG.userCol]: usuarioActual.id,
       [MSG.senderCol]: usuarioActual.id,
       [MSG.textoCol]: texto,
       [MSG.archivoCol]: ruta,
       [MSG.leidoCol]: false,
-    });
+    };
+    agregarRespuesta(nuevo, "cliente");
+    const { error } = await supabase.from(MSG.tabla).insert(nuevo);
     if (error) throw error;
 
+    respuestaPendiente.cliente = null;
     if (inputMensaje) inputMensaje.value = "";
     await cargarHistorialCliente(true);
     notificarChatN8n(texto, ruta, archivo ? archivo.name : "")
@@ -846,6 +852,7 @@ function seleccionarCliente(fila, etiqueta) {
     saldo: saldoDisponible ? Number(fila[CONFIG.COL_SALDO]) || 0 : null,
     fila,
   };
+  respuestaPendiente.admin = null;
   renderListaClientes();   // resalta el cliente elegido
   firmaMsgs = "";
   construirVistaCliente();
@@ -926,15 +933,7 @@ function construirVistaCliente() {
 }
 
 async function pedirMensajes(userId) {
-  // Los 200 más recientes, mostrados del más viejo al más nuevo
-  const r = await supabase
-    .from(MSG.tabla)
-    .select(`id, ${MSG.userCol}, ${MSG.senderCol}, ${MSG.textoCol}, ${MSG.archivoCol}, ${MSG.leidoCol}, ${MSG.fechaCol}`)
-    .eq(MSG.userCol, userId)
-    .order(MSG.fechaCol, { ascending: false })
-    .limit(200);
-  if (!r.error) r.data = (r.data || []).reverse();
-  return r;
+  return consultarMensajes(userId);
 }
 
 async function marcarLeidos(sel) {
@@ -975,7 +974,7 @@ async function refrescarMensajes(forzar) {
 
   const filas = data || [];
   const ultima = filas[filas.length - 1];
-  const firma = filas.length + "|" + (ultima ? ultima.id : "");
+  const firma = firmaDe(filas);
   if (!forzar && firma === firmaMsgs) return;   // sin novedades: no tocar el scroll
   firmaMsgs = firma;
 
@@ -983,7 +982,10 @@ async function refrescarMensajes(forzar) {
   if (leidosDisponible && filas.some((f) => !esDelAdmin(f) && f[MSG.leidoCol] !== true)) marcarLeidos(sel);
 
   const alFinal = cont.scrollHeight - cont.scrollTop - cont.clientHeight < 40 || forzar;
+  cerrarMenuMensaje();
   cont.replaceChildren();
+  renderBarraFijados("admin", filas);
+  renderBarraRespuesta("admin");
   if (!filas.length) {
     const p = document.createElement("p");
     p.style.cssText = "font-size:12px;color:#666;margin:auto;";
@@ -1040,11 +1042,13 @@ async function refrescarMensajes(forzar) {
 
     if (f[MSG.fechaCol]) {
       const h = document.createElement("div");
+      h.dataset.hora = "1";
       h.style.cssText = "font-size:10px;color:#9aa;margin-top:3px;text-align:right;";
       const d = new Date(f[MSG.fechaCol]);
       h.textContent = isNaN(d) ? "" : d.toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
       burbuja.appendChild(h);
     }
+    adornarMensaje(burbuja, f, "admin", filas);
     cont.appendChild(burbuja);
   });
   if (alFinal) cont.scrollTop = cont.scrollHeight;
@@ -1064,12 +1068,14 @@ async function responderCliente() {
     [MSG.textoCol]: texto,
     [MSG.leidoCol]: false,
   };
+  agregarRespuesta(fila, "admin");
 
   btn.disabled = true;
   try {
     const { error } = await supabase.from(MSG.tabla).insert(fila);
     if (error) throw error;
     inp.value = "";
+    respuestaPendiente.admin = null;
     tocarActividad(sel.id);
     await refrescarMensajes(true);
   } catch (err) {
@@ -1128,6 +1134,358 @@ async function ajustarSaldoCliente() {
     btn.disabled = false;
   }
 }
+
+// ------------------------- MENÚ DE MENSAJES (copiar / responder / reaccionar / fijar)
+const REACCIONES = ["👍", "❤️", "😂", "😮", "🙏", "✅"];
+const RPC_REACCIONAR = "reaccionar_mensaje";
+const RPC_FIJAR = "fijar_mensaje";
+const COLS_EXTRA = ["reactions", "reply_to_id", "reply_preview", "pinned_at"];
+
+let extrasDisponibles = true;   // false si falta ejecutar mensajes_extras.sql
+const respuestaPendiente = { admin: null, cliente: null };
+let menuAbierto = null;
+
+async function consultarMensajes(userId) {
+  const base = ["id", MSG.userCol, MSG.senderCol, MSG.textoCol, MSG.archivoCol, MSG.leidoCol, MSG.fechaCol];
+  for (let intento = 0; intento < 2; intento++) {
+    const cols = extrasDisponibles ? [...base, ...COLS_EXTRA] : base;
+    const r = await supabase
+      .from(MSG.tabla)
+      .select(cols.join(", "))
+      .eq(MSG.userCol, userId)
+      .order(MSG.fechaCol, { ascending: false })
+      .limit(200);
+    if (r.error && extrasDisponibles && columnaNoExiste(r.error)) {
+      extrasDisponibles = false;   // los chats siguen funcionando, solo sin las opciones extra
+      console.warn("Faltan columnas en messages: ejecutá mensajes_extras.sql para habilitar responder, reaccionar y fijar.");
+      continue;
+    }
+    if (!r.error) r.data = (r.data || []).reverse();
+    return r;
+  }
+}
+
+// Cambia si llega un mensaje, una reacción o un fijado
+const firmaDe = (filas) =>
+  filas.map((f) => f.id + (f.pinned_at ? "p" : "") + (f.reactions ? JSON.stringify(f.reactions) : "")).join(",");
+
+const previewDe = (f) => String(f[MSG.textoCol] || (f[MSG.archivoCol] ? "📎 Comprobante" : "")).slice(0, 140);
+
+function autorDe(f, ctx) {
+  const admin = esDelAdmin(f);
+  return ctx === "admin" ? (admin ? "Tú" : "Cliente") : (admin ? "Soporte" : "Tú");
+}
+
+function agregarRespuesta(fila, ctx) {
+  const r = respuestaPendiente[ctx];
+  if (r && extrasDisponibles) {
+    fila.reply_to_id = String(r.id);
+    fila.reply_preview = r.preview;
+  }
+}
+
+function inyectarEstilosMensajes() {
+  if ($("estilos-mensajes")) return;
+  const st = document.createElement("style");
+  st.id = "estilos-mensajes";
+  st.textContent = `
+    .msg-ctx{position:relative;cursor:pointer}
+    .msg-chev{position:absolute;top:2px;right:4px;width:20px;height:20px;padding:0;border:none;border-radius:50%;
+      background:rgba(13,14,21,.88);color:#f3ba2f;font-size:12px;line-height:20px;cursor:pointer;opacity:0;transition:opacity .15s;z-index:1}
+    .msg-ctx:hover .msg-chev,.msg-chev:focus-visible,.msg-ctx.msg-abierto .msg-chev{opacity:1}
+    @media (hover:none){.msg-chev{opacity:.75}}
+    .msg-ctx.msg-abierto{outline:1px solid #f3ba2f}
+    .msg-pin{font-size:10px;color:#f3ba2f;margin-bottom:2px;font-weight:700}
+    .msg-quote{border-left:3px solid #f3ba2f;background:rgba(0,0,0,.28);border-radius:4px;padding:3px 7px;margin-bottom:4px;
+      font-size:11px;color:#cbd5e1;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .msg-quote b{display:block;color:#f3ba2f;font-size:10px}
+    .msg-reacts{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+    .msg-react{background:rgba(0,0,0,.35);border:1px solid #2b3544;border-radius:10px;padding:0 6px;font-size:11px;color:#fff;cursor:pointer}
+    .msg-react.mia{border-color:#f3ba2f;background:rgba(243,186,47,.2)}
+    .msg-flash{animation:msgflash 1.4s ease}
+    @keyframes msgflash{0%,60%{box-shadow:0 0 0 2px #f3ba2f}100%{box-shadow:0 0 0 0 transparent}}
+    #menu-mensaje{position:fixed;z-index:10001;min-width:190px;max-width:260px;background:#161822;border:1px solid #f3ba2f;border-radius:10px;
+      box-shadow:0 8px 28px rgba(0,0,0,.7);padding:6px;font-size:13px;color:#fff}
+    #menu-mensaje .mm-emojis{display:flex;gap:2px;padding:2px 2px 6px;margin-bottom:4px;border-bottom:1px solid #2b3544}
+    #menu-mensaje .mm-emoji{background:none;border:none;font-size:20px;line-height:1;cursor:pointer;border-radius:6px;padding:3px 5px}
+    #menu-mensaje .mm-item{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;color:#fff;
+      padding:7px 9px;border-radius:6px;cursor:pointer;font-size:13px}
+    #menu-mensaje .mm-item:hover,#menu-mensaje .mm-item:focus-visible,#menu-mensaje .mm-emoji:hover,#menu-mensaje .mm-emoji:focus-visible{
+      background:rgba(243,186,47,.2);color:#f3ba2f;outline:none}
+    #menu-mensaje .mm-nota{font-size:11px;color:#888;padding:6px 9px 2px}
+    .barra-msg{display:none;align-items:center;gap:8px;background:#161822;border:1px solid #2b3544;border-left:3px solid #f3ba2f;
+      border-radius:6px;padding:4px 8px;margin-bottom:6px;font-size:11px;color:#cbd5e1}
+    .barra-msg .bm-texto{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .barra-msg b{color:#f3ba2f}
+    .barra-msg button{background:none;border:none;color:#f3ba2f;cursor:pointer;font-size:14px;padding:0 2px}
+    .barra-fijados{flex-direction:column;align-items:stretch;gap:3px}
+    .barra-fijados .fijado{cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #admin-users-list,#admin-msgs,.chat-messages-area{scrollbar-width:thin;scrollbar-color:#f3ba2f #0e0f16}
+    #admin-users-list::-webkit-scrollbar,#admin-msgs::-webkit-scrollbar{width:8px}
+    #admin-users-list::-webkit-scrollbar-thumb,#admin-msgs::-webkit-scrollbar-thumb{background:#f3ba2f;border-radius:4px}
+    #admin-users-list::-webkit-scrollbar-track,#admin-msgs::-webkit-scrollbar-track{background:#0e0f16}
+  `;
+  document.head.appendChild(st);
+}
+
+// Barras auxiliares (citas y fijados): se crean junto al chat correspondiente
+function barraDe(ctx, tipo) {
+  const id = (ctx === "admin" ? "admin-" : "chat-") + (tipo === "resp" ? "reply-bar" : "pins");
+  let el = $(id);
+  if (el) return el;
+  const cont = ctx === "admin" ? $("admin-msgs") : $("chat-messages-container");
+  if (!cont) return null;
+  el = document.createElement("div");
+  el.id = id;
+  el.className = "barra-msg" + (tipo === "pins" ? " barra-fijados" : "");
+  if (tipo === "pins") {
+    cont.parentNode.insertBefore(el, cont);
+  } else {
+    const ref = ctx === "admin" ? $("admin-respuesta")?.parentNode : cont.parentNode.querySelector(".chat-input-area");
+    if (!ref) return null;
+    ref.parentNode.insertBefore(el, ref);
+  }
+  return el;
+}
+
+function renderBarraRespuesta(ctx) {
+  const el = barraDe(ctx, "resp");
+  if (!el) return;
+  const r = respuestaPendiente[ctx];
+  el.replaceChildren();
+  if (!r) { el.style.display = "none"; return; }
+  const txt = document.createElement("div");
+  txt.className = "bm-texto";
+  const b = document.createElement("b");
+  b.textContent = "Respondiendo a " + r.autor + ": ";
+  txt.append(b, document.createTextNode(r.preview));
+  const x = document.createElement("button");
+  x.type = "button";
+  x.textContent = "✕";
+  x.setAttribute("aria-label", "Cancelar respuesta");
+  x.addEventListener("click", () => { respuestaPendiente[ctx] = null; renderBarraRespuesta(ctx); });
+  el.append(txt, x);
+  el.style.display = "flex";
+}
+
+function renderBarraFijados(ctx, filas) {
+  const el = barraDe(ctx, "pins");
+  if (!el) return;
+  const fijados = filas.filter((f) => f.pinned_at)
+    .sort((a, b) => new Date(b.pinned_at) - new Date(a.pinned_at)).slice(0, 3);
+  el.replaceChildren();
+  if (!fijados.length) { el.style.display = "none"; return; }
+  fijados.forEach((f) => {
+    const d = document.createElement("div");
+    d.className = "fijado";
+    d.textContent = "📌 " + (previewDe(f) || "Mensaje fijado");
+    d.title = "Ir al mensaje fijado";
+    d.addEventListener("click", () => irAMensaje(f.id, ctx));
+    el.appendChild(d);
+  });
+  el.style.display = "flex";
+}
+
+function irAMensaje(id, ctx) {
+  const cont = ctx === "admin" ? $("admin-msgs") : $("chat-messages-container");
+  const el = cont && cont.querySelector(`[data-mid="${CSS.escape(String(id))}"]`);
+  if (!el) return mostrarAviso("Ese mensaje es muy antiguo para mostrarse acá.", "info");
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.remove("msg-flash");
+  void el.offsetWidth;
+  el.classList.add("msg-flash");
+}
+
+// Agrega cita, fijado, reacciones y el acceso al menú a una burbuja ya armada
+function adornarMensaje(burbuja, f, ctx, filas) {
+  burbuja.classList.add("msg-ctx");
+  burbuja.dataset.mid = f.id;
+
+  if (f.reply_preview) {
+    const original = f.reply_to_id != null ? filas.find((x) => String(x.id) === String(f.reply_to_id)) : null;
+    const q = document.createElement("div");
+    q.className = "msg-quote";
+    if (original) {
+      const a = document.createElement("b");
+      a.textContent = autorDe(original, ctx);
+      q.appendChild(a);
+    }
+    q.appendChild(document.createTextNode(String(f.reply_preview)));
+    q.addEventListener("click", (e) => { e.stopPropagation(); if (f.reply_to_id != null) irAMensaje(f.reply_to_id, ctx); });
+    burbuja.prepend(q);
+  }
+  if (f.pinned_at) {
+    const pin = document.createElement("div");
+    pin.className = "msg-pin";
+    pin.textContent = "📌 Fijado";
+    burbuja.prepend(pin);
+  }
+
+  const reacciones = f.reactions && typeof f.reactions === "object" ? Object.entries(f.reactions) : [];
+  const yo = usuarioActual ? usuarioActual.id : null;
+  const activas = reacciones.filter(([, ids]) => Array.isArray(ids) && ids.length);
+  if (activas.length) {
+    const fila = document.createElement("div");
+    fila.className = "msg-reacts";
+    activas.forEach(([emoji, ids]) => {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "msg-react" + (ids.includes(yo) ? " mia" : "");
+      chip.textContent = emoji + (ids.length > 1 ? " " + ids.length : "");
+      chip.setAttribute("aria-label", `Reacción ${emoji}, ${ids.length}`);
+      chip.addEventListener("click", (e) => { e.stopPropagation(); reaccionarMensaje(f, emoji, ctx); });
+      fila.appendChild(chip);
+    });
+    const hora = burbuja.querySelector("[data-hora]");
+    if (hora) burbuja.insertBefore(fila, hora); else burbuja.appendChild(fila);
+  }
+
+  const chev = document.createElement("button");
+  chev.type = "button";
+  chev.className = "msg-chev";
+  chev.textContent = "▾";
+  chev.setAttribute("aria-label", "Opciones del mensaje");
+  chev.setAttribute("aria-haspopup", "menu");
+  chev.addEventListener("click", (e) => { e.stopPropagation(); abrirMenuMensaje(f, ctx, burbuja); });
+  burbuja.appendChild(chev);
+
+  burbuja.addEventListener("click", (e) => {
+    if (e.target.closest("img, a, .msg-react, .msg-quote, .msg-chev")) return;
+    if (window.getSelection && String(window.getSelection()).trim()) return;   // el usuario está seleccionando texto
+    abrirMenuMensaje(f, ctx, burbuja);
+  });
+}
+
+function cerrarMenuMensaje() {
+  if (!menuAbierto) return;
+  menuAbierto.menu.remove();
+  menuAbierto.burbuja?.classList.remove("msg-abierto");
+  menuAbierto = null;
+}
+
+function abrirMenuMensaje(f, ctx, burbuja) {
+  cerrarMenuMensaje();
+  const menu = document.createElement("div");
+  menu.id = "menu-mensaje";
+  menu.setAttribute("role", "menu");
+  const texto = f[MSG.textoCol] ? String(f[MSG.textoCol]) : "";
+
+  const item = (icono, etiqueta, fn) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "mm-item";
+    b.setAttribute("role", "menuitem");
+    b.textContent = `${icono}  ${etiqueta}`;
+    b.addEventListener("click", () => { cerrarMenuMensaje(); fn(); });
+    menu.appendChild(b);
+  };
+
+  if (extrasDisponibles) {
+    const fila = document.createElement("div");
+    fila.className = "mm-emojis";
+    REACCIONES.forEach((emoji) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "mm-emoji";
+      b.textContent = emoji;
+      b.setAttribute("role", "menuitem");
+      b.setAttribute("aria-label", "Reaccionar " + emoji);
+      b.addEventListener("click", () => { cerrarMenuMensaje(); reaccionarMensaje(f, emoji, ctx); });
+      fila.appendChild(b);
+    });
+    menu.appendChild(fila);
+  }
+  if (texto) item("📋", "Copiar", () => copiarTexto(texto));
+  if (extrasDisponibles) {
+    item("↩️", "Responder", () => responderMensaje(f, ctx));
+    item("📌", f.pinned_at ? "Desfijar" : "Fijar", () => fijarMensaje(f, ctx));
+  } else if (ctx === "admin") {
+    const nota = document.createElement("div");
+    nota.className = "mm-nota";
+    nota.textContent = "Para responder, reaccionar y fijar ejecutá mensajes_extras.sql";
+    menu.appendChild(nota);
+  }
+  if (!menu.querySelector("[role=menuitem]") && !menu.querySelector(".mm-nota")) return;
+
+  menu.style.visibility = "hidden";
+  document.body.appendChild(menu);
+  const r = burbuja.getBoundingClientRect();
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  const left = Math.min(Math.max(8, r.right - mw), window.innerWidth - mw - 8);
+  let top = r.bottom + 4;
+  if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 4);
+  menu.style.left = left + "px";
+  menu.style.top = top + "px";
+  menu.style.visibility = "visible";
+  burbuja.classList.add("msg-abierto");
+  menuAbierto = { menu, burbuja };
+  menu.querySelector("[role=menuitem]")?.focus();
+
+  menu.addEventListener("keydown", (e) => {
+    const items = [...menu.querySelectorAll("[role=menuitem]")];
+    const i = items.indexOf(document.activeElement);
+    if (e.key === "ArrowDown" || e.key === "ArrowRight") { e.preventDefault(); items[(i + 1) % items.length].focus(); }
+    if (e.key === "ArrowUp" || e.key === "ArrowLeft") { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
+  });
+}
+
+async function copiarTexto(t) {
+  try {
+    await navigator.clipboard.writeText(t);
+  } catch (_) {
+    const ta = document.createElement("textarea");
+    ta.value = t;
+    ta.style.cssText = "position:fixed;opacity:0;";
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (__) { /* sin permiso */ }
+    ta.remove();
+    if (!ok) return mostrarAviso("No se pudo copiar el mensaje.", "error");
+  }
+  mostrarAviso("Mensaje copiado", "ok");
+}
+
+function responderMensaje(f, ctx) {
+  respuestaPendiente[ctx] = { id: f.id, autor: autorDe(f, ctx), preview: previewDe(f) };
+  renderBarraRespuesta(ctx);
+  (ctx === "admin" ? $("admin-respuesta") : $("chat-user-input"))?.focus();
+}
+
+function refrescarContexto(ctx) {
+  return ctx === "admin" ? refrescarMensajes(true) : cargarHistorialCliente(true);
+}
+
+function errorExtras(err, accion) {
+  console.error(`Error al ${accion}:`, err);
+  mostrarAviso(
+    err && err.code === "PGRST202" ? "Falta ejecutar mensajes_extras.sql en Supabase."
+    : err && err.code === "42501" ? "No tenés permiso para hacer eso."
+    : `No se pudo ${accion}.`,
+    "error"
+  );
+}
+
+async function reaccionarMensaje(f, emoji, ctx) {
+  if (!usuarioActual) return;
+  const { error } = await supabase.rpc(RPC_REACCIONAR, { p_message_id: String(f.id), p_emoji: emoji });
+  if (error) return errorExtras(error, "reaccionar");
+  await refrescarContexto(ctx);
+}
+
+async function fijarMensaje(f, ctx) {
+  if (!usuarioActual) return;
+  const { error } = await supabase.rpc(RPC_FIJAR, { p_message_id: String(f.id), p_fijar: !f.pinned_at });
+  if (error) return errorExtras(error, f.pinned_at ? "desfijar el mensaje" : "fijar el mensaje");
+  await refrescarContexto(ctx);
+}
+
+// Cierre del menú al tocar fuera, con Escape, al hacer scroll o redimensionar
+document.addEventListener("click", (e) => { if (menuAbierto && !menuAbierto.menu.contains(e.target)) cerrarMenuMensaje(); }, true);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarMenuMensaje(); });
+document.addEventListener("scroll", () => cerrarMenuMensaje(), true);
+window.addEventListener("resize", cerrarMenuMensaje);
+inyectarEstilosMensajes();
 
 function notificarLogin(user) {
   const clave = "loginNotificado:" + user.id;
