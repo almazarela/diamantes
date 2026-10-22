@@ -1616,17 +1616,6 @@ function inyectarEstilosCompra() {
     #modal-compra .mc-btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
     @media (max-width:420px){#modal-compra .mc-botones{flex-direction:column-reverse}}
     .btn-buy[aria-disabled="true"]{opacity:.6;pointer-events:none}
-    .header-wallet-container .saldo-badges{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-    .header-wallet-container .saldo-ars-badge{background:linear-gradient(135deg,#0a7bd6,#0b2a6b 70%,#010007)}
-    @media (max-width:560px){
-      .header-right-group{gap:6px;min-width:0}
-      .header-wallet-container .saldo-badges{flex-direction:column;align-items:flex-end;gap:3px}
-      .header-wallet-container .saldo-usd-badge{padding:4px 6px;font-size:.6rem;gap:3px;letter-spacing:0;white-space:nowrap}
-      .header-wallet-container .saldo-usd-badge i{display:none}
-      .header-wallet-container .saldo-usd-badge span{margin-left:2px !important}
-      .header-right-group .region{font-size:.64rem;padding:3px 6px}
-    }
-    @media (max-width:360px){.header-right-group .region{display:none}}
     /* Evita el scroll horizontal en celulares: el carrusel no puede ensanchar la columna */
     .left-content-col,.right-widgets-col{min-width:0}
     #carousel-wrapper{max-width:100%;overflow:hidden}

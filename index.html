@@ -128,7 +128,52 @@
   @media (max-width: 480px) {
   .btn-verificar span { display: none; }
   .btn-verificar { padding: 0 14px; }
-  .bonoxs-method-selector { grid-template-columns: 1fr; }
+  }
+  
+  /* ===== Encabezado: saldos ===== */
+  .saldo-badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .saldo-ars-badge { background: linear-gradient(135deg, #0a7bd6, #0b2a6b 70%, #010007); }
+
+  /* ===== Encabezado en celulares ===== */
+  @media (max-width: 600px) {
+  .navbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "menu logo wallet" "menu region wallet";
+  align-items: center; column-gap: 10px; row-gap: 4px;
+  padding: 10px 12px;
+  }
+  .nav-left, .header-right-group { display: contents; }
+  .menu-toggle-btn { grid-area: menu; }
+  .navbar .logo { grid-area: logo; align-self: end; }
+  .navbar .region { grid-area: region; align-self: start; justify-self: start; font-size: 0.68rem; padding: 3px 8px; }
+  .navbar .header-wallet-container { grid-area: wallet; flex-direction: row !important; align-items: center !important; gap: 6px !important; }
+  .saldo-badges { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 3px; }
+  .saldo-usd-badge { justify-content: space-between; padding: 4px 8px; font-size: 0.62rem; gap: 4px; letter-spacing: 0; white-space: nowrap; }
+  .saldo-usd-badge i, .lbl-saldo { display: none; }
+  .saldo-usd-badge span { margin-left: 2px !important; }
+  .btn-cargar-saldo {
+  width: 34px; height: 34px; justify-content: center; border-radius: 50%;
+  font-size: 0 !important; gap: 0 !important;
+  border: 1px solid rgba(78, 243, 141, .6); background: rgba(78, 243, 141, .12);
+  }
+  .btn-cargar-saldo i { font-size: 1.15rem; }
+  }
+  @media (max-width: 360px) {
+  .navbar { column-gap: 6px; padding: 8px; }
+  .navbar .region { font-size: 0.6rem; padding: 2px 5px; }
+  .region-es { display: none; }
+  .saldo-usd-badge { font-size: 0.58rem; padding: 3px 6px; }
+  }
+
+  /* ===== Métodos de pago: siempre en 2 columnas ===== */
+  @media (max-width: 480px) {
+  .bonoxs-method-selector { gap: 8px; }
+  .bonoxs-card { padding: 14px 8px; }
+  .bonoxs-card h4 { font-size: 12.5px; }
+  .bonoxs-card p { font-size: 10px; margin-bottom: 10px; }
+  .bonoxs-card-badge { font-size: 9px; }
+  .btn-bonoxs-select { font-size: 10.5px; padding: 6px 8px; white-space: normal; }
   }
   </style>
 </head>
@@ -144,13 +189,13 @@
   </div>
   </div>
   <div class="header-right-group">
-  <div class="region">🇦🇷 Argentina | ES</div>
+  <div class="region">🇦🇷 Argentina<span class="region-es"> | ES</span></div>
   <div class="header-wallet-container" style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
   <div class="saldo-badges">
-  <div class="saldo-usd-badge"><i class="fa-solid fa-wallet"></i> SALDO USD <span id="header-balance-amount" style="margin-left: 5px; font-weight: 900;">$0.00</span></div>
-  <div class="saldo-usd-badge saldo-ars-badge"><i class="fa-solid fa-wallet"></i> SALDO ARS <span id="header-balance-ars" style="margin-left: 5px; font-weight: 900;">$0,00</span></div>
+  <div class="saldo-usd-badge"><i class="fa-solid fa-wallet"></i> <span class="lbl-saldo">SALDO </span>USD <span id="header-balance-amount" style="margin-left: 5px; font-weight: 900;">$0.00</span></div>
+  <div class="saldo-usd-badge saldo-ars-badge"><i class="fa-solid fa-wallet"></i> <span class="lbl-saldo">SALDO </span>ARS <span id="header-balance-ars" style="margin-left: 5px; font-weight: 900;">$0,00</span></div>
   </div>
-  <a href="javascript:void(0)" onclick="abrirModalSeleccionCarga()" style="font-size: 0.75rem; color: #4ef38d; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;"><i class="fa-solid fa-plus-circle"></i> Cargar Saldo</a>
+  <a href="javascript:void(0)" class="btn-cargar-saldo" aria-label="Cargar Saldo" onclick="abrirModalSeleccionCarga()" style="font-size: 0.75rem; color: #4ef38d; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;"><i class="fa-solid fa-plus-circle"></i> Cargar Saldo</a>
   </div>
   </div>
   </header>
