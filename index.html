@@ -211,6 +211,27 @@
   .player-avatar { width: 52px; height: 52px; font-size: 21px; }
   .player-name { font-size: 16px; }
   }
+  
+  /* ===== Chat en vivo: barra de envío ===== */
+  .chat-input-area { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .chat-input-area #chat-user-input {
+  flex: 1 1 auto; min-width: 0; height: 44px; padding: 0 16px;
+  border-radius: 22px; border: 1.5px solid #47c577; background: #0a0b13;
+  color: #e6ebf0; font-size: 0.9rem; outline: none;
+  }
+  .chat-input-area #chat-user-input::placeholder { color: #6b7385; }
+  .chat-input-area #chat-user-input:focus { border-color: #38d2f8; box-shadow: 0 0 0 3px rgba(56, 210, 248, .18); }
+  .chat-input-area .btn-attach, .chat-input-area .btn-send {
+  flex: 0 0 44px; width: 44px; min-width: 44px; height: 44px; padding: 0; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1.05rem; line-height: 1; cursor: pointer; transition: transform .12s, filter .15s, box-shadow .15s;
+  }
+  .chat-input-area .btn-attach { background: #1d2740; color: #7dd3fc; border: 1.5px solid #3f557f; }
+  .chat-input-area .btn-send { background: linear-gradient(135deg, #4ef38d, #16b455); color: #04170c; border: none; box-shadow: 0 0 14px rgba(56, 248, 88, .45); }
+  .chat-input-area .btn-attach:hover, .chat-input-area .btn-send:hover { filter: brightness(1.15); transform: translateY(-1px); }
+  .chat-input-area .btn-attach:active, .chat-input-area .btn-send:active { transform: scale(.94); }
+  .chat-input-area .btn-attach:focus-visible, .chat-input-area .btn-send:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  @media (max-width: 600px) { .chat-widget-card { height: 350px; } }
   </style>
 </head>
 <body>
@@ -539,11 +560,11 @@
   </div>
   <div class="chat-input-area">
    <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarMensajeWebhook()">
-   <button type="button" class="btn-attach" onclick="document.getElementById('chat-file-input').click()" title="Adjuntar Comprobante">
+   <button type="button" class="btn-attach" aria-label="Adjuntar comprobante" onclick="document.getElementById('chat-file-input').click()" title="Adjuntar Comprobante">
      <i class="fa-solid fa-paperclip"></i>
    </button>
    <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí..." onkeydown="if(event.key === 'Enter'){ enviarMensajeWebhook(); }">
-   <button type="button" class="btn-send" onclick="enviarMensajeWebhook()" title="Enviar mensaje">
+   <button type="button" class="btn-send" aria-label="Enviar mensaje" onclick="enviarMensajeWebhook()" title="Enviar mensaje">
      <i class="fa-solid fa-paper-plane"></i>
    </button>
   </div>

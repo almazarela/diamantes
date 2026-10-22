@@ -335,6 +335,29 @@ function toggleMusica() {
 }
 
 // ------------------------- CHAT / WEBHOOK ----------------------------
+// ------------------------- SCROLL ESTILO WHATSAPP ----------------------
+// Baja el chat hasta el último mensaje y lo sostiene unos segundos: las imágenes de
+// comprobantes terminan de cargar después y cambian el alto del chat.
+function irAlFinal(cont, ms = 4000) {
+  if (!cont) return;
+  cont.dataset.pegarHasta = String(Date.now() + ms);
+  if (!cont.dataset.escuchaScroll) {
+    cont.dataset.escuchaScroll = "1";
+    // si la persona sube con el dedo o la rueda, dejamos de forzar el scroll
+    ["wheel", "touchmove"].forEach((ev) => cont.addEventListener(ev, () => { cont.dataset.pegarHasta = "0"; }, { passive: true }));
+  }
+  const bajar = () => { cont.style.scrollBehavior = "auto"; cont.scrollTop = cont.scrollHeight; };
+  bajar();
+  requestAnimationFrame(bajar);
+  setTimeout(bajar, 150);
+}
+function seguirAbajo(cont) {
+  if (cont && Date.now() < Number(cont.dataset.pegarHasta || 0)) {
+    cont.style.scrollBehavior = "auto";
+    cont.scrollTop = cont.scrollHeight;
+  }
+}
+
 // Formatos que acepta el bucket de comprobantes
 const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
@@ -391,7 +414,7 @@ async function cargarHistorialCliente(forzar) {
     return;
   }
 
-  const filas = (data || []).reverse();
+  const filas = data || [];   // consultarMensajes ya los entrega del más viejo al más nuevo
   const ultima = filas[filas.length - 1];
   const firma = firmaDe(filas);
   if (!forzar && firma === firmaChat) return;
@@ -399,9 +422,10 @@ async function cargarHistorialCliente(forzar) {
 
   const alFinal = forzar || cont.scrollHeight - cont.scrollTop - cont.clientHeight < 60;
   cerrarMenuMensaje();
-  limpiarChatCliente();
   renderBarraFijados("cliente", filas);
   renderBarraRespuesta("cliente");
+  const fijos = [...cont.children].filter((el) => el.dataset.fijo);
+  const nuevos = [];
   for (const f of filas) {
     const div = document.createElement("div");
     div.className = "chat-message " + (esDelAdmin(f) ? "admin-msg" : "user-msg");
@@ -418,19 +442,22 @@ async function cargarHistorialCliente(forzar) {
       div.appendChild(img);
       resolverArchivo(f[MSG.archivoCol]).then((u) => {
         if (!u) { img.replaceWith(Object.assign(document.createElement("span"), { textContent: "📎 Comprobante enviado" })); return; }
+        img.addEventListener("load", () => seguirAbajo(cont));
         img.src = u;
         img.addEventListener("click", () => abrirImagen(u));
         img.addEventListener("error", () => {
           const a = Object.assign(document.createElement("a"), { href: u, target: "_blank", rel: "noopener noreferrer", textContent: "📎 Ver archivo adjunto" });
           img.replaceWith(a);
+          seguirAbajo(cont);
         });
       });
     }
     if (!texto && !f[MSG.archivoCol]) div.textContent = "(mensaje sin contenido)";
     adornarMensaje(div, f, "cliente", filas);
-    cont.appendChild(div);
+    nuevos.push(div);
   }
-  if (alFinal) cont.scrollTop = cont.scrollHeight;
+  cont.replaceChildren(...fijos, ...nuevos);
+  if (alFinal) irAlFinal(cont);
 }
 
 // Aviso a n8n (notificación al admin). Es opcional: si falla, el mensaje igual quedó guardado.
@@ -502,6 +529,7 @@ async function enviarMensajeWebhook() {
     respuestaPendiente.cliente = null;
     if (inputMensaje) inputMensaje.value = "";
     await cargarHistorialCliente(true);
+    irAlFinal($("chat-messages-container"));
     notificarChatN8n(texto, ruta, archivo ? archivo.name : "")
       .catch((err) => console.warn("No se pudo avisar a n8n:", err.message || err));
   } catch (err) {
@@ -1077,6 +1105,7 @@ async function refrescarMensajes(forzar) {
       const conectar = (u) => {
         const img = document.createElement("img");
         img.alt = "Comprobante";
+        img.addEventListener("load", () => seguirAbajo(cont));
         img.style.cssText = "display:block;max-width:100%;max-height:180px;margin-top:6px;border-radius:6px;cursor:zoom-in;";
         img.addEventListener("click", () => abrirImagen(u));
         // Si no es una imagen (ej. un PDF), se reemplaza por un enlace
@@ -1115,7 +1144,7 @@ async function refrescarMensajes(forzar) {
     adornarMensaje(burbuja, f, "admin", filas);
     cont.appendChild(burbuja);
   });
-  if (alFinal) cont.scrollTop = cont.scrollHeight;
+  if (alFinal) irAlFinal(cont);
 }
 
 async function responderCliente() {
@@ -1285,15 +1314,20 @@ function inyectarEstilosMensajes() {
     .msg-react.mia{border-color:#f3ba2f;background:rgba(243,186,47,.2)}
     .msg-flash{animation:msgflash 1.4s ease}
     @keyframes msgflash{0%,60%{box-shadow:0 0 0 2px #f3ba2f}100%{box-shadow:0 0 0 0 transparent}}
-    #menu-mensaje{position:fixed;z-index:10001;min-width:190px;max-width:260px;background:#161822;border:1px solid #f3ba2f;border-radius:10px;
-      box-shadow:0 8px 28px rgba(0,0,0,.7);padding:6px;font-size:13px;color:#fff}
-    #menu-mensaje .mm-emojis{display:flex;gap:2px;padding:2px 2px 6px;margin-bottom:4px;border-bottom:1px solid #2b3544}
-    #menu-mensaje .mm-emoji{background:none;border:none;font-size:20px;line-height:1;cursor:pointer;border-radius:6px;padding:3px 5px}
-    #menu-mensaje .mm-item{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;color:#fff;
-      padding:7px 9px;border-radius:6px;cursor:pointer;font-size:13px}
+    #menu-mensaje{position:fixed;z-index:10001;width:max-content;min-width:236px;max-width:calc(100vw - 16px);background:#161822;
+      border:1px solid #f3ba2f;border-radius:14px;box-shadow:0 10px 32px rgba(0,0,0,.75);padding:8px;font-size:13px;color:#fff}
+    #menu-mensaje .mm-emojis{display:flex;justify-content:space-between;gap:2px;padding:2px 0 8px;margin-bottom:6px;border-bottom:1px solid #2b3544}
+    #menu-mensaje .mm-emoji{background:none;border:none;font-size:22px;line-height:1;cursor:pointer;border-radius:8px;padding:5px 6px}
+    #menu-mensaje .mm-acciones{display:flex;gap:4px}
+    #menu-mensaje .mm-item{flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;
+      background:rgba(255,255,255,.04);border:none;color:#fff;padding:8px 6px;border-radius:9px;cursor:pointer;font-size:11.5px;font-weight:600}
+    #menu-mensaje .mm-ico{font-size:18px;line-height:1}
     #menu-mensaje .mm-item:hover,#menu-mensaje .mm-item:focus-visible,#menu-mensaje .mm-emoji:hover,#menu-mensaje .mm-emoji:focus-visible{
-      background:rgba(243,186,47,.2);color:#f3ba2f;outline:none}
+      background:rgba(243,186,47,.22);color:#f3ba2f;outline:none}
     #menu-mensaje .mm-nota{font-size:11px;color:#888;padding:6px 9px 2px}
+    #menu-mensaje.mm-hoja{width:auto;min-width:0;max-width:none;border-radius:16px 16px 12px 12px;padding:10px}
+    #menu-mensaje.mm-hoja .mm-emoji{font-size:26px;padding:6px 8px}
+    #menu-mensaje.mm-hoja .mm-item{padding:11px 6px;font-size:12px}
     .barra-msg{display:none;align-items:center;gap:8px;background:#161822;border:1px solid #2b3544;border-left:3px solid #f3ba2f;
       border-radius:6px;padding:4px 8px;margin-bottom:6px;font-size:11px;color:#cbd5e1}
     .barra-msg .bm-texto{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1444,6 +1478,58 @@ function cerrarMenuMensaje() {
   menuAbierto = null;
 }
 
+// El menú nunca tapa el mensaje elegido:
+//  - celulares: hoja fija abajo; el mensaje se desplaza para quedar por encima
+//  - PC: debajo o arriba del mensaje; si no entra, se centra el mensaje o se pone al costado
+let ignorarScrollHasta = 0;
+const enCelular = () => window.matchMedia("(max-width: 600px)").matches;
+
+function mantenerVisible(burbuja) {
+  ignorarScrollHasta = Date.now() + 700;   // nuestro propio scroll no debe cerrar el menú
+  burbuja.scrollIntoView({ block: "center", behavior: "auto" });
+}
+
+function posicionarMenu(menu, burbuja) {
+  const M = 8;
+  const vv = window.visualViewport;
+  const vw = vv ? vv.width : window.innerWidth;
+  const vh = vv ? vv.height : window.innerHeight;
+  const rect = () => burbuja.getBoundingClientRect();
+
+  if (enCelular()) {
+    menu.classList.add("mm-hoja");
+    menu.style.cssText += `;left:${M}px;right:${M}px;bottom:${M}px;top:auto;`;
+    const inicioHoja = vh - menu.offsetHeight - M;
+    let r = rect();
+    if (r.bottom > inicioHoja - 6 || r.top < 70) {
+      mantenerVisible(burbuja);
+      r = rect();
+      if (r.bottom > inicioHoja - 6) { ignorarScrollHasta = Date.now() + 700; window.scrollBy(0, r.bottom - inicioHoja + 6); }
+    }
+    return;
+  }
+
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  const colocar = (top, left) => {
+    menu.style.top = Math.max(M, Math.min(top, vh - mh - M)) + "px";
+    menu.style.left = Math.max(M, Math.min(left, vw - mw - M)) + "px";
+  };
+  let r = rect();
+  const alineado = () => r.right - mw;
+  if (mh + 6 <= vh - r.bottom - M) return colocar(r.bottom + 6, alineado());
+  if (mh + 6 <= r.top - M) return colocar(r.top - mh - 6, alineado());
+
+  // no entra ni arriba ni abajo: centramos el mensaje y reintentamos
+  mantenerVisible(burbuja);
+  r = rect();
+  if (mh + 6 <= vh - r.bottom - M) return colocar(r.bottom + 6, alineado());
+  if (mh + 6 <= r.top - M) return colocar(r.top - mh - 6, alineado());
+  // mensaje muy alto: el menú va al costado
+  if (r.left - mw - 6 >= M) return colocar(r.top, r.left - mw - 6);
+  if (r.right + mw + 6 <= vw - M) return colocar(r.top, r.right + 6);
+  colocar(vh - mh - M, alineado());
+}
+
 function abrirMenuMensaje(f, ctx, burbuja) {
   cerrarMenuMensaje();
   const menu = document.createElement("div");
@@ -1456,10 +1542,14 @@ function abrirMenuMensaje(f, ctx, burbuja) {
     b.type = "button";
     b.className = "mm-item";
     b.setAttribute("role", "menuitem");
-    b.textContent = `${icono}  ${etiqueta}`;
+    const ic = document.createElement("span"); ic.className = "mm-ico"; ic.textContent = icono;
+    const lb = document.createElement("span"); lb.textContent = etiqueta;
+    b.append(ic, lb);
     b.addEventListener("click", () => { cerrarMenuMensaje(); fn(); });
-    menu.appendChild(b);
+    acciones.appendChild(b);
   };
+  const acciones = document.createElement("div");
+  acciones.className = "mm-acciones";
 
   if (extrasDisponibles) {
     const fila = document.createElement("div");
@@ -1486,17 +1576,12 @@ function abrirMenuMensaje(f, ctx, burbuja) {
     nota.textContent = "Para responder, reaccionar y fijar ejecutá mensajes_extras.sql";
     menu.appendChild(nota);
   }
+  if (acciones.children.length) menu.appendChild(acciones);
   if (!menu.querySelector("[role=menuitem]") && !menu.querySelector(".mm-nota")) return;
 
   menu.style.visibility = "hidden";
   document.body.appendChild(menu);
-  const r = burbuja.getBoundingClientRect();
-  const mw = menu.offsetWidth, mh = menu.offsetHeight;
-  const left = Math.min(Math.max(8, r.right - mw), window.innerWidth - mw - 8);
-  let top = r.bottom + 4;
-  if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 4);
-  menu.style.left = left + "px";
-  menu.style.top = top + "px";
+  posicionarMenu(menu, burbuja);
   menu.style.visibility = "visible";
   burbuja.classList.add("msg-abierto");
   menuAbierto = { menu, burbuja };
@@ -1564,7 +1649,11 @@ async function fijarMensaje(f, ctx) {
 // Cierre del menú al tocar fuera, con Escape, al hacer scroll o redimensionar
 document.addEventListener("click", (e) => { if (menuAbierto && !menuAbierto.menu.contains(e.target)) cerrarMenuMensaje(); }, true);
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarMenuMensaje(); });
-document.addEventListener("scroll", () => cerrarMenuMensaje(), true);
+document.addEventListener("scroll", (e) => {
+  if (Date.now() < ignorarScrollHasta) return;
+  if (menuAbierto && menuAbierto.menu.contains(e.target)) return;
+  cerrarMenuMensaje();
+}, true);
 window.addEventListener("resize", cerrarMenuMensaje);
 inyectarEstilosMensajes();
 
