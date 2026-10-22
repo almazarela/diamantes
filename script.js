@@ -29,6 +29,7 @@ const CONFIG = {
   COL_NOMBRE: "full_name",
   COL_ADMIN: "is_admin",
   COL_SALDO: "saldo_usd",
+  COL_SALDO_ARS: "saldo_ars",
 
   BUCKET_COMPROBANTES: "comprobantes",   // bucket PRIVADO de Storage (lo crea chat_cliente.sql)
   // Compra con saldo: true = la página espera la confirmación de n8n antes de decir "acreditados"
@@ -81,6 +82,9 @@ async function postWebhook(payload, timeoutMs = CONFIG.TIMEOUT_MS) {
 }
 
 const formatoUSD = (n) => "$" + (Number(n) || 0).toFixed(2);
+const formatoARS = (n) => "$" + (Number(n) || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const formatoMoneda = (m, n) => (m === "ARS" ? formatoARS(n) : formatoUSD(n));
+const conCodigo = (m, n) => `${m} ${formatoMoneda(m, n)}`;
 
 // ------------------------- MENÚ LATERAL ------------------------------
 function toggleMenu() {
@@ -563,7 +567,7 @@ function renderSesion(user) {
   }
 
   $("menu-wallet-id").textContent = logueado ? "#REV-" + user.id.replace(/-/g, "").slice(0, 5).toUpperCase() : "#REV-00000";
-  pintarSaldo(0);
+  resetSaldos();
 
   if (logueado) {
     // setTimeout evita bloquear el cliente de Supabase dentro de onAuthStateChange
@@ -574,12 +578,22 @@ function renderSesion(user) {
   }
 }
 
-function pintarSaldo(n) {
-  const v = formatoUSD(n);
-  $("header-balance-amount").textContent = v;
-  $("menu-wallet-balance").textContent = v + " USD";
-  $("user-balance").textContent = v + " USD";
+const saldos = { USD: 0, ARS: 0 };
+
+function renderSaldos() {
+  const set = (id, txt) => { const el = $(id); if (el) el.textContent = txt; };
+  set("header-balance-amount", formatoUSD(saldos.USD));
+  set("header-balance-ars", formatoARS(saldos.ARS));
+  set("menu-wallet-balance", formatoUSD(saldos.USD) + " USD");
+  set("menu-wallet-balance-ars", formatoARS(saldos.ARS) + " ARS");
+  set("user-balance", formatoUSD(saldos.USD) + " USD");
+  set("user-balance-ars", formatoARS(saldos.ARS) + " ARS");
 }
+function pintarSaldo(n, moneda = "USD") {
+  saldos[moneda === "ARS" ? "ARS" : "USD"] = Number(n) || 0;
+  renderSaldos();
+}
+function resetSaldos() { saldos.USD = 0; saldos.ARS = 0; renderSaldos(); }
 
 let perfilesDisponible = true;   // false si la tabla no existe: no se vuelve a consultar
 let saldoDisponible = true;     // false si falta la columna de saldo: no se vuelve a consultar
@@ -619,16 +633,23 @@ async function cargarPerfilYSaldo(user, esAdminEmail) {
   if (esAdmin) await cargarPanelAdmin();
 }
 
+let saldoArsDisponible = true;   // false si falta la columna saldo_ars: ejecutá doble_saldo.sql
+
 async function cargarSaldo(user) {
-  if (!perfilesDisponible || !saldoDisponible) return pintarSaldo(0);
+  if (!perfilesDisponible || !saldoDisponible) return resetSaldos();
+  const consulta = (cols) => supabase.from(CONFIG.TABLA_PERFILES).select(cols).eq(CONFIG.COL_ID, user.id).maybeSingle();
   try {
-    const { data, error } = await supabase
-      .from(CONFIG.TABLA_PERFILES)
-      .select(CONFIG.COL_SALDO)
-      .eq(CONFIG.COL_ID, user.id)
-      .maybeSingle();
-    if (error) throw error;
-    pintarSaldo(data ? data[CONFIG.COL_SALDO] : 0);
+    let r = await consulta(saldoArsDisponible ? `${CONFIG.COL_SALDO}, ${CONFIG.COL_SALDO_ARS}` : CONFIG.COL_SALDO);
+    if (r.error && columnaNoExiste(r.error) && saldoArsDisponible) {
+      saldoArsDisponible = false;
+      console.warn(`Falta la columna ${CONFIG.COL_SALDO_ARS}: ejecutá doble_saldo.sql para habilitar el saldo en pesos.`);
+      r = await consulta(CONFIG.COL_SALDO);
+    }
+    if (r.error) throw r.error;
+    const d = r.data || {};
+    saldos.USD = Number(d[CONFIG.COL_SALDO]) || 0;
+    saldos.ARS = Number(d[CONFIG.COL_SALDO_ARS]) || 0;
+    renderSaldos();
   } catch (err) {
     if (columnaNoExiste(err)) {
       saldoDisponible = false;
@@ -638,7 +659,7 @@ async function cargarSaldo(user) {
     } else {
       console.warn("No se pudo leer el saldo:", err.message || err);
     }
-    pintarSaldo(0);
+    resetSaldos();
   }
 }
 
@@ -714,7 +735,9 @@ function renderListaClientes() {
     const { ultima, noLeidos } = dato(fila);
     const seleccionado = clienteSel && clienteSel.id === id;
     const etiqueta = fila[CONFIG.COL_NOMBRE] || fila[CONFIG.COL_EMAIL] || String(id).slice(0, 8);
-    const saldoTxt = saldoDisponible ? " · " + formatoUSD(fila[CONFIG.COL_SALDO]) : "";
+    const saldoTxt = saldoDisponible
+      ? " · " + formatoUSD(fila[CONFIG.COL_SALDO]) + (saldoArsDisponible ? " · ARS " + formatoARS(fila[CONFIG.COL_SALDO_ARS]) : "")
+      : "";
 
     const b = document.createElement("button");
     b.type = "button";
@@ -757,14 +780,17 @@ async function cargarPanelAdmin(silencioso = false) {
   try {
     const base = [CONFIG.COL_ID, CONFIG.COL_EMAIL, CONFIG.COL_NOMBRE, CONFIG.COL_ADMIN];
     let data = null, error = null;
-    for (let intento = 0; intento < 2; intento++) {
-      const cols = saldoDisponible ? [...base, CONFIG.COL_SALDO] : base;
+    for (let intento = 0; intento < 3; intento++) {
+      const cols = saldoDisponible ? [...base, CONFIG.COL_SALDO, ...(saldoArsDisponible ? [CONFIG.COL_SALDO_ARS] : [])] : base;
       ({ data, error } = await supabase
         .from(CONFIG.TABLA_PERFILES)
         .select(cols.join(", "))
         .order(CONFIG.COL_EMAIL, { ascending: true })
         .limit(200));
-      if (error && columnaNoExiste(error) && saldoDisponible) { saldoDisponible = false; continue; }  // reintenta sin saldo
+      if (error && columnaNoExiste(error)) {      // reintenta sin la columna que falta
+        if (saldoArsDisponible) { saldoArsDisponible = false; continue; }
+        if (saldoDisponible) { saldoDisponible = false; continue; }
+      }
       break;
     }
 
@@ -852,7 +878,7 @@ function seleccionarCliente(fila, etiqueta) {
     id: fila[CONFIG.COL_ID],
     etiqueta,
     email: fila[CONFIG.COL_EMAIL] || "-",
-    saldo: saldoDisponible ? Number(fila[CONFIG.COL_SALDO]) || 0 : null,
+    saldos: saldoDisponible ? { USD: Number(fila[CONFIG.COL_SALDO]) || 0, ARS: Number(fila[CONFIG.COL_SALDO_ARS]) || 0 } : null,
     fila,
   };
   respuestaPendiente.admin = null;
@@ -879,35 +905,70 @@ function construirVistaCliente() {
   cab.append(nombre, sub);
   vista.appendChild(cab);
 
-  // --- Saldo ---
-  if (clienteSel.saldo !== null) {
+  // --- Saldos (USD y ARS, independientes) ---
+  if (clienteSel.saldos) {
     const caja = document.createElement("div");
-    caja.style.cssText = "background:#161822;border:1px solid #2b3544;border-radius:8px;padding:10px;margin-bottom:10px;";
-    const saldoTxt = document.createElement("div");
-    saldoTxt.id = "admin-saldo-actual";
-    saldoTxt.style.cssText = "font-size:13px;color:#2ecc71;font-weight:700;margin-bottom:8px;";
-    saldoTxt.textContent = "Saldo actual: " + formatoUSD(clienteSel.saldo);
+    caja.style.cssText = "background:#161822;border:1px solid #2b3544;border-radius:10px;padding:10px;margin-bottom:10px;";
+
+    const tiles = document.createElement("div");
+    tiles.style.cssText = "display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;";
+    [["USD", "Saldo USD", "#2ecc71"], ["ARS", "Saldo ARS", "#38bdf8"]].forEach(([m, titulo, color]) => {
+      const t = document.createElement("div");
+      t.id = "admin-tile-" + m;
+      t.style.cssText = "background:#0e0f16;border:1px solid #2b3544;border-radius:8px;padding:8px 10px;";
+      const l = document.createElement("div");
+      l.style.cssText = "font-size:10px;letter-spacing:.5px;color:#8b93a7;text-transform:uppercase;";
+      l.textContent = titulo;
+      const v = document.createElement("div");
+      v.id = "admin-saldo-" + m;
+      v.style.cssText = `font-size:17px;font-weight:800;color:${color};margin-top:2px;word-break:break-all;`;
+      v.textContent = (m === "ARS" && !saldoArsDisponible) ? "No habilitado" : formatoMoneda(m, clienteSel.saldos[m]);
+      t.append(l, v);
+      tiles.appendChild(t);
+    });
 
     const fila = document.createElement("div");
     fila.style.cssText = "display:flex;gap:6px;flex-wrap:wrap;";
+    const moneda = document.createElement("select");
+    moneda.id = "admin-moneda";
+    moneda.setAttribute("aria-label", "Moneda a modificar");
+    moneda.style.cssText = ESTILO_INPUT + "font-weight:700;";
+    [["USD", "USD (dólares)"], ["ARS", "ARS (pesos)"]].forEach(([v, t]) => {
+      const o = document.createElement("option"); o.value = v; o.textContent = t;
+      if (v === "ARS" && !saldoArsDisponible) o.disabled = true;
+      moneda.appendChild(o);
+    });
     const modo = document.createElement("select");
     modo.id = "admin-modo";
+    modo.setAttribute("aria-label", "Tipo de ajuste");
     modo.style.cssText = ESTILO_INPUT;
     [["sumar", "Sumar / restar"], ["establecer", "Establecer total"]].forEach(([v, t]) => {
       const o = document.createElement("option"); o.value = v; o.textContent = t; modo.appendChild(o);
     });
     const monto = document.createElement("input");
     monto.id = "admin-monto"; monto.type = "number"; monto.step = "0.01"; monto.placeholder = "Monto USD";
-    monto.style.cssText = ESTILO_INPUT + "width:110px;";
+    monto.setAttribute("aria-label", "Monto");
+    monto.style.cssText = ESTILO_INPUT + "width:120px;";
     const nota = document.createElement("input");
     nota.id = "admin-nota"; nota.type = "text"; nota.maxLength = 120; nota.placeholder = "Nota (opcional)";
     nota.style.cssText = ESTILO_INPUT + "flex:1;min-width:120px;";
     const ok = creaBoton("Acreditar / Cargar Saldo", "background:#2ecc71;color:#000;");
     ok.id = "admin-btn-saldo";
     ok.addEventListener("click", ajustarSaldoCliente);
-    fila.append(modo, monto, nota, ok);
-    caja.append(saldoTxt, fila);
+
+    const resaltar = () => {
+      const m = moneda.value;
+      monto.placeholder = "Monto " + m;
+      ["USD", "ARS"].forEach((x) => {
+        const t = $("admin-tile-" + x);
+        if (t) t.style.borderColor = x === m ? "#f3ba2f" : "#2b3544";
+      });
+    };
+    moneda.addEventListener("change", resaltar);
+    fila.append(moneda, modo, monto, nota, ok);
+    caja.append(tiles, fila);
     vista.appendChild(caja);
+    resaltar();
   }
 
   // --- Conversación ---
@@ -1099,35 +1160,52 @@ async function ajustarSaldoCliente() {
   const sel = clienteSel;
   const btn = $("admin-btn-saldo");
   if (!sel || !btn) return;
+  const moneda = $("admin-moneda").value === "ARS" ? "ARS" : "USD";
   const modo = $("admin-modo").value;
   const monto = Math.round(parseFloat($("admin-monto").value) * 100) / 100;
   const nota = $("admin-nota").value.trim();
+  const limite = moneda === "ARS" ? 100000000 : 100000;
 
   if (!Number.isFinite(monto) || monto === 0 && modo === "sumar") return mostrarAviso("Ingresá un monto válido.", "error");
-  if (Math.abs(monto) > 100000) return mostrarAviso("El monto es demasiado alto.", "error");
+  if (Math.abs(monto) > limite) return mostrarAviso("El monto es demasiado alto.", "error");
   if (modo === "establecer" && monto < 0) return mostrarAviso("El saldo total no puede ser negativo.", "error");
 
-  const resumen = modo === "sumar"
-    ? `${monto >= 0 ? "Sumar" : "Restar"} ${formatoUSD(Math.abs(monto))} a ${sel.etiqueta}`
-    : `Establecer el saldo de ${sel.etiqueta} en ${formatoUSD(monto)}`;
-  if (!window.confirm(resumen + "?\n\nSaldo actual: " + formatoUSD(sel.saldo))) return;
+  const actual = sel.saldos[moneda];
+  const despues = modo === "sumar" ? actual + monto : monto;
+  if (despues < 0) return mostrarAviso(`El saldo ${moneda} no puede quedar negativo.`, "error");
+
+  const confirmado = await mostrarConfirmacion({
+    tono: modo === "sumar" && monto < 0 ? "warn" : "ok",
+    icono: modo === "sumar" && monto < 0 ? "➖" : "💰",
+    titulo: modo === "establecer" ? "Establecer saldo" : monto >= 0 ? "Acreditar saldo" : "Descontar saldo",
+    texto: `Cliente: ${sel.etiqueta}`,
+    filas: [
+      ["Moneda", moneda === "ARS" ? "Pesos argentinos (ARS)" : "Dólares (USD)"],
+      ["Saldo actual", conCodigo(moneda, actual)],
+      [modo === "establecer" ? "Nuevo saldo" : monto >= 0 ? "Se suma" : "Se resta", modo === "establecer" ? conCodigo(moneda, monto) : conCodigo(moneda, Math.abs(monto))],
+    ],
+    total: ["Saldo resultante", conCodigo(moneda, despues)],
+    confirmar: "Aplicar",
+  });
+  if (!confirmado) return;
 
   btn.disabled = true;
   try {
-    const { data, error } = await supabase.rpc(RPC_SALDO, { p_user_id: sel.id, p_monto: monto, p_modo: modo, p_nota: nota || null });
+    const { data, error } = await supabase.rpc(RPC_SALDO, { p_user_id: sel.id, p_monto: monto, p_modo: modo, p_nota: nota || null, p_moneda: moneda });
     if (error) throw error;
     const nuevo = Number(data);
-    sel.saldo = nuevo;
-    $("admin-saldo-actual").textContent = "Saldo actual: " + formatoUSD(nuevo);
-    if (sel.fila) sel.fila[CONFIG.COL_SALDO] = nuevo;
+    sel.saldos[moneda] = nuevo;
+    const tile = $("admin-saldo-" + moneda);
+    if (tile) tile.textContent = formatoMoneda(moneda, nuevo);
+    if (sel.fila) sel.fila[moneda === "ARS" ? CONFIG.COL_SALDO_ARS : CONFIG.COL_SALDO] = nuevo;
     tocarActividad(sel.id);
-    if (usuarioActual && usuarioActual.id === sel.id) pintarSaldo(nuevo);
+    if (usuarioActual && usuarioActual.id === sel.id) pintarSaldo(nuevo, moneda);
     $("admin-monto").value = ""; $("admin-nota").value = "";
-    mostrarAviso("Saldo actualizado: " + formatoUSD(nuevo), "ok");
+    mostrarAviso(`Saldo ${moneda} actualizado: ${formatoMoneda(moneda, nuevo)}`, "ok");
   } catch (err) {
     console.error("Error al ajustar saldo:", err);
     mostrarAviso(
-      err.code === "PGRST202" ? "Falta crear la función en Supabase: ejecutá admin_panel.sql."
+      err.code === "PGRST202" ? "Falta actualizar la función en Supabase: ejecutá doble_saldo.sql."
       : err.code === "42501" ? "No autorizado para modificar saldos."
       : /negativ|check constraint/i.test(err.message || "") ? "El saldo no puede quedar negativo."
       : "No se pudo actualizar el saldo.",
@@ -1490,40 +1568,83 @@ document.addEventListener("scroll", () => cerrarMenuMensaje(), true);
 window.addEventListener("resize", cerrarMenuMensaje);
 inyectarEstilosMensajes();
 
-// ------------------------- COMPRA DE PAQUETES CON SALDO ---------------
-// El PIN NUNCA llega al navegador: la base de datos lo reserva y avisa a n8n por su cuenta.
-const RPC_COMPRA = "comprar_paquete";
-let comprando = false;
-const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
+// ------------------------- DIÁLOGOS (confirmación, avisos, errores) -----
+const TONOS = {
+  ok:    { color: "#2ecc71", fondo: "rgba(46,204,113,.14)" },
+  warn:  { color: "#f3ba2f", fondo: "rgba(243,186,47,.14)" },
+  error: { color: "#ff5c5c", fondo: "rgba(255,92,92,.14)" },
+  info:  { color: "#38bdf8", fondo: "rgba(56,189,248,.14)" },
+};
 
 function inyectarEstilosCompra() {
   if ($("estilos-compra")) return;
   const st = document.createElement("style");
   st.id = "estilos-compra";
   st.textContent = `
-    #modal-compra{position:fixed;inset:0;z-index:10002;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.75);padding:16px}
-    #modal-compra .mc-card{background:#161822;border:1px solid #f3ba2f;border-radius:14px;padding:24px 22px;max-width:380px;width:100%;
-      text-align:center;color:#fff;box-shadow:0 10px 40px rgba(0,0,0,.7)}
-    #modal-compra .mc-icono{font-size:42px;line-height:1;margin-bottom:10px}
-    #modal-compra .mc-spin{width:38px;height:38px;margin:0 auto 14px;border:4px solid #2b3544;border-top-color:#f3ba2f;border-radius:50%;animation:mcgira .9s linear infinite}
+    #modal-compra{position:fixed;inset:0;z-index:10002;display:none;align-items:center;justify-content:center;padding:16px;
+      background:radial-gradient(circle at 50% 30%,rgba(243,186,47,.10),rgba(0,0,0,.82) 60%);backdrop-filter:blur(3px);overflow-y:auto}
+    #modal-compra .mc-card{position:relative;width:100%;max-width:400px;margin:auto;color:#fff;text-align:center;
+      background:linear-gradient(180deg,#1b1d2b 0%,#12131c 100%);border:1px solid var(--tono,#f3ba2f);border-radius:18px;
+      padding:26px 22px 20px;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 18px 60px rgba(0,0,0,.75),0 0 38px var(--tono-fondo,rgba(243,186,47,.14));
+      animation:mcentra .22s ease-out}
+    @keyframes mcentra{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+    #modal-compra .mc-icono{width:64px;height:64px;margin:0 auto 12px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+      font-size:30px;line-height:1;background:var(--tono-fondo);border:2px solid var(--tono);box-shadow:0 0 22px var(--tono-fondo)}
+    #modal-compra .mc-spin{width:42px;height:42px;margin:6px auto 16px;border:4px solid #2b3544;border-top-color:#f3ba2f;border-radius:50%;animation:mcgira .9s linear infinite}
     @keyframes mcgira{to{transform:rotate(360deg)}}
-    #modal-compra h3{margin:0 0 8px;font-size:18px;color:#f3ba2f}
-    #modal-compra p{margin:0;font-size:14px;color:#cbd5e1;line-height:1.45}
-    #modal-compra .mc-botones{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:18px}
-    #modal-compra .mc-btn{padding:9px 16px;border-radius:8px;border:1px solid #2b3544;background:#0e0f16;color:#fff;font-weight:700;font-size:13px;cursor:pointer}
-    #modal-compra .mc-btn.primario{background:#f3ba2f;border-color:#f3ba2f;color:#000}
+    #modal-compra h3{margin:0 0 6px;font-family:'Orbitron',sans-serif;font-size:1.02rem;letter-spacing:.4px;color:var(--tono,#f3ba2f)}
+    #modal-compra .mc-texto{margin:0;font-size:13.5px;line-height:1.5;color:#c3cad8}
+    #modal-compra .mc-chip{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700;
+      background:rgba(46,204,113,.13);border:1px solid rgba(46,204,113,.45);color:#4ef38d}
+    #modal-compra .mc-filas{margin:16px 0 0;padding:4px 14px;background:#0d0e15;border:1px solid #2a2d3d;border-radius:12px;text-align:left}
+    #modal-compra .mc-fila{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;font-size:13px;border-bottom:1px dashed #262a3a}
+    #modal-compra .mc-fila:last-child{border-bottom:none}
+    #modal-compra .mc-fila span{color:#8b93a7}
+    #modal-compra .mc-fila b{color:#fff;font-weight:700;text-align:right;word-break:break-word}
+    #modal-compra .mc-total{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px;padding:12px 14px;border-radius:12px;
+      background:linear-gradient(135deg,rgba(46,204,113,.18),rgba(243,186,47,.10));border:1px solid rgba(46,204,113,.45)}
+    #modal-compra .mc-total span{font-size:12px;color:#b8e8cb;text-transform:uppercase;letter-spacing:.5px}
+    #modal-compra .mc-total b{font-family:'Orbitron',sans-serif;font-size:1.05rem;color:#4ef38d}
+    #modal-compra .mc-nota{margin-top:10px;font-size:11.5px;color:#8b93a7;line-height:1.4}
+    #modal-compra .mc-botones{display:flex;gap:10px;margin-top:18px}
+    #modal-compra .mc-btn{flex:1;padding:12px 14px;border-radius:10px;border:1px solid #2f3447;background:#171926;color:#e5e9f2;
+      font-weight:700;font-size:13.5px;cursor:pointer;transition:transform .1s,filter .15s}
+    #modal-compra .mc-btn:hover{filter:brightness(1.15)}
+    #modal-compra .mc-btn:active{transform:scale(.98)}
+    #modal-compra .mc-btn.primario{border:none;color:#10120a;background:linear-gradient(135deg,#ffd45a,#f3ba2f)}
+    #modal-compra .mc-btn.primario.verde{color:#04170c;background:linear-gradient(135deg,#4ef38d,#1fb865)}
     #modal-compra .mc-btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+    @media (max-width:420px){#modal-compra .mc-botones{flex-direction:column-reverse}}
     .btn-buy[aria-disabled="true"]{opacity:.6;pointer-events:none}
+    .header-wallet-container .saldo-badges{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    .header-wallet-container .saldo-ars-badge{background:linear-gradient(135deg,#0a7bd6,#0b2a6b 70%,#010007)}
+    @media (max-width:560px){
+      .header-right-group{gap:6px;min-width:0}
+      .header-wallet-container .saldo-badges{flex-direction:column;align-items:flex-end;gap:3px}
+      .header-wallet-container .saldo-usd-badge{padding:4px 6px;font-size:.6rem;gap:3px;letter-spacing:0;white-space:nowrap}
+      .header-wallet-container .saldo-usd-badge i{display:none}
+      .header-wallet-container .saldo-usd-badge span{margin-left:2px !important}
+      .header-right-group .region{font-size:.64rem;padding:3px 6px}
+    }
+    @media (max-width:360px){.header-right-group .region{display:none}}
+    /* Evita el scroll horizontal en celulares: el carrusel no puede ensanchar la columna */
+    .left-content-col,.right-widgets-col{min-width:0}
+    #carousel-wrapper{max-width:100%;overflow:hidden}
   `;
   document.head.appendChild(st);
 }
 
+let dialogoResolver = null;
+inyectarEstilosCompra();   // desde el inicio: incluye las reglas del header en celulares
+
 function cerrarCompra() {
   const ov = $("modal-compra");
   if (ov) ov.style.display = "none";
+  if (dialogoResolver) { const r = dialogoResolver; dialogoResolver = null; r(false); }
 }
 
-function mostrarCompra({ icono = "", titulo, texto, cargando = false, botones = [] }) {
+// Dibuja un diálogo. botones: [{ texto, primario, verde, valor, accion }]
+function mostrarDialogo({ tono = "warn", icono = "", titulo, texto = "", chip = "", filas = [], total = null, nota = "", cargando = false, botones = [] }) {
   inyectarEstilosCompra();
   let ov = $("modal-compra");
   if (!ov) {
@@ -1531,30 +1652,55 @@ function mostrarCompra({ icono = "", titulo, texto, cargando = false, botones = 
     ov.id = "modal-compra";
     ov.setAttribute("role", "dialog");
     ov.setAttribute("aria-modal", "true");
-    ov.setAttribute("aria-live", "polite");
     ov.addEventListener("click", (e) => { if (e.target === ov && !ov.dataset.bloqueado) cerrarCompra(); });
     document.body.appendChild(ov);
   }
+  const t = TONOS[tono] || TONOS.warn;
   ov.replaceChildren();
   const card = document.createElement("div");
   card.className = "mc-card";
+  card.style.setProperty("--tono", t.color);
+  card.style.setProperty("--tono-fondo", t.fondo);
+  card.setAttribute("aria-live", "polite");
+
   if (cargando) {
     const sp = document.createElement("div"); sp.className = "mc-spin"; card.appendChild(sp);
-  } else {
+  } else if (icono) {
     const ic = document.createElement("div"); ic.className = "mc-icono"; ic.textContent = icono; card.appendChild(ic);
   }
-  const h = document.createElement("h3"); h.textContent = titulo;
-  const t = document.createElement("p"); t.textContent = texto;
-  card.append(h, t);
+  const h = document.createElement("h3"); h.textContent = titulo; card.appendChild(h);
+  if (texto) { const p = document.createElement("p"); p.className = "mc-texto"; p.textContent = texto; card.appendChild(p); }
+  if (chip) { const c = document.createElement("div"); c.className = "mc-chip"; c.textContent = chip; card.appendChild(c); }
+  if (filas.length) {
+    const box = document.createElement("div"); box.className = "mc-filas";
+    filas.forEach(([k, v]) => {
+      const f = document.createElement("div"); f.className = "mc-fila";
+      const a = document.createElement("span"); a.textContent = k;
+      const b = document.createElement("b"); b.textContent = v;
+      f.append(a, b); box.appendChild(f);
+    });
+    card.appendChild(box);
+  }
+  if (total) {
+    const tt = document.createElement("div"); tt.className = "mc-total";
+    const a = document.createElement("span"); a.textContent = total[0];
+    const b = document.createElement("b"); b.textContent = total[1];
+    tt.append(a, b); card.appendChild(tt);
+  }
+  if (nota) { const n = document.createElement("div"); n.className = "mc-nota"; n.textContent = nota; card.appendChild(n); }
   if (botones.length) {
-    const fila = document.createElement("div");
-    fila.className = "mc-botones";
+    const fila = document.createElement("div"); fila.className = "mc-botones";
     botones.forEach((b) => {
       const el = document.createElement("button");
       el.type = "button";
-      el.className = "mc-btn" + (b.primario ? " primario" : "");
+      el.className = "mc-btn" + (b.primario ? " primario" : "") + (b.verde ? " verde" : "");
       el.textContent = b.texto;
-      el.addEventListener("click", b.accion || cerrarCompra);
+      el.addEventListener("click", () => {
+        const r = dialogoResolver; dialogoResolver = null;
+        ov.style.display = "none";
+        if (b.accion) b.accion();
+        if (r) r(b.valor === undefined ? true : b.valor);
+      });
       fila.appendChild(el);
     });
     card.appendChild(fila);
@@ -1562,10 +1708,35 @@ function mostrarCompra({ icono = "", titulo, texto, cargando = false, botones = 
   ov.appendChild(card);
   ov.dataset.bloqueado = cargando ? "1" : "";
   ov.style.display = "flex";
-  card.querySelector("button")?.focus();
+  (card.querySelector(".mc-btn.primario") || card.querySelector("button"))?.focus();
 }
 
-// "USD 0,86" -> 0.86
+// Confirmación con promesa: true si el usuario confirma
+function mostrarConfirmacion({ tono = "warn", icono = "❓", titulo, texto, filas, total, nota, confirmar = "Confirmar", cancelar = "Cancelar" }) {
+  return new Promise((resolve) => {
+    dialogoResolver = resolve;
+    mostrarDialogo({
+      tono, icono, titulo, texto, filas, total, nota,
+      botones: [
+        { texto: cancelar, valor: false },
+        { texto: confirmar, primario: true, verde: tono === "ok", valor: true },
+      ],
+    });
+  });
+}
+
+document.addEventListener("keydown", (e) => {
+  const ov = $("modal-compra");
+  if (e.key === "Escape" && ov && ov.style.display === "flex" && !ov.dataset.bloqueado) cerrarCompra();
+});
+
+// ------------------------- COMPRA DE PAQUETES CON SALDO ---------------
+// El PIN NUNCA llega al navegador: la base de datos lo reserva y avisa a n8n por su cuenta.
+const RPC_COMPRA = "comprar_paquete";
+let comprando = false;
+const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// "USD 0,86" -> 0.86   |   "ARS $1.463" -> 1463
 function precioDeCaja(caja) {
   const t = (caja.querySelector(".price")?.textContent || "").replace(/[^\d,.]/g, "");
   const n = parseFloat(t.replace(/\./g, "").replace(",", "."));
@@ -1584,34 +1755,62 @@ async function esperarOrden(ordenId) {
   return "pendiente";
 }
 
-function mostrarErrorCompra(error, saldoActual) {
-  const msg = String((error && error.message) || "");
-  const cerrar = [{ texto: "Cerrar", primario: true }];
-  const caso = (titulo, texto, botones = cerrar) => mostrarCompra({ icono: "⚠️", titulo, texto, botones });
-
-  if (msg.includes("SALDO_INSUFICIENTE")) {
-    return caso("Saldo insuficiente", `Tu saldo actual es ${formatoUSD(saldoActual)}. Cargá saldo para completar esta compra.`, [
-      { texto: "Cargar saldo", primario: true, accion: () => { cerrarCompra(); abrirModalSeleccionCarga(); } },
-      { texto: "Cerrar" },
-    ]);
-  }
-  if (msg.includes("SIN_STOCK")) return caso("Paquete agotado", "Este paquete no tiene stock por el momento. Escribinos por el chat y lo resolvemos. No se descontó nada de tu saldo.");
-  if (msg.includes("PRECIO_CAMBIO")) return caso("El precio cambió", "El precio de este paquete se actualizó. Recargá la página para ver el valor vigente. No se descontó nada de tu saldo.");
-  if (msg.includes("ID_INVALIDO")) return caso("ID inválido", "Revisá tu ID de jugador de Free Fire (solo números).");
-  if (msg.includes("NO_AUTENTICADO")) return caso("Sesión vencida", "Volvé a iniciar sesión con Google para comprar.");
-  if (msg.includes("PAQUETE_INVALIDO")) return caso("Paquete no disponible", "Este paquete no está disponible por el momento.");
-  if (error && error.code === "PGRST202") {
-    console.warn("Falta la función comprar_paquete: ejecutá pines_y_compras.sql en Supabase.");
-    return caso("Compra no disponible", "La compra con saldo todavía no está habilitada. Escribinos por el chat.");
-  }
-  console.error("Error en la compra:", error);
-  return caso("No pudimos completar la compra", "Ocurrió un problema. Revisá tu saldo antes de reintentar o escribinos por el chat.");
+function irAlChat(texto) {
+  prepararMensajeChat(texto);
 }
 
-async function comprarPaquete(ev, paqueteId) {
+function mostrarErrorCompra(error, { moneda, saldo, precio, nombre, id }) {
+  const msg = String((error && error.message) || "");
+  const cerrar = [{ texto: "Cerrar", primario: true }];
+  const caso = (opts) => mostrarDialogo({ botones: cerrar, ...opts });
+  const intactoChip = "No se descontó nada de tu saldo";
+
+  if (msg.includes("SALDO_INSUFICIENTE")) {
+    const falta = precio != null ? Math.max(0, precio - saldo) : null;
+    return mostrarDialogo({
+      tono: "warn", icono: "👛", titulo: "Saldo insuficiente",
+      texto: `Necesitás más saldo en ${moneda === "ARS" ? "pesos" : "dólares"} para comprar este paquete.`,
+      filas: [
+        ["Tu saldo " + moneda, formatoMoneda(moneda, saldo)],
+        ...(precio != null ? [["Precio del paquete", formatoMoneda(moneda, precio)]] : []),
+        ...(falta != null ? [["Te faltan", formatoMoneda(moneda, falta)]] : []),
+      ],
+      chip: intactoChip,
+      botones: [
+        { texto: "Cerrar", valor: false },
+        { texto: "Cargar saldo", primario: true, accion: () => abrirModalSeleccionCarga() },
+      ],
+    });
+  }
+  if (msg.includes("SIN_STOCK")) {
+    return mostrarDialogo({
+      tono: "warn", icono: "📦", titulo: "Paquete agotado",
+      texto: `Por el momento no tenemos stock de ${nombre}. Estamos reponiendo: escribinos por el chat y te avisamos apenas esté disponible.`,
+      chip: intactoChip,
+      botones: [
+        { texto: "Cerrar", valor: false },
+        { texto: "Avisarme por el chat", primario: true, accion: () => irAlChat(`Hola! ${nombre} figura agotado. ¿Cuándo vuelve a haber stock? Mi ID: ${id}`) },
+      ],
+    });
+  }
+  if (msg.includes("PRECIO_CAMBIO")) return caso({ tono: "info", icono: "🏷️", titulo: "El precio cambió", texto: "El precio de este paquete se actualizó. Recargá la página para ver el valor vigente.", chip: intactoChip });
+  if (msg.includes("ID_INVALIDO")) return caso({ tono: "error", icono: "🆔", titulo: "ID inválido", texto: "Revisá tu ID de jugador de Free Fire (solo números)." });
+  if (msg.includes("NO_AUTENTICADO")) return caso({ tono: "info", icono: "🔒", titulo: "Sesión vencida", texto: "Volvé a iniciar sesión con Google para comprar." });
+  if (msg.includes("PAQUETE_INVALIDO")) return caso({ tono: "warn", icono: "🚫", titulo: "Paquete no disponible", texto: "Este paquete no está disponible por el momento." });
+  if (msg.includes("MONEDA_NO_DISPONIBLE") || msg.includes("MONEDA_INVALIDA")) return caso({ tono: "warn", icono: "💱", titulo: "Moneda no disponible", texto: "Este paquete todavía no se vende en esa moneda. Escribinos por el chat.", chip: intactoChip });
+  if (error && error.code === "PGRST202") {
+    console.warn("Falta la función comprar_paquete con moneda: ejecutá pines_y_compras.sql y doble_saldo.sql en Supabase.");
+    return caso({ tono: "info", icono: "🛠️", titulo: "Compra no disponible", texto: "La compra con saldo todavía no está habilitada. Escribinos por el chat." });
+  }
+  console.error("Error en la compra:", error);
+  return caso({ tono: "error", icono: "⚠️", titulo: "No pudimos completar la compra", texto: "Ocurrió un problema. Revisá tu saldo antes de reintentar o escribinos por el chat." });
+}
+
+async function comprarPaquete(ev, paqueteId, moneda = "USD") {
   if (ev && ev.preventDefault) ev.preventDefault();
   if (comprando) return;
   const btn = ev && ev.currentTarget;
+  moneda = moneda === "ARS" ? "ARS" : "USD";
 
   if (!usuarioActual) {
     mostrarAviso("Iniciá sesión con Google para comprar con tu saldo.", "error");
@@ -1629,55 +1828,72 @@ async function comprarPaquete(ev, paqueteId) {
   const caja = btn ? btn.closest(".diamond-box") : null;
   const nombre = caja?.querySelector("h4")?.textContent.trim() || paqueteId;
   const precio = caja ? precioDeCaja(caja) : null;
-  const precioTxt = caja?.querySelector(".price")?.textContent.trim() || "";
-  const nick = jugadorVerificado && jugadorVerificado.validado && jugadorVerificado.id === id ? ` (${jugadorVerificado.nombre})` : "";
-  const saldoTxt = $("header-balance-amount")?.textContent || "";
-
-  const ok = window.confirm(
-    `Vas a comprar:\n\n• ${nombre}\n• Precio: ${precioTxt}\n• Tu saldo actual: ${saldoTxt}\n• ID de Free Fire: ${id}${nick}\n\n` +
-    "Verificá bien el ID: la recarga no se puede cambiar de cuenta después.\n¿Confirmás la compra?"
-  );
-  if (!ok) return;
+  const nick = jugadorVerificado && jugadorVerificado.validado && jugadorVerificado.id === id ? jugadorVerificado.nombre : null;
 
   comprando = true;
   btn?.setAttribute("aria-disabled", "true");
-  const saldoNumero = parseFloat((saldoTxt || "").replace(/[^\d.]/g, "")) || 0;
-  mostrarCompra({ titulo: "Procesando tu compra…", texto: "No cierres esta ventana.", cargando: true });
-
+  const ctxError = { moneda, saldo: saldos[moneda], precio, nombre, id };
   try {
+    await cargarSaldo(usuarioActual);   // saldo al día antes de confirmar (puede haberse acreditado recién)
+    ctxError.saldo = saldos[moneda];
+    const saldo = saldos[moneda];
+
+    if (precio != null && saldo < precio) return mostrarErrorCompra({ message: "SALDO_INSUFICIENTE" }, ctxError);
+
+    const confirmado = await mostrarConfirmacion({
+      tono: "ok", icono: "💎", titulo: "Confirmá tu compra",
+      texto: "Revisá los datos antes de continuar.",
+      filas: [
+        ["Paquete", nombre],
+        ["ID de Free Fire", id + (nick ? ` (${nick})` : "")],
+        ["Tu saldo " + moneda, formatoMoneda(moneda, saldo)],
+        ...(precio != null ? [["Saldo luego de comprar", formatoMoneda(moneda, saldo - precio)]] : []),
+      ],
+      total: precio != null ? ["Total a pagar", conCodigo(moneda, precio)] : null,
+      nota: "Verificá bien el ID: la recarga no se puede cambiar de cuenta una vez enviada.",
+      confirmar: "Confirmar compra",
+    });
+    if (!confirmado) return;
+
+    mostrarDialogo({ tono: "warn", titulo: "Procesando tu compra…", texto: "No cierres esta ventana.", cargando: true });
+
     const { data, error } = await supabase.rpc(RPC_COMPRA, {
       p_paquete_id: paqueteId,
       p_id_jugador: id,
+      p_moneda: moneda,
       p_precio_esperado: precio,
     });
-    if (error) return mostrarErrorCompra(error, saldoNumero);
+    if (error) return mostrarErrorCompra(error, ctxError);
 
     const orden = data || {};
-    if (Number.isFinite(Number(orden.saldo_nuevo))) pintarSaldo(Number(orden.saldo_nuevo));
+    const monedaOrden = orden.moneda === "ARS" ? "ARS" : moneda;
+    if (Number.isFinite(Number(orden.saldo_nuevo))) pintarSaldo(Number(orden.saldo_nuevo), monedaOrden);
     const nombrePaquete = orden.paquete || nombre;
 
     let estado = "completada";
     if (CONFIG.ESPERAR_CONFIRMACION) {
-      mostrarCompra({ titulo: "Acreditando tus diamantes…", texto: `${nombrePaquete} para el ID ${id}`, cargando: true });
+      mostrarDialogo({ tono: "warn", titulo: "Acreditando tus diamantes…", texto: `${nombrePaquete} para el ID ${id}`, cargando: true });
       estado = await esperarOrden(orden.orden_id);
     }
 
     if (estado === "completada") {
-      mostrarCompra({
-        icono: "✅", titulo: "¡Compra exitosa!",
-        texto: `Tus ${nombrePaquete} 💎 fueron acreditados a tu ID de Free Fire ${id}. (Orden #${orden.orden_id})`,
-        botones: [{ texto: "Genial", primario: true }],
+      mostrarDialogo({
+        tono: "ok", icono: "✅", titulo: "¡Compra exitosa!",
+        texto: `Tus ${nombrePaquete} 💎 fueron acreditados a tu ID de Free Fire ${id}.`,
+        filas: [["Orden", "#" + orden.orden_id], ["Saldo " + monedaOrden, formatoMoneda(monedaOrden, saldos[monedaOrden])]],
+        botones: [{ texto: "Genial", primario: true, verde: true }],
       });
     } else if (estado === "fallida") {
       cargarSaldo(usuarioActual);   // el saldo ya fue devuelto: se refleja en pantalla
-      mostrarCompra({
-        icono: "⚠️", titulo: "No pudimos acreditar tus diamantes",
-        texto: "Tu saldo fue devuelto. Probá de nuevo en unos minutos o escribinos por el chat.",
+      mostrarDialogo({
+        tono: "error", icono: "⚠️", titulo: "No pudimos acreditar tus diamantes",
+        texto: "Probá de nuevo en unos minutos o escribinos por el chat.",
+        chip: "Tu saldo fue devuelto",
         botones: [{ texto: "Cerrar", primario: true }],
       });
     } else {
-      mostrarCompra({
-        icono: "⏳", titulo: "Compra registrada",
+      mostrarDialogo({
+        tono: "info", icono: "⏳", titulo: "Compra registrada",
         texto: `Tu pedido #${orden.orden_id} está en proceso. Tus diamantes se acreditan en unos minutos. Si tarda, escribinos por el chat.`,
         botones: [{ texto: "Entendido", primario: true }],
       });
@@ -1685,8 +1901,8 @@ async function comprarPaquete(ev, paqueteId) {
   } catch (err) {
     console.error("Error de red en la compra:", err);
     cargarSaldo(usuarioActual);
-    mostrarCompra({
-      icono: "⚠️", titulo: "No pudimos confirmar la compra",
+    mostrarDialogo({
+      tono: "error", icono: "📡", titulo: "No pudimos confirmar la compra",
       texto: "Revisá tu saldo antes de reintentar, así evitás pagar dos veces. Si se descontó, tu pedido está en proceso.",
       botones: [{ texto: "Cerrar", primario: true }],
     });
@@ -1695,11 +1911,6 @@ async function comprarPaquete(ev, paqueteId) {
     btn?.removeAttribute("aria-disabled");
   }
 }
-
-document.addEventListener("keydown", (e) => {
-  const ov = $("modal-compra");
-  if (e.key === "Escape" && ov && ov.style.display === "flex" && !ov.dataset.bloqueado) cerrarCompra();
-});
 
 function notificarLogin(user) {
   const clave = "loginNotificado:" + user.id;

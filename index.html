@@ -146,7 +146,10 @@
   <div class="header-right-group">
   <div class="region">🇦🇷 Argentina | ES</div>
   <div class="header-wallet-container" style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+  <div class="saldo-badges">
   <div class="saldo-usd-badge"><i class="fa-solid fa-wallet"></i> SALDO USD <span id="header-balance-amount" style="margin-left: 5px; font-weight: 900;">$0.00</span></div>
+  <div class="saldo-usd-badge saldo-ars-badge"><i class="fa-solid fa-wallet"></i> SALDO ARS <span id="header-balance-ars" style="margin-left: 5px; font-weight: 900;">$0,00</span></div>
+  </div>
   <a href="javascript:void(0)" onclick="abrirModalSeleccionCarga()" style="font-size: 0.75rem; color: #4ef38d; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;"><i class="fa-solid fa-plus-circle"></i> Cargar Saldo</a>
   </div>
   </div>
@@ -214,6 +217,10 @@
   <div class="wallet-balance-row">
   <span>Saldo Disponible:</span>
   <strong class="balance-text" id="menu-wallet-balance">$0.00 USD</strong>
+  </div>
+  <div class="wallet-balance-row">
+  <span>Saldo en pesos:</span>
+  <strong class="balance-text" id="menu-wallet-balance-ars">$0,00 ARS</strong>
   </div>
   </div>
   
@@ -358,37 +365,37 @@
   <span class="icon">💎</span>
   <h4>110 Diamantes</h4> 
   <p class="price">ARS $1.463</p>
-  <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '110 Diamantes', 'ARS $1.463')">Mercado Pago</a>
+  <a href="#" role="button" class="btn-buy" onclick="comprarPaquete(event, 'ff-110', 'ARS')">Comprar con saldo</a>
   </div>
   <div class="diamond-box">
   <span class="icon">💎</span>
   <h4>341 Diamantes</h4>
   <p class="price">ARS $4.555</p>
-  <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '341 Diamantes', 'ARS $4.555')">Mercado Pago</a>
+  <a href="#" role="button" class="btn-buy" onclick="comprarPaquete(event, 'ff-341', 'ARS')">Comprar con saldo</a>
   </div>
   <div class="diamond-box">
   <span class="icon">💎</span>
   <h4>572 Diamantes</h4>
   <p class="price">ARS $8.059</p>
-  <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '572 Diamantes', 'ARS $8.059')">Mercado Pago</a>
+  <a href="#" role="button" class="btn-buy" onclick="comprarPaquete(event, 'ff-572', 'ARS')">Comprar con saldo</a>
   </div>
   <div class="diamond-box">
   <span class="icon">💎</span>
   <h4>1.166 Diamantes</h4>
   <p class="price">ARS $14.690</p>
-  <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '1.166 Diamantes', 'ARS $14.690')">Mercado Pago</a>
+  <a href="#" role="button" class="btn-buy" onclick="comprarPaquete(event, 'ff-1166', 'ARS')">Comprar con saldo</a>
   </div>
   <div class="diamond-box">
   <span class="icon">💎</span>
   <h4>2.398 Diamantes</h4>
   <p class="price">ARS $27.602</p>
-  <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '2.398 Diamantes', 'ARS $27.602')">Mercado Pago</a>
+  <a href="#" role="button" class="btn-buy" onclick="comprarPaquete(event, 'ff-2398', 'ARS')">Comprar con saldo</a>
   </div>
   <div class="diamond-box">
   <span class="icon">💎</span>
   <h4>6.160 Diamantes</h4>
   <p class="price">ARS $67.750</p>
-  <a href="#" target="_blank" class="btn-buy" onclick="actualizarEnlaceWhatsApp(this, '6.160 Diamantes', 'ARS $67.750')">Mercado Pago</a>
+  <a href="#" role="button" class="btn-buy" onclick="comprarPaquete(event, 'ff-6160', 'ARS')">Comprar con saldo</a>
   </div>
   </div>
   </div>
@@ -402,37 +409,37 @@
   <span class="icon">💎</span>
   <h4>110 Diamantes</h4>
   <p class="price usdt-price">USD 0,86</p>
-  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-110')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-110', 'USD')">Comprar con saldo</a>
   </div>
   <div class="diamond-box reseller-box">
   <span class="icon">💎</span>
   <h4>341 Diamantes</h4>
   <p class="price usdt-price">USD 2,45</p>
-  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-341')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-341', 'USD')">Comprar con saldo</a>
   </div>
   <div class="diamond-box reseller-box">
   <span class="icon">💎</span>
   <h4>572 Diamantes</h4>
   <p class="price usdt-price">USD 4,16</p>
-  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-572')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-572', 'USD')">Comprar con saldo</a>
   </div>
   <div class="diamond-box reseller-box">
   <span class="icon">💎</span>
   <h4>1.166 Diamantes</h4>
   <p class="price usdt-price">USD 8,27</p>
-  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-1166')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-1166', 'USD')">Comprar con saldo</a>
   </div>
   <div class="diamond-box reseller-box">
   <span class="icon">💎</span>
   <h4>2.398 Diamantes</h4>
   <p class="price usdt-price">USD 16,10</p>
-  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-2398')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-2398', 'USD')">Comprar con saldo</a>
   </div>
   <div class="diamond-box reseller-box">
   <span class="icon">💎</span>
   <h4>6.160 Diamantes</h4>
   <p class="price usdt-price">USD 40,55</p>
-  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-6160')">Comprar con saldo</a>
+  <a href="#" role="button" class="btn-buy btn-usdt" onclick="comprarPaquete(event, 'ff-6160', 'USD')">Comprar con saldo</a>
   </div>
   </div>
   </div>
@@ -504,7 +511,8 @@
   <div class="wallet-card">
   <span class="wallet-label">Tu Saldo Virtual</span>
   <h2 class="wallet-amount" id="user-balance">$0.00 USD</h2>
-  <p class="wallet-subtext">El saldo se descontará automáticamente al realizar recargas.</p>
+  <h2 class="wallet-amount" id="user-balance-ars" style="margin-top:4px;">$0,00 ARS</h2>
+  <p class="wallet-subtext">Cada recarga descuenta el saldo de la moneda del paquete (USD o ARS).</p>
   <a href="javascript:void(0)" onclick="abrirModalSeleccionCarga()" class="btn-add-funds" style="display:inline-flex; align-items:center; gap:6px; justify-content:center; text-decoration:none;">
   <i class="fa-solid fa-plus-circle"></i> Cargar Saldo con Binance o Mercado Pago
   </a>
