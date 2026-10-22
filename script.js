@@ -31,6 +31,9 @@ const CONFIG = {
   COL_SALDO: "saldo_usd",
 
   BUCKET_COMPROBANTES: "comprobantes",   // bucket PRIVADO de Storage (lo crea chat_cliente.sql)
+  // Compra con saldo: true = la página espera la confirmación de n8n antes de decir "acreditados"
+  ESPERAR_CONFIRMACION: true,
+  ESPERA_ORDEN_MS: 45000,
   MAX_ARCHIVO_MB: 5,
   TIMEOUT_MS: 15000,
 };
@@ -1487,6 +1490,217 @@ document.addEventListener("scroll", () => cerrarMenuMensaje(), true);
 window.addEventListener("resize", cerrarMenuMensaje);
 inyectarEstilosMensajes();
 
+// ------------------------- COMPRA DE PAQUETES CON SALDO ---------------
+// El PIN NUNCA llega al navegador: la base de datos lo reserva y avisa a n8n por su cuenta.
+const RPC_COMPRA = "comprar_paquete";
+let comprando = false;
+const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function inyectarEstilosCompra() {
+  if ($("estilos-compra")) return;
+  const st = document.createElement("style");
+  st.id = "estilos-compra";
+  st.textContent = `
+    #modal-compra{position:fixed;inset:0;z-index:10002;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.75);padding:16px}
+    #modal-compra .mc-card{background:#161822;border:1px solid #f3ba2f;border-radius:14px;padding:24px 22px;max-width:380px;width:100%;
+      text-align:center;color:#fff;box-shadow:0 10px 40px rgba(0,0,0,.7)}
+    #modal-compra .mc-icono{font-size:42px;line-height:1;margin-bottom:10px}
+    #modal-compra .mc-spin{width:38px;height:38px;margin:0 auto 14px;border:4px solid #2b3544;border-top-color:#f3ba2f;border-radius:50%;animation:mcgira .9s linear infinite}
+    @keyframes mcgira{to{transform:rotate(360deg)}}
+    #modal-compra h3{margin:0 0 8px;font-size:18px;color:#f3ba2f}
+    #modal-compra p{margin:0;font-size:14px;color:#cbd5e1;line-height:1.45}
+    #modal-compra .mc-botones{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+    #modal-compra .mc-btn{padding:9px 16px;border-radius:8px;border:1px solid #2b3544;background:#0e0f16;color:#fff;font-weight:700;font-size:13px;cursor:pointer}
+    #modal-compra .mc-btn.primario{background:#f3ba2f;border-color:#f3ba2f;color:#000}
+    #modal-compra .mc-btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+    .btn-buy[aria-disabled="true"]{opacity:.6;pointer-events:none}
+  `;
+  document.head.appendChild(st);
+}
+
+function cerrarCompra() {
+  const ov = $("modal-compra");
+  if (ov) ov.style.display = "none";
+}
+
+function mostrarCompra({ icono = "", titulo, texto, cargando = false, botones = [] }) {
+  inyectarEstilosCompra();
+  let ov = $("modal-compra");
+  if (!ov) {
+    ov = document.createElement("div");
+    ov.id = "modal-compra";
+    ov.setAttribute("role", "dialog");
+    ov.setAttribute("aria-modal", "true");
+    ov.setAttribute("aria-live", "polite");
+    ov.addEventListener("click", (e) => { if (e.target === ov && !ov.dataset.bloqueado) cerrarCompra(); });
+    document.body.appendChild(ov);
+  }
+  ov.replaceChildren();
+  const card = document.createElement("div");
+  card.className = "mc-card";
+  if (cargando) {
+    const sp = document.createElement("div"); sp.className = "mc-spin"; card.appendChild(sp);
+  } else {
+    const ic = document.createElement("div"); ic.className = "mc-icono"; ic.textContent = icono; card.appendChild(ic);
+  }
+  const h = document.createElement("h3"); h.textContent = titulo;
+  const t = document.createElement("p"); t.textContent = texto;
+  card.append(h, t);
+  if (botones.length) {
+    const fila = document.createElement("div");
+    fila.className = "mc-botones";
+    botones.forEach((b) => {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "mc-btn" + (b.primario ? " primario" : "");
+      el.textContent = b.texto;
+      el.addEventListener("click", b.accion || cerrarCompra);
+      fila.appendChild(el);
+    });
+    card.appendChild(fila);
+  }
+  ov.appendChild(card);
+  ov.dataset.bloqueado = cargando ? "1" : "";
+  ov.style.display = "flex";
+  card.querySelector("button")?.focus();
+}
+
+// "USD 0,86" -> 0.86
+function precioDeCaja(caja) {
+  const t = (caja.querySelector(".price")?.textContent || "").replace(/[^\d,.]/g, "");
+  const n = parseFloat(t.replace(/\./g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
+async function esperarOrden(ordenId) {
+  const fin = Date.now() + CONFIG.ESPERA_ORDEN_MS;
+  while (Date.now() < fin) {
+    await dormir(2000);
+    const { data, error } = await supabase.from("ordenes_recarga").select("estado").eq("id", ordenId).maybeSingle();
+    if (error || !data) continue;
+    if (data.estado === "completada" || data.estado === "fallida") return data.estado;
+    if (data.estado === "error_envio") return "pendiente";   // no tiene sentido seguir esperando
+  }
+  return "pendiente";
+}
+
+function mostrarErrorCompra(error, saldoActual) {
+  const msg = String((error && error.message) || "");
+  const cerrar = [{ texto: "Cerrar", primario: true }];
+  const caso = (titulo, texto, botones = cerrar) => mostrarCompra({ icono: "⚠️", titulo, texto, botones });
+
+  if (msg.includes("SALDO_INSUFICIENTE")) {
+    return caso("Saldo insuficiente", `Tu saldo actual es ${formatoUSD(saldoActual)}. Cargá saldo para completar esta compra.`, [
+      { texto: "Cargar saldo", primario: true, accion: () => { cerrarCompra(); abrirModalSeleccionCarga(); } },
+      { texto: "Cerrar" },
+    ]);
+  }
+  if (msg.includes("SIN_STOCK")) return caso("Paquete agotado", "Este paquete no tiene stock por el momento. Escribinos por el chat y lo resolvemos. No se descontó nada de tu saldo.");
+  if (msg.includes("PRECIO_CAMBIO")) return caso("El precio cambió", "El precio de este paquete se actualizó. Recargá la página para ver el valor vigente. No se descontó nada de tu saldo.");
+  if (msg.includes("ID_INVALIDO")) return caso("ID inválido", "Revisá tu ID de jugador de Free Fire (solo números).");
+  if (msg.includes("NO_AUTENTICADO")) return caso("Sesión vencida", "Volvé a iniciar sesión con Google para comprar.");
+  if (msg.includes("PAQUETE_INVALIDO")) return caso("Paquete no disponible", "Este paquete no está disponible por el momento.");
+  if (error && error.code === "PGRST202") {
+    console.warn("Falta la función comprar_paquete: ejecutá pines_y_compras.sql en Supabase.");
+    return caso("Compra no disponible", "La compra con saldo todavía no está habilitada. Escribinos por el chat.");
+  }
+  console.error("Error en la compra:", error);
+  return caso("No pudimos completar la compra", "Ocurrió un problema. Revisá tu saldo antes de reintentar o escribinos por el chat.");
+}
+
+async function comprarPaquete(ev, paqueteId) {
+  if (ev && ev.preventDefault) ev.preventDefault();
+  if (comprando) return;
+  const btn = ev && ev.currentTarget;
+
+  if (!usuarioActual) {
+    mostrarAviso("Iniciá sesión con Google para comprar con tu saldo.", "error");
+    if (!$("sidebar-menu")?.classList.contains("open")) toggleMenu();
+    return;
+  }
+  const id = ($("player-id")?.value || "").trim();
+  if (!/^\d{5,15}$/.test(id)) {
+    mostrarAviso("Primero ingresá tu ID de jugador de Free Fire.", "error");
+    $("player-id")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    $("player-id")?.focus();
+    return;
+  }
+
+  const caja = btn ? btn.closest(".diamond-box") : null;
+  const nombre = caja?.querySelector("h4")?.textContent.trim() || paqueteId;
+  const precio = caja ? precioDeCaja(caja) : null;
+  const precioTxt = caja?.querySelector(".price")?.textContent.trim() || "";
+  const nick = jugadorVerificado && jugadorVerificado.validado && jugadorVerificado.id === id ? ` (${jugadorVerificado.nombre})` : "";
+  const saldoTxt = $("header-balance-amount")?.textContent || "";
+
+  const ok = window.confirm(
+    `Vas a comprar:\n\n• ${nombre}\n• Precio: ${precioTxt}\n• Tu saldo actual: ${saldoTxt}\n• ID de Free Fire: ${id}${nick}\n\n` +
+    "Verificá bien el ID: la recarga no se puede cambiar de cuenta después.\n¿Confirmás la compra?"
+  );
+  if (!ok) return;
+
+  comprando = true;
+  btn?.setAttribute("aria-disabled", "true");
+  const saldoNumero = parseFloat((saldoTxt || "").replace(/[^\d.]/g, "")) || 0;
+  mostrarCompra({ titulo: "Procesando tu compra…", texto: "No cierres esta ventana.", cargando: true });
+
+  try {
+    const { data, error } = await supabase.rpc(RPC_COMPRA, {
+      p_paquete_id: paqueteId,
+      p_id_jugador: id,
+      p_precio_esperado: precio,
+    });
+    if (error) return mostrarErrorCompra(error, saldoNumero);
+
+    const orden = data || {};
+    if (Number.isFinite(Number(orden.saldo_nuevo))) pintarSaldo(Number(orden.saldo_nuevo));
+    const nombrePaquete = orden.paquete || nombre;
+
+    let estado = "completada";
+    if (CONFIG.ESPERAR_CONFIRMACION) {
+      mostrarCompra({ titulo: "Acreditando tus diamantes…", texto: `${nombrePaquete} para el ID ${id}`, cargando: true });
+      estado = await esperarOrden(orden.orden_id);
+    }
+
+    if (estado === "completada") {
+      mostrarCompra({
+        icono: "✅", titulo: "¡Compra exitosa!",
+        texto: `Tus ${nombrePaquete} 💎 fueron acreditados a tu ID de Free Fire ${id}. (Orden #${orden.orden_id})`,
+        botones: [{ texto: "Genial", primario: true }],
+      });
+    } else if (estado === "fallida") {
+      cargarSaldo(usuarioActual);   // el saldo ya fue devuelto: se refleja en pantalla
+      mostrarCompra({
+        icono: "⚠️", titulo: "No pudimos acreditar tus diamantes",
+        texto: "Tu saldo fue devuelto. Probá de nuevo en unos minutos o escribinos por el chat.",
+        botones: [{ texto: "Cerrar", primario: true }],
+      });
+    } else {
+      mostrarCompra({
+        icono: "⏳", titulo: "Compra registrada",
+        texto: `Tu pedido #${orden.orden_id} está en proceso. Tus diamantes se acreditan en unos minutos. Si tarda, escribinos por el chat.`,
+        botones: [{ texto: "Entendido", primario: true }],
+      });
+    }
+  } catch (err) {
+    console.error("Error de red en la compra:", err);
+    cargarSaldo(usuarioActual);
+    mostrarCompra({
+      icono: "⚠️", titulo: "No pudimos confirmar la compra",
+      texto: "Revisá tu saldo antes de reintentar, así evitás pagar dos veces. Si se descontó, tu pedido está en proceso.",
+      botones: [{ texto: "Cerrar", primario: true }],
+    });
+  } finally {
+    comprando = false;
+    btn?.removeAttribute("aria-disabled");
+  }
+}
+
+document.addEventListener("keydown", (e) => {
+  const ov = $("modal-compra");
+  if (e.key === "Escape" && ov && ov.style.display === "flex" && !ov.dataset.bloqueado) cerrarCompra();
+});
+
 function notificarLogin(user) {
   const clave = "loginNotificado:" + user.id;
   try {
@@ -1544,5 +1758,6 @@ Object.assign(window, {
   actualizarEnlaceWhatsApp,
   toggleMusica,
   enviarMensajeWebhook,
+  comprarPaquete,
   loginConGoogle, logoutGoogle,
 });
