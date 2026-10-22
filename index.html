@@ -302,6 +302,64 @@
   .ord-btn:hover:not(:disabled) { filter: brightness(1.1); }
   .ord-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
   @media (max-width: 600px) { .ord-barra select, .ord-barra input, .ord-btn-refrescar { flex: 1 1 100%; } }
+
+  /* ===== Mi Historial de Compras (perfil del cliente) ===== */
+  .hist-box { margin-top: 14px; min-width: 0; }
+  .hist-toggle {
+  width: 100%; display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 12px; cursor: pointer;
+  background: #161822; color: #e6ebf0; border: 1px solid #2b3544; font-weight: 800; font-size: 14px; text-align: left;
+  }
+  .hist-toggle:hover { filter: brightness(1.15); }
+  .hist-toggle:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .hist-toggle-txt { flex: 1; min-width: 0; }
+  .hist-toggle[aria-expanded="true"] { border-color: #f3ba2f; color: #f3ba2f; }
+  .hist-flecha { transition: transform .2s; font-size: 12px; }
+  .hist-toggle[aria-expanded="true"] .hist-flecha { transform: rotate(180deg); }
+  .hist-contador {
+  min-width: 20px; padding: 1px 7px; border-radius: 999px; background: #f3ba2f; color: #10120a;
+  font-size: 11px; font-weight: 800; line-height: 1.5; text-align: center;
+  }
+  .hist-contador[hidden], .hist-panel[hidden], .hist-mas[hidden] { display: none; }
+  .hist-panel { margin-top: 10px; min-width: 0; }
+  .hist-barra { display: flex; gap: 8px; margin-bottom: 8px; }
+  .hist-barra select {
+  flex: 1 1 auto; min-width: 0; height: 38px; padding: 0 10px; border-radius: 8px; border: 1px solid #2b3544;
+  background: #0e0f16; color: #fff; font-size: 13px;
+  }
+  .hist-btn-ref {
+  flex: 0 0 auto; height: 38px; padding: 0 12px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 13px;
+  background: #1d2740; color: #7dd3fc; border: 1px solid #3f557f;
+  }
+  .hist-btn-ref:disabled { opacity: .6; cursor: wait; }
+  .hist-resumen { margin: 0 0 8px; font-size: 12px; color: #8b93a7; }
+  .hist-lista {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); gap: 8px;
+  max-height: min(62vh, 480px); overflow-y: auto; overscroll-behavior: contain;
+  }
+  .hist-lista > p { grid-column: 1 / -1; margin: 6px 0; font-size: 12.5px; color: #8b93a7; text-align: center; }
+  .hist-item {
+  min-width: 0; background: #0e0f16; border: 1px solid #2b3544; border-left: 4px solid var(--est, #2b3544);
+  border-radius: 10px; padding: 8px 11px; display: flex; flex-direction: column; gap: 3px;
+  }
+  .hist-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .hist-paquete { font-weight: 800; font-size: 14px; color: #fff; min-width: 0; overflow-wrap: anywhere; }
+  .hist-estado {
+  flex: 0 0 auto; font-size: 11px; font-weight: 800; padding: 2px 9px; border-radius: 999px; white-space: nowrap;
+  color: var(--est); background: rgba(255, 255, 255, .07); background: color-mix(in srgb, var(--est) 16%, transparent); border: 1px solid var(--est);
+  }
+  .hist-fila { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
+  .hist-fila span { color: #8b93a7; flex: 0 0 auto; }
+  .hist-fila b { color: #e6ebf0; font-weight: 600; text-align: right; min-width: 0; overflow-wrap: anywhere; }
+  .hist-fila b.monto { color: #4ef38d; font-weight: 800; }
+  .hist-fila b.monto.devuelto { color: #ff8a65; text-decoration: line-through; }
+  .hist-nota { font-size: 11.5px; color: #9aa3b5; line-height: 1.35; overflow-wrap: anywhere; }
+  .hist-mas {
+  width: 100%; margin-top: 8px; padding: 10px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 13px;
+  background: #161822; color: #aeb6c8; border: 1px solid #2b3544;
+  }
+  .hist-mas:disabled { opacity: .6; cursor: wait; }
+  .sidebar-section .hist-menu-link { width: 100%; display: flex; align-items: center; gap: 8px; background: none; border: none; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+  @media (max-width: 380px) { .hist-btn-ref span { display: none; } .hist-item { padding: 8px 9px; } }
   </style>
 </head>
 <body>
@@ -405,6 +463,13 @@
   </div>
   </div>
   
+  <div class="sidebar-section" id="sidebar-historial" style="display: none;">
+  <h4><i class="fa-solid fa-receipt"></i> Mis compras</h4>
+  <button type="button" class="menu-link hist-menu-link" onclick="abrirHistorial()">
+  <i class="fa-solid fa-clock-rotate-left"></i> Mi Historial de Compras
+  </button>
+  </div>
+
   <div class="sidebar-section">
   <h4><i class="fa-solid fa-headset"></i> Soporte & Contacto</h4>
   <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Tengo%20una%20consulta%20sobre%20las%20recargas." target="_blank" class="menu-link whatsapp-link">
@@ -688,6 +753,28 @@
   <a href="javascript:void(0)" onclick="abrirModalSeleccionCarga()" class="btn-add-funds" style="display:inline-flex; align-items:center; gap:6px; justify-content:center; text-decoration:none;">
   <i class="fa-solid fa-plus-circle"></i> Cargar Saldo con Binance o Mercado Pago
   </a>
+  </div>
+
+  <div class="hist-box" id="hist-box">
+  <button type="button" id="hist-toggle" class="hist-toggle" aria-expanded="false" aria-controls="hist-panel" onclick="alternarHistorial()">
+  <span class="hist-toggle-txt"><i class="fa-solid fa-receipt"></i> Mi Historial de Compras</span>
+  <span id="hist-contador" class="hist-contador" hidden>0</span>
+  <i class="fa-solid fa-chevron-down hist-flecha"></i>
+  </button>
+  <div id="hist-panel" class="hist-panel" hidden>
+  <div class="hist-barra">
+  <select id="hist-filtro" aria-label="Filtrar compras por estado">
+  <option value="todas">Todas</option>
+  <option value="completada">Acreditadas</option>
+  <option value="proceso">En proceso</option>
+  <option value="fallida">Devueltas</option>
+  </select>
+  <button type="button" id="hist-refrescar" class="hist-btn-ref" aria-label="Actualizar historial"><i class="fa-solid fa-rotate"></i> <span>Actualizar</span></button>
+  </div>
+  <p id="hist-resumen" class="hist-resumen" aria-live="polite"></p>
+  <div id="hist-lista" class="hist-lista"></div>
+  <button type="button" id="hist-mas" class="hist-mas" hidden>Ver más compras</button>
+  </div>
   </div>
   </div>
   </section>

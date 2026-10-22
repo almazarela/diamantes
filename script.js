@@ -650,6 +650,7 @@ async function logoutGoogle() {
 
 function renderSesion(user) {
   if (!user) detenerPollAdmin();
+  if (!user || (usuarioActual && usuarioActual.id !== user.id)) resetHistorialCompras();   // otra cuenta: no se arrastra el historial anterior
   usuarioActual = user;
   const logueado = !!user;
   const esAdminEmail = logueado && (user.email || "").toLowerCase() === CONFIG.ADMIN_EMAIL.toLowerCase();
@@ -657,6 +658,7 @@ function renderSesion(user) {
   $("auth-forms").style.display = logueado ? "none" : "block";
   $("user-dashboard").style.display = logueado ? "block" : "none";
   $("admin-panel-section").style.display = esAdminEmail ? "block" : "none";
+  if ($("sidebar-historial")) $("sidebar-historial").style.display = logueado ? "block" : "none";
   if (logueado) $("user-email-display").textContent = user.email;
 
   // Sidebar: botón de login o de logout
@@ -682,6 +684,7 @@ function renderSesion(user) {
     // setTimeout evita bloquear el cliente de Supabase dentro de onAuthStateChange
     setTimeout(() => cargarPerfilYSaldo(user, esAdminEmail), 0);
     setTimeout(iniciarChatCliente, 0);
+    setTimeout(() => cargarHistorialCompras(true), 0);   // deja listo el contador de recargas "en proceso"
   } else {
     detenerChatCliente();
   }
@@ -924,6 +927,202 @@ async function cargarPanelAdmin(silencioso = false) {
   } finally {
     cargandoLista = false;
   }
+}
+
+// ------------------------- MI HISTORIAL DE COMPRAS (cliente) ------------
+// Lee ordenes_recarga del usuario logueado (RLS: cada uno ve solo las suyas).
+// El código del PIN NUNCA se muestra ni se descarga: solo si quedó asignado.
+const ESTADOS_COMPRA = {
+  completada:  { texto: "Acreditada",  color: "#2ecc71", nota: "" },
+  pendiente:   { texto: "En proceso",  color: "#f3ba2f", nota: "Tu recarga se está acreditando. Si tarda mucho, escribinos por el chat." },
+  error_envio: { texto: "En proceso",  color: "#f3ba2f", nota: "Tu recarga está en revisión y se acredita manualmente. Si tarda mucho, escribinos por el chat." },
+  fallida:     { texto: "Devuelta",    color: "#ff8a65", nota: "No se pudo acreditar y tu saldo fue devuelto." },
+};
+const PASO_HISTORIAL = 30;
+let comprasUsuario = [];
+let comprasLimite = PASO_HISTORIAL;
+let comprasHayMas = false;
+let comprasColsMoneda = true;
+let comprasCargando = false;
+let comprasError = "";
+let comprasSeq = 0;
+let comprasRepetir = false;
+let pollCompras = null;
+const comprasAbierto = () => !!$("hist-panel") && !$("hist-panel").hidden;
+const enProceso = (o) => o.estado === "pendiente" || o.estado === "error_envio";
+const fechaHora = (v) => {
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+};
+
+function actualizarContadorCompras() {
+  const n = comprasUsuario.filter(enProceso).length;
+  const c = $("hist-contador");
+  if (!c) return;
+  c.hidden = n === 0;
+  c.textContent = String(n);
+  c.title = n === 1 ? "1 recarga en proceso" : n + " recargas en proceso";
+}
+
+async function cargarHistorialCompras(silencioso = false) {
+  const lista = $("hist-lista");
+  if (!lista || !usuarioActual) return;
+  if (comprasCargando) { comprasRepetir = true; return; }   // ya hay una consulta: se repite apenas termine (datos al día)
+  comprasCargando = true;
+  const mi = ++comprasSeq;
+  const uid = usuarioActual.id;
+  const btn = $("hist-refrescar"), mas = $("hist-mas");
+  if (btn) btn.disabled = true;
+  if (mas) mas.disabled = true;
+  try {
+    if (!silencioso && !comprasUsuario.length) mensajeLista(lista, "Cargando tus compras…", "#8b93a7");
+    let data = null, error = null;
+    for (let intento = 0; intento < 2; intento++) {
+      const cols = ["id", "paquete_id", "id_jugador", "diamantes", "precio_usd", "pin_id", "estado", "created_at", ...(comprasColsMoneda ? ["moneda", "precio_cobrado"] : [])];
+      ({ data, error } = await conTimeout(
+        supabase.from("ordenes_recarga").select(cols.join(", ")).eq("user_id", uid)
+          .order("created_at", { ascending: false }).limit(comprasLimite + 1), 15000));
+      if (error && comprasColsMoneda && columnaNoExiste(error)) { comprasColsMoneda = false; continue; }
+      break;
+    }
+    if (mi !== comprasSeq || !usuarioActual || usuarioActual.id !== uid) return;   // cerró sesión o cambió de cuenta
+    if (error) {
+      console.warn("No se pudo cargar el historial de compras:", error.message || error);
+      comprasError = tablaNoExiste(error) ? "El historial todavía no está disponible." : "No pudimos cargar tus compras. Probá de nuevo en un momento.";
+    } else {
+      comprasError = "";
+      const filas = Array.isArray(data) ? data : [];
+      comprasHayMas = filas.length > comprasLimite;
+      comprasUsuario = filas.slice(0, comprasLimite);
+    }
+  } catch (err) {
+    if (mi !== comprasSeq) return;
+    console.warn("Historial de compras sin respuesta:", err.message || err);
+    comprasError = "La consulta tardó demasiado. Probá de nuevo con “Actualizar”.";
+  } finally {
+    comprasCargando = false;
+    if (btn) btn.disabled = false;
+    if (mas) mas.disabled = false;
+  }
+  actualizarContadorCompras();
+  renderHistorialCompras();
+  if (comprasRepetir) { comprasRepetir = false; cargarHistorialCompras(true); }
+}
+
+function filtrarCompras() {
+  const f = $("hist-filtro")?.value || "todas";
+  return comprasUsuario.filter((o) => f === "todas" || (f === "proceso" ? enProceso(o) : o.estado === f));
+}
+
+function filaCompra(k, v, clase) {
+  const f = document.createElement("div");
+  f.className = "hist-fila";
+  const a = document.createElement("span"); a.textContent = k;
+  const b = document.createElement("b"); b.textContent = v;
+  if (clase) b.className = clase;
+  f.append(a, b);
+  return f;
+}
+
+function renderHistorialCompras() {
+  const lista = $("hist-lista"), resumen = $("hist-resumen"), mas = $("hist-mas");
+  if (!lista) return;
+  if (mas) mas.hidden = !comprasHayMas;
+
+  if (comprasError && !comprasUsuario.length) {
+    if (resumen) resumen.textContent = "";
+    return mensajeLista(lista, comprasError, "#ff8a8a");
+  }
+  const filas = filtrarCompras();
+  if (resumen) {
+    resumen.textContent = comprasUsuario.length
+      ? `${filas.length} de ${comprasUsuario.length} compras` + (comprasHayMas ? " (hay más antiguas)" : "") + (comprasError ? " · " + comprasError : "")
+      : "";
+  }
+  lista.replaceChildren();
+  if (!comprasUsuario.length) return mensajeLista(lista, "Todavía no hiciste compras. Tus recargas van a aparecer acá.", "#8b93a7");
+  if (!filas.length) return mensajeLista(lista, "No hay compras con ese filtro.", "#8b93a7");
+
+  filas.forEach((o) => {
+    const est = ESTADOS_COMPRA[o.estado] || { texto: String(o.estado || "?"), color: "#8b93a7", nota: "" };
+    const item = document.createElement("div");
+    item.className = "hist-item";
+    item.style.setProperty("--est", est.color);
+
+    const top = document.createElement("div");
+    top.className = "hist-top";
+    const paquete = document.createElement("div");
+    paquete.className = "hist-paquete";
+    paquete.textContent = o.diamantes ? o.diamantes + " 💎 Diamantes" : String(o.paquete_id || "Paquete");
+    const badge = document.createElement("span");
+    badge.className = "hist-estado";
+    badge.textContent = est.texto;
+    top.append(paquete, badge);
+    item.appendChild(top);
+
+    const moneda = o.moneda === "ARS" ? "ARS" : "USD";
+    const valor = o.precio_cobrado != null && o.precio_cobrado !== "" ? o.precio_cobrado : o.precio_usd;
+    item.append(
+      filaCompra("Fecha y hora", fechaHora(o.created_at)),
+      filaCompra("ID de Free Fire", String(o.id_jugador || "-")),
+      filaCompra("Moneda", moneda === "ARS" ? "ARS (pesos)" : "USD (dólares)"),
+      filaCompra(o.estado === "fallida" ? "Monto (devuelto)" : "Monto descontado", conCodigo(moneda, valor), "monto" + (o.estado === "fallida" ? " devuelto" : "")),
+    );
+    // Una sola fila para Orden y PIN (más compacto). Se indica si el PIN quedó asignado, nunca su código.
+    item.appendChild(o.estado === "fallida"
+      ? filaCompra("Orden", "#" + o.id)
+      : filaCompra("Orden · PIN", `#${o.id} · ${o.pin_id ? "PIN asignado ✔" : "PIN sin asignar"}`));
+    if (est.nota) {
+      const n = document.createElement("div");
+      n.className = "hist-nota";
+      n.textContent = est.nota;
+      item.appendChild(n);
+    }
+    lista.appendChild(item);
+  });
+}
+
+// Abre/cierra el panel; al abrir consulta y, mientras está abierto, se actualiza solo si hay recargas en proceso
+function alternarHistorial(forzar) {
+  const panel = $("hist-panel"), toggle = $("hist-toggle");
+  if (!panel || !toggle) return;
+  const abrir = typeof forzar === "boolean" ? forzar : panel.hidden;
+  panel.hidden = !abrir;
+  toggle.setAttribute("aria-expanded", String(abrir));
+  clearInterval(pollCompras); pollCompras = null;
+  if (!abrir) return;
+  cargarHistorialCompras(false);
+  pollCompras = setInterval(() => {
+    if (!document.hidden && usuarioActual && comprasUsuario.some(enProceso)) cargarHistorialCompras(true);
+  }, 15000);
+}
+
+// Desde el menú lateral: cierra el menú, lleva al perfil y abre el historial
+function abrirHistorial() {
+  if (!usuarioActual) {
+    mostrarAviso("Iniciá sesión con Google para ver tu historial.", "error");
+    return;
+  }
+  if ($("sidebar-menu")?.classList.contains("open")) toggleMenu();
+  alternarHistorial(true);
+  setTimeout(() => $("user-dashboard")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+}
+
+function resetHistorialCompras() {
+  comprasSeq++;
+  clearInterval(pollCompras); pollCompras = null;
+  comprasUsuario = []; comprasLimite = PASO_HISTORIAL; comprasHayMas = false; comprasError = ""; comprasCargando = false;
+  const panel = $("hist-panel");
+  if (panel && !panel.hidden) { panel.hidden = true; $("hist-toggle")?.setAttribute("aria-expanded", "false"); }
+  if ($("hist-lista")) $("hist-lista").replaceChildren();
+  if ($("hist-resumen")) $("hist-resumen").textContent = "";
+  actualizarContadorCompras();
+}
+
+function iniciarHistorialCompras() {
+  $("hist-filtro")?.addEventListener("change", renderHistorialCompras);
+  $("hist-refrescar")?.addEventListener("click", () => cargarHistorialCompras(false));
+  $("hist-mas")?.addEventListener("click", () => { comprasLimite += PASO_HISTORIAL; cargarHistorialCompras(true); });
 }
 
 // ------------------------- PANEL ADMIN: HISTORIAL DE ÓRDENES ------------
@@ -2374,6 +2573,7 @@ async function comprarPaquete(ev, paqueteId, moneda = "USD") {
   } finally {
     comprando = false;
     btn?.removeAttribute("aria-disabled");
+    if (comprasAbierto()) cargarHistorialCompras(true);
   }
 }
 
@@ -2414,6 +2614,8 @@ document.addEventListener("DOMContentLoaded", () => {
   $("player-id")?.addEventListener("keydown", (e) => { if (e.key === "Enter") verificarJugador(); });
   $("player-id")?.addEventListener("input", alEditarId);
   iniciarHistorialAdmin();
+  iniciarHistorialCompras();
+
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") { cerrarTodosLosModales(); if ($("sidebar-menu")?.classList.contains("open")) toggleMenu(); }
   });
@@ -2438,5 +2640,6 @@ Object.assign(window, {
   enviarMensajeWebhook,
   comprarPaquete,
   mostrarVistaAdmin,
+  alternarHistorial, abrirHistorial,
   loginConGoogle, logoutGoogle,
 });
