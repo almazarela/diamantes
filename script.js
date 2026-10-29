@@ -11,7 +11,7 @@ const CONFIG = {
   SUPABASE_ANON_KEY: "sb_publishable_fEVgUFX5bTcoMCqjsT44-A_tgW4pVeZ",
 
   // Webhook de n8n (en producción debe ser /webhook/ y el flujo estar ACTIVADO)
-  WEBHOOK_URL: "https://tony-human-must-bookstore.trycloudflare.com/webhook/free-fire-check",   // verificación del jugador (flujo "id del jugador")
+  WEBHOOK_URL: "https://n8n.almazarela.com/webhook/free-fire-check",   // verificación del jugador (flujo "id del jugador")
   // Avisos opcionales (login y mensajes del chat). Vacío = no se envían. NO usar la URL del canje: esa la llama solo Supabase.
   WEBHOOK_EVENTOS_URL: "",
 
