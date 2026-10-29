@@ -11,7 +11,7 @@ const CONFIG = {
   SUPABASE_ANON_KEY: "sb_publishable_fEVgUFX5bTcoMCqjsT44-A_tgW4pVeZ",
 
   // Webhook de n8n (en producción debe ser /webhook/ y el flujo estar ACTIVADO)
-  WEBHOOK_URL: "https://almazarela.app.n8n.cloud/webhook/14200234-eee8-4b90-a4a3-1306b12c377f",
+  WEBHOOK_URL: "http://localhost:5678/webhook/c2f2aa6d-6470-4a7e-91b0-14ee38887403",
 
   ADMIN_EMAIL: "almita.zarela@gmail.com",
 
