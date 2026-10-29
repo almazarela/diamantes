@@ -1204,7 +1204,8 @@ function pintarStock() {
   const actual = sel.value;
   cont.replaceChildren();
   sel.replaceChildren();
-  stockPaquetes.forEach((p) => {
+  const soloReales = stockPaquetes.filter((p) => ETIQUETA_STOCK[p.paquete_id]);
+  (soloReales.length ? soloReales : stockPaquetes).forEach((p) => {
     const etiqueta = ETIQUETA_STOCK[p.paquete_id] || String(p.diamantes);
     const libres = Number(p.disponibles) || 0;
     const b = document.createElement("button");
@@ -1225,7 +1226,7 @@ function pintarStock() {
     o.textContent = `Pines de ${etiqueta} (${p.diamantes} 💎) · ${libres} libres`;
     sel.appendChild(o);
   });
-  if (stockPaquetes.some((p) => p.paquete_id === actual)) sel.value = actual;
+  if (Array.from(sel.options).some((o) => o.value === actual)) sel.value = actual;
   elegirPaqueteStock(sel.value);
 }
 
