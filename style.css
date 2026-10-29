@@ -8,7 +8,7 @@
 }
 
 body {
-  background-color: #1e03b8;
+  background-color: #060a1c;
   color: #d8e60d;
   padding-bottom: 0px;
   overflow-x: hidden;
@@ -309,12 +309,7 @@ body {
   position: relative;
   width: 100%;
   padding: 25px 0 15px 0;
-  background-image: linear-gradient(to bottom, rgba(32, 28, 28, 0.349), rgba(0, 0, 0, 0.726)),
-  url('fondo.jpg'),
-  url('https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=1200&auto=format&fit=crop');
-  background-position: center center;
-  background-size: cover;
-  background-repeat: no-repeat;
+  background: transparent;
   overflow: hidden;
   margin-bottom: 15px;
 }
@@ -1124,4 +1119,18 @@ footer {
   .main-layout-grid {
     grid-template-columns: 1fr;
   }
+}
+/* Fondo de toda la pagina (fondo.jpg), fijo y a pantalla completa */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(to bottom, rgba(4, 6, 20, .55) 0%, rgba(4, 6, 20, .72) 60%, rgba(4, 6, 20, .86) 100%),
+    url('fondo.jpg');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  pointer-events: none;
 }
