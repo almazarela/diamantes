@@ -11,7 +11,9 @@ const CONFIG = {
   SUPABASE_ANON_KEY: "sb_publishable_fEVgUFX5bTcoMCqjsT44-A_tgW4pVeZ",
 
   // Webhook de n8n (en producción debe ser /webhook/ y el flujo estar ACTIVADO)
-  WEBHOOK_URL: "https://tony-human-must-bookstore.trycloudflare.com/webhook/c2f2aa6d-6470-4a7e-91b0-14ee38887403",
+  WEBHOOK_URL: "https://tony-human-must-bookstore.trycloudflare.com/webhook/free-fire-check",   // verificación del jugador (flujo "id del jugador")
+  // Avisos opcionales (login y mensajes del chat). Vacío = no se envían. NO usar la URL del canje: esa la llama solo Supabase.
+  WEBHOOK_EVENTOS_URL: "",
 
   ADMIN_EMAIL: "almita.zarela@gmail.com",
 
@@ -66,11 +68,11 @@ function mostrarAviso(texto, tipo = "info") {
   setTimeout(() => div.remove(), 4000);
 }
 
-async function postWebhook(payload, timeoutMs = CONFIG.TIMEOUT_MS) {
+async function postWebhook(payload, timeoutMs = CONFIG.TIMEOUT_MS, url = CONFIG.WEBHOOK_URL) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    return await fetch(CONFIG.WEBHOOK_URL, {
+    return await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -239,7 +241,7 @@ function normalizarJugador(crudo) {
   if (!d || typeof d !== "object") return vacio;
   const nivel = parseInt(d.nivel ?? d.level, 10);
   return {
-    noEncontrado: [d.encontrado, d.found, d.existe, d.exists].some((v) => v === false || v === "false"),
+    noEncontrado: [d.encontrado, d.found, d.existe, d.exists, d.valid].some((v) => v === false || v === "false"),
     nombre: primerTexto(d, CLAVES_NOMBRE, 32),
     avatar: urlHttps(d.avatar || d.avatar_url || d.avatarUrl || d.icon || d.foto),
     banner: urlHttps(d.banner || d.banner_url || d.bannerUrl),
@@ -332,7 +334,7 @@ async function verificarJugador() {
   };
 
   try {
-    const res = await postWebhook({ tipo_evento: "VERIFICAR_JUGADOR", id_jugador: id });
+    const res = await postWebhook({ tipo_evento: "VERIFICAR_JUGADOR", id_jugador: id, playerId: id, region: "SAC" });
     if (mi !== verifSeq) return;   // el usuario cambió el ID o volvió a tocar Verificar
     if (!res.ok) return modoManual("HTTP " + res.status);
 
@@ -548,6 +550,7 @@ async function notificarChatN8n(texto, ruta, nombreArchivo) {
     const { data } = await supabase.storage.from(CONFIG.BUCKET_COMPROBANTES).createSignedUrl(ruta, 7 * 24 * 3600);
     urlFirmada = data ? data.signedUrl : null;
   }
+  if (!CONFIG.WEBHOOK_EVENTOS_URL) return;   // sin URL de avisos configurada, no se avisa
   await postWebhook({
     tipo_evento: "CHAT_MENSAJE",
     user_id: usuarioActual.id,
@@ -556,7 +559,7 @@ async function notificarChatN8n(texto, ruta, nombreArchivo) {
     nombre_archivo: nombreArchivo || "",
     file_path: ruta || "",
     archivo_url: urlFirmada || "",
-  }, 15000);
+  }, 15000, CONFIG.WEBHOOK_EVENTOS_URL);
 }
 
 async function enviarMensajeWebhook() {
@@ -1155,17 +1158,139 @@ const fechaCorta = (v) => {
 };
 
 function mostrarVistaAdmin(vista) {
-  vistaAdmin = vista === "ordenes" ? "ordenes" : "clientes";
-  const ord = vistaAdmin === "ordenes";
-  $("admin-vista-clientes").hidden = ord;
-  $("admin-vista-ordenes").hidden = !ord;
-  [["clientes", "admin-tab-clientes"], ["ordenes", "admin-tab-ordenes"]].forEach(([v, id]) => {
-    const t = $(id);
-    t.classList.toggle("activa", v === vistaAdmin);
-    t.setAttribute("aria-selected", String(v === vistaAdmin));
+  vistaAdmin = vista === "ordenes" || vista === "stock" ? vista : "clientes";
+  [["clientes", "admin-vista-clientes", "admin-tab-clientes"], ["ordenes", "admin-vista-ordenes", "admin-tab-ordenes"], ["stock", "admin-vista-stock", "admin-tab-stock"]].forEach(([v, vid, tid]) => {
+    const vistaEl = $(vid), t = $(tid);
+    if (vistaEl) vistaEl.hidden = v !== vistaAdmin;
+    if (t) {
+      t.classList.toggle("activa", v === vistaAdmin);
+      t.setAttribute("aria-selected", String(v === vistaAdmin));
+    }
   });
-  if (ord) cargarOrdenesAdmin(false);
+  if (vistaAdmin === "ordenes") cargarOrdenesAdmin(false);
+  if (vistaAdmin === "stock") cargarStockPines();
 }
+
+// ------------------------- STOCK DE PINs (solo admin) ------------------
+const ETIQUETA_STOCK = { "ff-110": "100", "ff-341": "300", "ff-572": "500", "ff-1166": "1000", "ff-2398": "2000", "ff-6160": "5000" };
+const PIN_VALIDO = /^[A-Za-z0-9-]{8,64}$/;
+let stockPaquetes = [];
+let cargandoStock = false;
+let guardandoStock = false;
+
+function pinesDetectados(texto) {
+  const lista = [...new Set(String(texto || "").split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean))];
+  const validos = lista.filter((p) => PIN_VALIDO.test(p));
+  return { total: lista.length, validos: validos.length, invalidos: lista.length - validos.length };
+}
+
+function actualizarContadorStock() {
+  const c = $("stock-contador"), btn = $("stock-agregar");
+  if (!c) return;
+  const r = pinesDetectados($("stock-texto") && $("stock-texto").value);
+  c.textContent = r.total === 0 ? "0 PIN detectados" : `${r.validos} PIN válido${r.validos === 1 ? "" : "s"}` + (r.invalidos ? ` · ${r.invalidos} con formato raro` : "");
+  if (btn) btn.disabled = guardandoStock || r.validos === 0;
+}
+
+function elegirPaqueteStock(id) {
+  const sel = $("stock-paquete");
+  if (sel) sel.value = id;
+  document.querySelectorAll("#stock-tarjetas .stock-card").forEach((b) => b.classList.toggle("elegida", b.dataset.id === id));
+}
+
+function pintarStock() {
+  const cont = $("stock-tarjetas"), sel = $("stock-paquete");
+  if (!cont || !sel) return;
+  const actual = sel.value;
+  cont.replaceChildren();
+  sel.replaceChildren();
+  stockPaquetes.forEach((p) => {
+    const etiqueta = ETIQUETA_STOCK[p.paquete_id] || String(p.diamantes);
+    const libres = Number(p.disponibles) || 0;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.id = p.paquete_id;
+    b.className = "stock-card " + (libres === 0 ? "vacio" : libres < 5 ? "bajo" : "ok");
+    b.setAttribute("aria-label", `Paquete de ${etiqueta}: ${libres} PIN disponibles`);
+    const n1 = document.createElement("div"); n1.className = "stock-nombre"; n1.textContent = etiqueta + " 💎";
+    const n2 = document.createElement("div"); n2.className = "stock-extra"; n2.textContent = p.diamantes + " diamantes";
+    const n3 = document.createElement("div"); n3.className = "stock-num"; n3.textContent = String(libres);
+    const n4 = document.createElement("div"); n4.className = "stock-lbl"; n4.textContent = libres === 1 ? "PIN libre" : "PIN libres";
+    const n5 = document.createElement("div"); n5.className = "stock-extra"; n5.textContent = (Number(p.usados) || 0) + " usados";
+    b.append(n1, n2, n3, n4, n5);
+    b.addEventListener("click", () => elegirPaqueteStock(p.paquete_id));
+    cont.appendChild(b);
+    const o = document.createElement("option");
+    o.value = p.paquete_id;
+    o.textContent = `Pines de ${etiqueta} (${p.diamantes} 💎) · ${libres} libres`;
+    sel.appendChild(o);
+  });
+  if (stockPaquetes.some((p) => p.paquete_id === actual)) sel.value = actual;
+  elegirPaqueteStock(sel.value);
+}
+
+function mensajeErrorStock(error) {
+  const m = String((error && (error.message || error.details)) || error || "");
+  if (m.includes("PAQUETE_INVALIDO")) return "Ese paquete no existe o está desactivado.";
+  if (m.includes("SIN_PINES")) return "No hay ningún PIN para agregar.";
+  if (m.includes("DEMASIADOS_PINES")) return "Pegaste más de 500 PIN juntos. Cargalos en tandas más chicas.";
+  if (m.includes("No autorizado") || m.includes("42501")) return "Tu usuario no es administrador.";
+  if (/function .*admin_(stock_pines|agregar_pines)|PGRST202|42883/i.test(m)) return "Falta ejecutar stock_pines_admin.sql en Supabase (SQL Editor).";
+  return "No se pudo completar: " + (m || "error desconocido");
+}
+
+async function cargarStockPines() {
+  if (cargandoStock || !usuarioActual) return;
+  cargandoStock = true;
+  const res = $("stock-resultado");
+  try {
+    const { data, error } = await conTimeout(supabase.rpc("admin_stock_pines"), 12000);
+    if (error) throw error;
+    stockPaquetes = Array.isArray(data) ? data : [];
+    pintarStock();
+    actualizarContadorStock();
+  } catch (e) {
+    console.error("Stock de PINs:", e);
+    if (res) { res.className = "stock-resultado error"; res.textContent = mensajeErrorStock(e); }
+  } finally {
+    cargandoStock = false;
+  }
+}
+
+async function agregarPinesStock() {
+  if (guardandoStock) return;
+  const sel = $("stock-paquete"), area = $("stock-texto"), res = $("stock-resultado"), btn = $("stock-agregar");
+  if (!sel || !area || !res || !sel.value) return;
+  const r = pinesDetectados(area.value);
+  if (r.validos === 0) { res.className = "stock-resultado error"; res.textContent = "Pegá al menos un PIN con formato válido."; return; }
+  const p = stockPaquetes.find((x) => x.paquete_id === sel.value);
+  const etiqueta = ETIQUETA_STOCK[sel.value] || sel.value;
+  if (!window.confirm(`¿Agregar ${r.validos} PIN al paquete de ${etiqueta}${p ? " (" + p.diamantes + " 💎)" : ""}?`)) return;
+  guardandoStock = true;
+  if (btn) { btn.disabled = true; btn.textContent = "Guardando…"; }
+  res.className = "stock-resultado"; res.textContent = "";
+  try {
+    const { data, error } = await conTimeout(supabase.rpc("admin_agregar_pines", { p_paquete_id: sel.value, p_pines: area.value }), 20000);
+    if (error) throw error;
+    const partes = [`✔ ${data.agregados} agregado${data.agregados === 1 ? "" : "s"} al paquete de ${etiqueta}`];
+    if (data.repetidos) partes.push(`${data.repetidos} ya estaba${data.repetidos === 1 ? "" : "n"} cargado${data.repetidos === 1 ? "" : "s"}`);
+    if (data.invalidos) partes.push(`${data.invalidos} con formato inválido (${(data.ejemplos_invalidos || []).join(", ")})`);
+    res.className = "stock-resultado " + (data.agregados > 0 ? "ok" : "error");
+    res.textContent = partes.join(" · ");
+    if (data.agregados > 0 && !data.invalidos) area.value = "";
+    await cargarStockPines();
+  } catch (e) {
+    console.error("Agregar PIN:", e);
+    res.className = "stock-resultado error";
+    res.textContent = mensajeErrorStock(e);
+  } finally {
+    guardandoStock = false;
+    if (btn) btn.textContent = "Agregar al stock";
+    actualizarContadorStock();
+  }
+}
+
+document.addEventListener("input", (ev) => { if (ev.target && ev.target.id === "stock-texto") actualizarContadorStock(); });
 
 function actualizarAlertaOrdenes() {
   const n = ordenesAdmin.filter((o) => o.estado === "error_envio").length;
@@ -2640,7 +2765,8 @@ function notificarLogin(user) {
     if (sessionStorage.getItem(clave)) return;
     sessionStorage.setItem(clave, "1");
   } catch (_) { /* sessionStorage bloqueado: seguimos igual */ }
-  postWebhook({ tipo_evento: "LOGIN", user_id: user.id, email: user.email, fecha: new Date().toISOString() }, 10000)
+  if (!CONFIG.WEBHOOK_EVENTOS_URL) return;
+  postWebhook({ tipo_evento: "LOGIN", user_id: user.id, email: user.email, fecha: new Date().toISOString() }, 10000, CONFIG.WEBHOOK_EVENTOS_URL)
     .catch((err) => console.warn("No se pudo notificar el login:", err.message || err));
 }
 
@@ -2684,7 +2810,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ------------------------- EXPOSICIÓN GLOBAL (onclick del HTML) ------
 Object.assign(window, {
-  toggleMenu,
+  toggleMenu, agregarPinesStock,
   abrirModalSeleccionCarga, cerrarModalSeleccionCarga,
   abrirModalBinance, cerrarModalBinance,
   abrirModalMercadoPagoSaldo, cerrarModalMercadoPagoSaldo,

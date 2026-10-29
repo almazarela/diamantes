@@ -242,6 +242,41 @@
   #admin-panel-section { overflow: hidden; }
   #admin-panel-section input, #admin-panel-section select, #admin-panel-section button { max-width: 100%; }
 
+
+  /* ===== Panel admin: stock de PINs ===== */
+  .stock-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .stock-card {
+    background: #0e0f16; border: 2px solid #2a2d3d; border-radius: 12px; padding: 10px 8px; text-align: center;
+    color: #fff; cursor: pointer; font: inherit; min-width: 0; transition: border-color .15s, transform .1s;
+  }
+  .stock-card:hover { transform: translateY(-1px); }
+  .stock-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .stock-card.elegida { border-color: #f3ba2f; box-shadow: 0 0 0 1px #f3ba2f inset; }
+  .stock-card .stock-nombre { font-size: 15px; font-weight: 800; }
+  .stock-card .stock-extra { font-size: 11px; color: #8d90a3; }
+  .stock-card .stock-num { font-size: 30px; font-weight: 900; line-height: 1.1; margin: 4px 0 0; }
+  .stock-card .stock-lbl { font-size: 11px; color: #aaa; }
+  .stock-card.ok .stock-num { color: #2ecc71; }
+  .stock-card.bajo .stock-num { color: #f3ba2f; }
+  .stock-card.vacio .stock-num { color: #ff5a5f; }
+  .stock-card.vacio { border-color: #6b2a2d; }
+  .stock-form { background: #0e0f16; border-radius: 12px; padding: 12px; }
+  .stock-form label { display: block; font-size: 12px; color: #aaa; margin: 0 0 4px; }
+  .stock-form select, .stock-form textarea {
+    width: 100%; box-sizing: border-box; background: #161822; color: #fff; border: 1px solid #2a2d3d;
+    border-radius: 8px; padding: 9px 10px; font: inherit; font-size: 14px; margin-bottom: 10px;
+  }
+  .stock-form textarea { min-height: 130px; resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+  .stock-pie { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .stock-contador { font-size: 13px; color: #aaa; }
+  .stock-btn {
+    background: #f3ba2f; color: #000; border: 0; border-radius: 8px; padding: 10px 16px; font-weight: 800;
+    cursor: pointer; font-size: 14px;
+  }
+  .stock-btn[disabled] { opacity: .5; cursor: not-allowed; }
+  .stock-resultado { font-size: 13px; margin: 10px 0 0; min-height: 18px; overflow-wrap: anywhere; }
+  .stock-resultado.ok { color: #2ecc71; } .stock-resultado.error { color: #ff7b7f; }
+
   /* ===== Panel admin: pestañas ===== */
   .admin-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
   .admin-tab {
@@ -788,6 +823,7 @@
   <div class="admin-tabs" role="tablist" aria-label="Secciones del panel">
   <button type="button" id="admin-tab-clientes" class="admin-tab activa" role="tab" aria-selected="true" aria-controls="admin-vista-clientes" onclick="mostrarVistaAdmin('clientes')">💬 Mensajes y saldos</button>
   <button type="button" id="admin-tab-ordenes" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-ordenes" onclick="mostrarVistaAdmin('ordenes')">🧾 Historial de órdenes <span id="admin-ordenes-alerta" class="admin-alerta" hidden>0</span></button>
+  <button type="button" id="admin-tab-stock" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-stock" onclick="mostrarVistaAdmin('stock')">📦 Stock de PINs</button>
   </div>
 
   <div id="admin-vista-clientes" role="tabpanel">
@@ -818,6 +854,22 @@
   <p id="ord-resumen" class="ord-resumen" aria-live="polite"></p>
   <div id="admin-ordenes-lista" class="ord-lista">
   <p style="font-size: 12px; color: #666;">Cargando historial...</p>
+  </div>
+  </div>
+
+  <div id="admin-vista-stock" role="tabpanel" hidden>
+  <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;">Tocá un paquete, pegá los PIN (uno por línea) y apretá <b>Agregar al stock</b>.</p>
+  <div id="stock-tarjetas" class="stock-grid"><p style="font-size: 12px; color: #666;">Cargando stock...</p></div>
+  <div class="stock-form">
+  <label for="stock-paquete">Paquete</label>
+  <select id="stock-paquete" aria-label="Paquete al que pertenecen los PIN"></select>
+  <label for="stock-texto">PIN (uno por línea; también sirven comas o espacios)</label>
+  <textarea id="stock-texto" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"></textarea>
+  <div class="stock-pie">
+  <span id="stock-contador" class="stock-contador" aria-live="polite">0 PIN detectados</span>
+  <button type="button" id="stock-agregar" class="stock-btn" onclick="agregarPinesStock()">Agregar al stock</button>
+  </div>
+  <p id="stock-resultado" class="stock-resultado" aria-live="polite"></p>
   </div>
   </div>
   </section>
