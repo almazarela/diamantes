@@ -11,12 +11,12 @@ const CONFIG = {
   SUPABASE_ANON_KEY: "sb_publishable_fEVgUFX5bTcoMCqjsT44-A_tgW4pVeZ",
 
   // Webhook de n8n (en producción debe ser /webhook/ y el flujo estar ACTIVADO)
-  WEBHOOK_URL: "http://localhost:5678/webhook/c2f2aa6d-6470-4a7e-91b0-14ee38887403",
+  WEBHOOK_URL: "https://tony-human-must-bookstore.trycloudflare.com/webhook/c2f2aa6d-6470-4a7e-91b0-14ee38887403",
 
   ADMIN_EMAIL: "almita.zarela@gmail.com",
 
   // Número de WhatsApp en formato internacional sin "+" ni espacios. ¡COMPLETAR!
-  WHATSAPP_NUMBER: "54911XXXXXXXX",
+  WHATSAPP_NUMBER: "1166201432",
 
   // Opcional: enlaces de pago. Si quedan vacíos, el pedido se arma por el chat.
   BINANCE_PAY_URL: "",
