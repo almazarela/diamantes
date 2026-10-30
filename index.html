@@ -342,6 +342,13 @@
   .adm-vacio { color: #8b93a7; font-size: 12px; margin: 0; text-align: center; }
   .adm-vacio[hidden] { display: none; }
 
+
+  .pay-dato small { font-size: 12px; font-weight: 800; letter-spacing: 2px; }
+  #modal-mercadopago .pay-dato small { color: #38bdf8; }
+  #modal-binance .pay-dato small { color: #fcd535; }
+  .pay-chat { display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; margin: 0 0 12px; padding: 11px; border-radius: 10px; border: 1px solid #22c55e; background: rgba(34,197,94,.14); color: #86efac; font-weight: 800; font-size: 14px; cursor: pointer; }
+  .pay-chat:hover { background: rgba(34,197,94,.25); }
+
   /* ===== Chat en vivo: barra de envío ===== */
   .chat-input-area { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .chat-input-area #chat-user-input {
@@ -578,8 +585,9 @@
   <ol class="pay-pasos">
   <li>Copiá los datos y hacé la transferencia.</li>
   <li>Elegí el monto que enviaste.</li>
-  <li>Tocá <b>Ya pagué</b> y adjuntá la captura en el chat.</li>
+  <li>Una vez hecho el pago, <b>enviá el comprobante por el chat</b>. Así te acreditamos el saldo en tu cuenta.</li>
   </ol>
+  <button type="button" class="pay-chat" onclick="irAlChat()"><i class="fa-solid fa-comments"></i> Ir al chat</button>
   <div class="pay-dato">
   <small>Binance Pay ID</small>
   <strong id="modal-binance-dato">1252553144</strong>
@@ -603,15 +611,16 @@
   <ol class="pay-pasos">
   <li>Copiá los datos y hacé la transferencia.</li>
   <li>Elegí el monto que enviaste.</li>
-  <li>Tocá <b>Ya pagué</b> y adjuntá la captura en el chat.</li>
+  <li>Una vez hecho el pago, <b>enviá el comprobante por el chat</b>. Así te acreditamos el saldo en tu cuenta.</li>
   </ol>
+  <button type="button" class="pay-chat" onclick="irAlChat()"><i class="fa-solid fa-comments"></i> Ir al chat</button>
   <div class="pay-dato">
   <small>Alias</small>
   <strong id="modal-mercadopago-dato">almazarela.com</strong>
   <button type="button" class="pay-copiar" onclick="copiarDato('modal-mercadopago-dato', this)"><i class="fa-regular fa-copy"></i> Copiar</button>
   </div>
   <div class="pay-dato pay-dato-2">
-  <small>CVU (Mercado Pago)</small>
+  <small>CVU</small>
   <strong id="modal-mercadopago-cvu" class="pay-cvu">0000003100098290851840</strong>
   <button type="button" class="pay-copiar" onclick="copiarDato('modal-mercadopago-cvu', this)"><i class="fa-regular fa-copy"></i> Copiar</button>
   </div>
@@ -1013,7 +1022,7 @@
   <p style="font-size: 13px; color: #aaa; margin-bottom: 12px;">Seleccioná un cliente para ver sus comprobantes y acreditarle saldo:</p>
   <div style="display: flex; gap: 15px; flex-wrap: wrap;">
   <div style="flex: 1; min-width: 200px; align-self: flex-start; display: flex; flex-direction: column; gap: 8px;">
-  <label class="adm-buscar"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="admin-buscar-cliente" placeholder="Buscar cliente (nombre o correo)" autocomplete="off" aria-label="Buscar cliente"></label>
+  <label class="adm-buscar"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="admin-buscar-cliente" placeholder="Buscar cliente…" autocomplete="off" aria-label="Buscar cliente"></label>
   <p id="admin-buscar-vacio" class="adm-vacio" hidden>No hay clientes con ese nombre.</p>
   <div style="background: #0e0f16; border-radius: 8px; padding: 10px; min-height: 200px; max-height: min(88vh, 900px); overflow-y: auto; overscroll-behavior: contain;" id="admin-users-list">
   <p style="font-size: 12px; color: #666;">Cargando lista de clientes...</p>
@@ -1113,6 +1122,15 @@ function alternarChat(forzar){
 function chatRapido(t){
   var i=document.getElementById('chat-user-input'); if(!i) return;
   i.value=t; i.focus();
+}
+</script>
+<script>
+function irAlChat(){
+  ['modal-seleccion-carga','modal-binance','modal-mercadopago'].forEach(function(id){var e=document.getElementById(id); if(e) e.style.display='none';});
+  var w=document.getElementById('chat-widget');
+  if(window.innerWidth<=800){ if(window.alternarChat) alternarChat(true); }
+  else if(w){ w.scrollIntoView({behavior:'smooth',block:'center'}); }
+  var i=document.getElementById('chat-user-input'); if(i) setTimeout(function(){i.focus();},350);
 }
 </script>
 </body>
