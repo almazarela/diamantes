@@ -711,15 +711,37 @@ async function enviarMensajeWebhook() {
 
 // ------------------------- OPINIONES DE CLIENTES ---------------------
 const OP_PASO = 6;
-let opiniones = [], opLimite = OP_PASO, opPuntos = 5, opEditando = false, opEnviando = false, opCargadas = false;
+const OP_EMOJIS = ["👍", "🔥", "💎", "❤️"];
+let opiniones = [], respuestas = [], reacciones = [];
+let opLimite = OP_PASO, opPuntos = 5, opEditando = false, opEnviando = false, opCargadas = false;
+const respAbiertas = new Set();
 
-function estrellasTxt(n) { return "★".repeat(n) + "☆".repeat(5 - n); }
-function nombreCorto(user) {
+function nodoEstrellas(n) {
+  const s = document.createElement("span");
+  s.className = "op-estrellas"; s.setAttribute("aria-label", n + " de 5 estrellas");
+  for (let i = 1; i <= 5; i++) { const b = document.createElement("b"); b.textContent = "★"; if (i <= n) b.className = "on"; s.appendChild(b); }
+  return s;
+}
+function nombreCompleto(user) {
   const m = user.user_metadata || {};
-  const base = String(m.full_name || m.name || (user.email || "").split("@")[0] || "Cliente").trim();
-  const p = base.split(/\s+/);
-  const n = p[0].slice(0, 20) + (p[1] ? " " + p[1][0].toUpperCase() + "." : "");
-  return n || "Cliente";
+  return String(m.full_name || m.name || (user.email || "").split("@")[0] || "Cliente").trim().slice(0, 40) || "Cliente";
+}
+function fotoDe(user) {
+  const m = user.user_metadata || {};
+  const u = m.avatar_url || m.picture || "";
+  return /^https:\/\//.test(u) ? u : null;
+}
+function nodoAvatar(nombre, url, clase) {
+  const d = document.createElement("div");
+  d.className = "op-avatar " + (clase || "");
+  const ini = (nombre || "?")[0].toUpperCase();
+  if (url && /^https:\/\//.test(url)) {
+    const img = document.createElement("img");
+    img.src = url; img.alt = ""; img.referrerPolicy = "no-referrer"; img.loading = "lazy";
+    img.addEventListener("error", () => { img.remove(); d.textContent = ini; });
+    d.appendChild(img);
+  } else d.textContent = ini;
+  return d;
 }
 function hace(iso) {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
@@ -730,7 +752,7 @@ function hace(iso) {
   return new Date(iso).toLocaleDateString("es-AR");
 }
 async function cargarOpiniones() {
-  const { data, error } = await supabase.from("opiniones").select("id,user_id,nombre,estrellas,texto,created_at").order("created_at", { ascending: false }).limit(200);
+  const { data, error } = await supabase.from("opiniones").select("*").order("created_at", { ascending: false }).limit(200);
   if (error) {
     console.warn("Opiniones:", error.message || error);
     const l = $("comments-list");
@@ -738,6 +760,13 @@ async function cargarOpiniones() {
     return;
   }
   opiniones = data || [];
+  // Respuestas y reacciones: si todavía no existen las tablas, la sección funciona igual sin ellas
+  const [r1, r2] = await Promise.all([
+    supabase.from("opiniones_respuestas").select("*").order("created_at", { ascending: true }).limit(1000),
+    supabase.from("opiniones_reacciones").select("opinion_id,user_id,emoji").limit(5000),
+  ]);
+  respuestas = r1.error ? [] : (r1.data || []);
+  reacciones = r2.error ? [] : (r2.data || []);
   opCargadas = true;
   renderOpiniones();
 }
@@ -748,20 +777,18 @@ function renderOpiniones() {
   if (!lista) return;
   const mia = usuarioActual ? opiniones.find((o) => o.user_id === usuarioActual.id) : null;
 
-  // formulario según sesión
   $("op-form-login").hidden = !!usuarioActual;
   $("op-form-campos").hidden = !usuarioActual || (!!mia && !opEditando);
   if ($("op-form")) $("op-form").hidden = !!usuarioActual && !!mia && !opEditando;
   if (usuarioActual && !$("op-pick").childElementCount) pintarSelectorEstrellas();
 
-  // resumen
   const res = $("op-resumen");
   if (res) {
     res.hidden = !opiniones.length;
     if (opiniones.length) {
       const prom = opiniones.reduce((a, o) => a + o.estrellas, 0) / opiniones.length;
       $("op-prom-num").textContent = prom.toFixed(1);
-      $("op-prom-est").textContent = estrellasTxt(Math.round(prom));
+      $("op-prom-est").replaceChildren(nodoEstrellas(Math.round(prom)));
       $("op-prom-total").textContent = `${opiniones.length} ${opiniones.length === 1 ? "opinión" : "opiniones"}`;
       const cont = $("op-barras"); cont.replaceChildren();
       for (let e = 5; e >= 1; e--) {
@@ -782,36 +809,126 @@ function renderOpiniones() {
     p.textContent = "Todavía no hay opiniones. ¡Sé el primero en contar tu experiencia! 💎";
     lista.appendChild(p);
   }
-  const visibles = opiniones.slice(0, opLimite);
-  visibles.forEach((o) => {
-    const card = document.createElement("div");
-    card.className = "op-card" + (usuarioActual && o.user_id === usuarioActual.id ? " mia" : "");
-    const av = document.createElement("div"); av.className = "op-avatar"; av.textContent = (o.nombre || "?")[0].toUpperCase();
-    const cu = document.createElement("div"); cu.className = "op-cuerpo";
-    const cab = document.createElement("div"); cab.className = "op-cab";
-    const nom = document.createElement("b"); nom.textContent = o.nombre;
-    const est = document.createElement("span"); est.className = "op-estrellas"; est.textContent = estrellasTxt(o.estrellas);
-    const t = document.createElement("time"); t.textContent = hace(o.created_at);
-    cab.append(nom, est, t);
-    const tx = document.createElement("p"); tx.textContent = o.texto;
-    cu.append(cab, tx);
-    const propia = usuarioActual && o.user_id === usuarioActual.id;
-    if (propia || esAdminActual()) {
-      const acc = document.createElement("div"); acc.className = "op-acc";
-      if (propia) {
-        const ed = document.createElement("button"); ed.type = "button"; ed.textContent = "✏️ Editar";
-        ed.addEventListener("click", () => editarOpinion(o));
-        acc.appendChild(ed);
-      }
-      const del = document.createElement("button"); del.type = "button"; del.textContent = "🗑️ Eliminar";
-      del.addEventListener("click", () => eliminarOpinion(o));
-      acc.appendChild(del);
-      cu.appendChild(acc);
-    }
-    card.append(av, cu);
-    lista.appendChild(card);
-  });
+  opiniones.slice(0, opLimite).forEach((o) => lista.appendChild(tarjetaOpinion(o)));
   if ($("op-mas")) $("op-mas").hidden = opiniones.length <= opLimite;
+}
+
+function tarjetaOpinion(o) {
+  const propia = !!usuarioActual && o.user_id === usuarioActual.id;
+  const card = document.createElement("div");
+  card.className = "op-card" + (propia ? " mia" : "");
+  const cu = document.createElement("div"); cu.className = "op-cuerpo";
+  const cab = document.createElement("div"); cab.className = "op-cab";
+  const nom = document.createElement("b"); nom.textContent = o.nombre;
+  const t = document.createElement("time"); t.textContent = hace(o.created_at);
+  cab.append(nom, nodoEstrellas(o.estrellas), t);
+  const tx = document.createElement("p"); tx.textContent = o.texto;
+  cu.append(cab, tx);
+
+  // Reacciones
+  const rx = document.createElement("div"); rx.className = "op-reacs";
+  OP_EMOJIS.forEach((em) => {
+    const lista = reacciones.filter((r) => r.opinion_id === o.id && r.emoji === em);
+    const mio = !!usuarioActual && lista.some((r) => r.user_id === usuarioActual.id);
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "op-reac" + (mio ? " on" : ""); b.setAttribute("aria-pressed", String(mio));
+    b.textContent = em + (lista.length ? " " + lista.length : "");
+    b.addEventListener("click", () => alternarReaccion(o.id, em));
+    rx.appendChild(b);
+  });
+  const rs = respuestas.filter((r) => r.opinion_id === o.id);
+  const btnResp = document.createElement("button");
+  btnResp.type = "button"; btnResp.className = "op-reac op-responder";
+  btnResp.textContent = "💬 " + (rs.length ? `Respuestas (${rs.length})` : "Responder");
+  btnResp.addEventListener("click", () => { respAbiertas.has(o.id) ? respAbiertas.delete(o.id) : respAbiertas.add(o.id); renderOpiniones(); });
+  rx.appendChild(btnResp);
+  if (propia) {
+    const ed = document.createElement("button"); ed.type = "button"; ed.className = "op-link"; ed.textContent = "✏️ Editar";
+    ed.addEventListener("click", () => editarOpinion(o)); rx.appendChild(ed);
+  }
+  if (propia || esAdminActual()) {
+    const del = document.createElement("button"); del.type = "button"; del.className = "op-link"; del.textContent = "🗑️ Eliminar";
+    del.addEventListener("click", () => eliminarOpinion(o)); rx.appendChild(del);
+  }
+  cu.appendChild(rx);
+
+  // Hilo de respuestas
+  if (respAbiertas.has(o.id)) {
+    const hilo = document.createElement("div"); hilo.className = "op-hilo";
+    rs.forEach((r) => {
+      const it = document.createElement("div"); it.className = "op-resp";
+      const c2 = document.createElement("div"); c2.className = "op-resp-c";
+      const h = document.createElement("div"); h.className = "op-cab";
+      const n2 = document.createElement("b"); n2.textContent = r.nombre; h.appendChild(n2);
+      if (r.es_admin) { const ins = document.createElement("span"); ins.className = "op-badge"; ins.textContent = "Soporte Zarela"; h.appendChild(ins); }
+      const t2 = document.createElement("time"); t2.textContent = hace(r.created_at); h.appendChild(t2);
+      const p2 = document.createElement("p"); p2.textContent = r.texto;
+      c2.append(h, p2);
+      if (usuarioActual && (r.user_id === usuarioActual.id || esAdminActual())) {
+        const d2 = document.createElement("button"); d2.type = "button"; d2.className = "op-link"; d2.textContent = "🗑️ Eliminar";
+        d2.addEventListener("click", () => eliminarRespuesta(r)); c2.appendChild(d2);
+      }
+      it.append(nodoAvatar(r.nombre, r.avatar_url, "chico"), c2);
+      hilo.appendChild(it);
+    });
+    const f = document.createElement("div"); f.className = "op-resp-form";
+    if (usuarioActual) {
+      const inp = document.createElement("input");
+      inp.type = "text"; inp.maxLength = 300; inp.placeholder = esAdminActual() ? "Responder como Soporte Zarela…" : "Escribí tu respuesta…";
+      const b = document.createElement("button"); b.type = "button"; b.className = "op-btn"; b.innerHTML = '<i class="fa-solid fa-paper-plane"></i>'; b.setAttribute("aria-label", "Enviar respuesta");
+      const enviar = () => enviarRespuesta(o.id, inp, b);
+      b.addEventListener("click", enviar);
+      inp.addEventListener("keydown", (e) => { if (e.key === "Enter") enviar(); });
+      f.append(inp, b);
+    } else {
+      const b = document.createElement("button"); b.type = "button"; b.className = "op-btn op-btn-sec";
+      b.textContent = "Iniciá sesión para responder"; b.addEventListener("click", loginConGoogle); f.appendChild(b);
+    }
+    hilo.appendChild(f);
+    cu.appendChild(hilo);
+  }
+  card.append(nodoAvatar(o.nombre, o.avatar_url), cu);
+  return card;
+}
+
+async function alternarReaccion(opId, emoji) {
+  if (!usuarioActual) return mostrarAviso("Iniciá sesión con Google para reaccionar.", "error");
+  const uid = usuarioActual.id;
+  const ya = reacciones.some((r) => r.opinion_id === opId && r.user_id === uid && r.emoji === emoji);
+  // actualización inmediata; si falla se revierte
+  if (ya) reacciones = reacciones.filter((r) => !(r.opinion_id === opId && r.user_id === uid && r.emoji === emoji));
+  else reacciones.push({ opinion_id: opId, user_id: uid, emoji });
+  renderOpiniones();
+  const q = ya
+    ? supabase.from("opiniones_reacciones").delete().match({ opinion_id: opId, user_id: uid, emoji })
+    : supabase.from("opiniones_reacciones").insert({ opinion_id: opId, user_id: uid, emoji });
+  const { error } = await q;
+  if (error) {
+    console.warn("Reacción:", error.message || error);
+    if (ya) reacciones.push({ opinion_id: opId, user_id: uid, emoji });
+    else reacciones = reacciones.filter((r) => !(r.opinion_id === opId && r.user_id === uid && r.emoji === emoji));
+    renderOpiniones();
+    mostrarAviso("No se pudo registrar tu reacción.", "error");
+  }
+}
+async function enviarRespuesta(opId, inp, btn) {
+  const texto = inp.value.trim();
+  if (!texto) return;
+  btn.disabled = true;
+  const fila = { opinion_id: opId, user_id: usuarioActual.id, nombre: esAdminActual() ? "Alma Zarela" : nombreCompleto(usuarioActual), avatar_url: fotoDe(usuarioActual), es_admin: esAdminActual(), texto };
+  const { data, error } = await supabase.from("opiniones_respuestas").insert(fila).select().single();
+  btn.disabled = false;
+  if (error) { console.warn("Respuesta:", error.message || error); return mostrarAviso("No se pudo enviar la respuesta.", "error"); }
+  respuestas.push(data);
+  respAbiertas.add(opId);
+  renderOpiniones();
+}
+async function eliminarRespuesta(r) {
+  if (!confirm("¿Eliminar esta respuesta?")) return;
+  const { error } = await supabase.from("opiniones_respuestas").delete().eq("id", r.id);
+  if (error) return mostrarAviso("No se pudo eliminar.", "error");
+  respuestas = respuestas.filter((x) => x.id !== r.id);
+  renderOpiniones();
 }
 function verMasOpiniones() { opLimite += OP_PASO; renderOpiniones(); }
 
@@ -826,7 +943,7 @@ function pintarSelectorEstrellas() {
   marcarEstrellas();
 }
 function marcarEstrellas() {
-  [...$("op-pick").children].forEach((b, i) => { b.classList.toggle("on", i < opPuntos); b.setAttribute("aria-checked", String(i < opPuntos && i === opPuntos - 1)); });
+  [...$("op-pick").children].forEach((b, i) => { b.classList.toggle("on", i < opPuntos); b.setAttribute("aria-checked", String(i === opPuntos - 1)); });
 }
 function editarOpinion(o) {
   opEditando = true; opPuntos = o.estrellas;
@@ -850,17 +967,19 @@ async function publicarOpinion() {
   if (texto.length < 5) return mostrarAviso("Escribí al menos unas palabras sobre tu experiencia.", "error");
   opEnviando = true; $("op-enviar").disabled = true;
   try {
-    const { error } = await supabase.from("opiniones").upsert(
-      { user_id: usuarioActual.id, nombre: nombreCorto(usuarioActual), estrellas: opPuntos, texto },
-      { onConflict: "user_id" }
-    );
+    const fila = { user_id: usuarioActual.id, nombre: nombreCompleto(usuarioActual), estrellas: opPuntos, texto, avatar_url: fotoDe(usuarioActual) };
+    let { error } = await supabase.from("opiniones").upsert(fila, { onConflict: "user_id" });
+    if (error && /avatar_url/i.test(error.message || "")) {   // todavía no se corrió opiniones_v2.sql
+      delete fila.avatar_url;
+      ({ error } = await supabase.from("opiniones").upsert(fila, { onConflict: "user_id" }));
+    }
     if (error) throw error;
     mostrarAviso("¡Gracias por tu opinión! 🔥", "ok");
     opEditando = false; $("op-texto").value = ""; $("op-form-tit").textContent = "Dejá tu opinión"; $("op-cancelar").hidden = true; actualizarContadorOp();
     await cargarOpiniones();
   } catch (err) {
     console.error("Opinión:", err);
-    mostrarAviso(/relation .* does not exist|42P01|opiniones/i.test(String(err.message || "")) ? "Las opiniones todavía no están activadas." : "No se pudo publicar. Reintentá.", "error");
+    mostrarAviso("No se pudo publicar. Reintentá.", "error");
   } finally {
     opEnviando = false; $("op-enviar").disabled = false;
   }
@@ -870,6 +989,8 @@ async function eliminarOpinion(o) {
   const { error } = await supabase.from("opiniones").delete().eq("id", o.id);
   if (error) return mostrarAviso("No se pudo eliminar.", "error");
   opiniones = opiniones.filter((x) => x.id !== o.id);
+  respuestas = respuestas.filter((x) => x.opinion_id !== o.id);
+  reacciones = reacciones.filter((x) => x.opinion_id !== o.id);
   if (usuarioActual && o.user_id === usuarioActual.id) opEditando = false;
   renderOpiniones();
   mostrarAviso("Opinión eliminada.", "ok");

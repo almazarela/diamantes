@@ -1127,10 +1127,10 @@ body::before {
   inset: 0;
   z-index: -1;
   background-image:
-    linear-gradient(to bottom, rgba(4, 6, 20, .55) 0%, rgba(4, 6, 20, .72) 60%, rgba(4, 6, 20, .86) 100%),
-    url('fondo.jpg');
+    linear-gradient(to bottom, rgba(4, 6, 20, .35) 0%, rgba(4, 6, 20, .55) 55%, rgba(4, 6, 20, .78) 100%),
+    url('fondo-pagina.jpg');
   background-size: cover;
-  background-position: center top;
+  background-position: center 22%;
   background-repeat: no-repeat;
   pointer-events: none;
 }
