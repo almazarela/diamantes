@@ -139,6 +139,35 @@ function copiarDato(id, btn) {
     try { document.execCommand("copy"); ok(); } catch (e) { /* queda seleccionado */ }
   });
 }
+let cargaQR = null;
+function cargarLibQR() {
+  if (window.QRCode) return Promise.resolve();
+  if (!cargaQR) cargaQR = new Promise((ok, mal) => {
+    const sc = document.createElement("script");
+    sc.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+    sc.onload = ok; sc.onerror = () => { cargaQR = null; mal(new Error("qr")); };
+    document.head.appendChild(sc);
+  });
+  return cargaQR;
+}
+async function alternarQR(id, texto) {
+  const q = $(id); if (!q) return;
+  const abrir = q.hidden;
+  q.hidden = !abrir;
+  const b = q.previousElementSibling;
+  if (b) { b.setAttribute("aria-expanded", String(abrir)); b.querySelector("span").textContent = abrir ? " Ocultar QR" : " Generar QR"; }
+  if (!abrir) return;
+  const caja = q.querySelector(".pay-qr-img");
+  if (caja.dataset.listo) return;
+  try {
+    await cargarLibQR();
+    caja.replaceChildren();
+    new window.QRCode(caja, { text: texto, width: 150, height: 150, correctLevel: window.QRCode.CorrectLevel.M });
+    caja.dataset.listo = "1";
+  } catch (e) {
+    caja.textContent = "No se pudo generar el QR. Usá el botón Copiar.";
+  }
+}
 function elegirMonto(inputId, valor) {
   const i = $(inputId); if (i) i.value = valor;
   i?.closest(".pay-box")?.querySelectorAll(".pay-chip").forEach((b) => b.classList.toggle("sel", b.textContent.replace(/\D/g, "") === String(valor)));
@@ -163,7 +192,7 @@ function procesarPagoBinanceSeguro() {
   procesarCarga({ inputId: "monto-usdt", moneda: "USD", metodo: "Binance USDT", minimo: 10, modalCerrar: cerrarModalBinance });
 }
 function procesarPagoMPSeguro() {
-  procesarCarga({ inputId: "monto-mp", moneda: "ARS", metodo: "Mercado Pago", minimo: 5000, modalCerrar: cerrarModalMercadoPagoSaldo });
+  procesarCarga({ inputId: "monto-mp", moneda: "ARS", metodo: "Mercado Pago", minimo: 0, modalCerrar: cerrarModalMercadoPagoSaldo });
 }
 
 // ------------------------- CARRUSEL ----------------------------------
@@ -482,6 +511,7 @@ function limpiarChatCliente() {
 }
 
 function detenerChatCliente() {
+  actualizarPuntoChat(0);
   respuestaPendiente.cliente = null;
   renderBarraRespuesta("cliente");
   renderBarraFijados("cliente", []);
@@ -499,6 +529,38 @@ function iniciarChatCliente() {
   pollChat = setInterval(() => { if (!document.hidden) cargarHistorialCliente(false); }, 8000);
 }
 
+// ---- Punto rojo en el botón del chat cuando hay mensajes nuevos del soporte ----
+let ultimoAdminTs = "";
+function chatVisible() {
+  return window.innerWidth > 800 || !!$("chat-widget")?.classList.contains("abierto");
+}
+function claveVisto() { return usuarioActual ? "chat_visto_" + usuarioActual.id : null; }
+function marcarChatVisto() {
+  const k = claveVisto();
+  if (k && ultimoAdminTs) { try { localStorage.setItem(k, ultimoAdminTs); } catch (e) { /* sin storage */ } }
+  actualizarPuntoChat(0);
+}
+function actualizarPuntoChat(n) {
+  const fab = $("chat-fab");
+  if (!fab) return;
+  let dot = fab.querySelector(".chat-dot");
+  if (!n) { dot?.remove(); document.title = document.title.replace(/^\(\d+\) /, ""); return; }
+  if (!dot) { dot = document.createElement("i"); dot.className = "chat-dot"; fab.appendChild(dot); }
+  dot.textContent = n > 9 ? "9+" : String(n);
+}
+function revisarMensajesNuevos(filas) {
+  const admin = filas.filter((f) => esDelAdmin(f) && f[MSG.fechaCol]);
+  ultimoAdminTs = admin.length ? String(admin[admin.length - 1][MSG.fechaCol]) : "";
+  const k = claveVisto();
+  let visto = null;
+  try { visto = k ? localStorage.getItem(k) : null; } catch (e) { visto = null; }
+  if (visto === null) { marcarChatVisto(); return; }   // primera vez en este navegador: lo anterior cuenta como visto
+  if (chatVisible() && !document.hidden) { marcarChatVisto(); return; }
+  const nuevos = admin.filter((f) => new Date(f[MSG.fechaCol]) > new Date(visto)).length;
+  actualizarPuntoChat(nuevos);
+}
+window.marcarChatVisto = marcarChatVisto;
+
 async function cargarHistorialCliente(forzar) {
   const cont = $("chat-messages-container");
   const yo = usuarioActual;
@@ -512,6 +574,7 @@ async function cargarHistorialCliente(forzar) {
   }
 
   const filas = data || [];   // consultarMensajes ya los entrega del más viejo al más nuevo
+  revisarMensajesNuevos(filas);
   const ultima = filas[filas.length - 1];
   const firma = firmaDe(filas);
   if (!forzar && firma === firmaChat) return;
@@ -1753,14 +1816,40 @@ function construirVistaCliente() {
     moneda.addEventListener("change", resaltar);
     fila.append(moneda, modo, monto, nota, ok);
     caja.append(tiles, fila);
-    vista.appendChild(caja);
+    caja.hidden = true;
+    caja.id = "admin-caja-saldo";
+    const tog = document.createElement("button");
+    tog.type = "button";
+    tog.setAttribute("aria-expanded", "false");
+    tog.setAttribute("aria-controls", "admin-caja-saldo");
+    tog.style.cssText = "width:100%;display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:10px;border-radius:10px;cursor:pointer;background:#161822;color:#e6ebf0;border:1px solid #2b3544;font-weight:800;font-size:13px;text-align:left;";
+    const txt = document.createElement("span");
+    txt.style.cssText = "flex:1;min-width:0;";
+    const flecha = document.createElement("i");
+    flecha.className = "fa-solid fa-chevron-down";
+    flecha.style.cssText = "font-size:12px;transition:transform .2s;";
+    tog.append(txt, flecha);
+    const resumen = () => {
+      const u = $("admin-saldo-USD")?.textContent || "", a = $("admin-saldo-ARS")?.textContent || "";
+      txt.textContent = `💰 Saldos y acreditar · ${u} · ${a}`;
+    };
+    tog.addEventListener("click", () => {
+      const abrir = caja.hidden;
+      caja.hidden = !abrir;
+      tog.setAttribute("aria-expanded", String(abrir));
+      flecha.style.transform = abrir ? "rotate(180deg)" : "";
+      tog.style.borderColor = abrir ? "#f3ba2f" : "#2b3544";
+    });
+    vista.append(tog, caja);
     resaltar();
+    resumen();
+    new MutationObserver(resumen).observe(tiles, { childList: true, subtree: true, characterData: true });
   }
 
   // --- Conversación ---
   const msgs = document.createElement("div");
   msgs.id = "admin-msgs";
-  msgs.style.cssText = "background:#0b0c12;border-radius:8px;padding:8px;height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px;";
+  msgs.style.cssText = "background:#0b0c12;border-radius:8px;padding:8px;height:min(52vh,460px);min-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px;";
   const cargando = document.createElement("p");
   cargando.style.cssText = "font-size:12px;color:#666;margin:auto;";
   cargando.textContent = "Cargando mensajes…";
@@ -2828,7 +2917,7 @@ document.addEventListener("DOMContentLoaded", () => {
 Object.assign(window, {
   toggleMenu, agregarPinesStock,
   abrirModalSeleccionCarga, cerrarModalSeleccionCarga,
-  copiarDato, elegirMonto,
+  copiarDato, elegirMonto, alternarQR,
   abrirModalBinance, cerrarModalBinance,
   abrirModalMercadoPagoSaldo, cerrarModalMercadoPagoSaldo,
   procesarPagoBinanceSeguro, procesarPagoMPSeguro,
