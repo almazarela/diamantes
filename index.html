@@ -738,30 +738,6 @@
   <div class="container">
   
 
-  <div id="hist-arriba" class="hist-arriba" style="display:none;">
-  <div class="hist-box" id="hist-box">
-  <button type="button" id="hist-toggle" class="hist-toggle" aria-expanded="false" aria-controls="hist-panel" onclick="alternarHistorial()">
-  <span class="hist-toggle-txt"><i class="fa-solid fa-receipt"></i> Mi Historial de Compras</span>
-  <span id="hist-contador" class="hist-contador" hidden>0</span>
-  <i class="fa-solid fa-chevron-down hist-flecha"></i>
-  </button>
-  <div id="hist-panel" class="hist-panel" hidden>
-  <div class="hist-barra">
-  <select id="hist-filtro" aria-label="Filtrar compras por estado">
-  <option value="todas">Todas</option>
-  <option value="completada">Acreditadas</option>
-  <option value="proceso">En proceso</option>
-  <option value="fallida">Devueltas</option>
-  </select>
-  <button type="button" id="hist-refrescar" class="hist-btn-ref" aria-label="Actualizar historial"><i class="fa-solid fa-rotate"></i> <span>Actualizar</span></button>
-  </div>
-  <p id="hist-resumen" class="hist-resumen" aria-live="polite"></p>
-  <div id="hist-lista" class="hist-lista"></div>
-  <button type="button" id="hist-mas" class="hist-mas" hidden>Ver más compras</button>
-  </div>
-  </div>
-  </div>
-
   <div class="main-layout-grid">
   
   <!-- COLUMNA IZQUIERDA -->
@@ -907,6 +883,29 @@
   </div>
   </div>
   </section>
+  <div id="hist-arriba" class="hist-arriba" style="display:none;">
+  <div class="hist-box" id="hist-box">
+  <button type="button" id="hist-toggle" class="hist-toggle" aria-expanded="false" aria-controls="hist-panel" onclick="alternarHistorial()">
+  <span class="hist-toggle-txt"><i class="fa-solid fa-receipt"></i> Mi Historial de Compras</span>
+  <span id="hist-contador" class="hist-contador" hidden>0</span>
+  <i class="fa-solid fa-chevron-down hist-flecha"></i>
+  </button>
+  <div id="hist-panel" class="hist-panel" hidden>
+  <div class="hist-barra">
+  <select id="hist-filtro" aria-label="Filtrar compras por estado">
+  <option value="todas">Todas</option>
+  <option value="completada">Acreditadas</option>
+  <option value="proceso">En proceso</option>
+  <option value="fallida">Devueltas</option>
+  </select>
+  <button type="button" id="hist-refrescar" class="hist-btn-ref" aria-label="Actualizar historial"><i class="fa-solid fa-rotate"></i> <span>Actualizar</span></button>
+  </div>
+  <p id="hist-resumen" class="hist-resumen" aria-live="polite"></p>
+  <div id="hist-lista" class="hist-lista"></div>
+  <button type="button" id="hist-mas" class="hist-mas" hidden>Ver más compras</button>
+  </div>
+  </div>
+  </div>
   </div>
   
   <!-- COLUMNA DERECHA: CHAT EN VIVO -->
