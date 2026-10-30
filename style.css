@@ -1167,3 +1167,9 @@ body::before {
 }
 #auth-section { margin-bottom: 20px; }
 #auth-section .hist-panel { max-height: 70vh; overflow-y: auto; }
+
+/* historial: barra compacta bajo el carrusel */
+.hist-arriba { margin: 0 0 16px; }
+.hist-arriba .hist-box { margin-top: 0; background: rgba(20,22,38,.92); border-radius: 12px; }
+.hist-arriba .hist-panel { max-height: 65vh; overflow-y: auto; background: rgba(13,14,21,.95); border-radius: 12px; padding: 10px; border: 1px solid #2b3544; }
+#auth-section { margin-bottom: 30px; }

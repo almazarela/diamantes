@@ -571,34 +571,8 @@
   
   <div class="container">
   
-  <section class="card auth-card" id="auth-section">
-  <div class="step-title">
-  <span class="badge"><i class="fa-solid fa-user-gear"></i></span>
-  <h3>Cuenta Revendedor</h3>
-  </div>
-  
-  <div id="auth-forms" class="auth-box">
-  <p class="auth-desc">Iniciá sesión con tu cuenta de Google para gestionar tu monedero y chatear con soporte.</p>
-  <button class="btn-google-login" onclick="loginConGoogle()">
-  <i class="fa-brands fa-google" style="color: #ea4335;"></i> Iniciar Sesión con Google
-  </button>
-  </div>
-  
-  <div id="user-dashboard" class="dashboard-box" style="display: none;">
-  <div class="dashboard-header">
-  <span class="dashboard-user-text">Bienvenido, <b id="user-email-display">usuario@gmail.com</b></span>
-  <button class="btn-logout" onclick="logoutGoogle()">Cerrar Sesión</button>
-  </div>
-  <div class="wallet-card">
-  <span class="wallet-label">Tu Saldo Virtual</span>
-  <h2 class="wallet-amount" id="user-balance">$0.00 USD</h2>
-  <h2 class="wallet-amount" id="user-balance-ars" style="margin-top:4px;">$0,00 ARS</h2>
-  <p class="wallet-subtext">Cada recarga descuenta el saldo de la moneda del paquete (USD o ARS).</p>
-  <a href="javascript:void(0)" onclick="abrirModalSeleccionCarga()" class="btn-add-funds" style="display:inline-flex; align-items:center; gap:6px; justify-content:center; text-decoration:none;">
-  <i class="fa-solid fa-plus-circle"></i> Cargar Saldo con Binance o Mercado Pago
-  </a>
-  </div>
 
+  <div id="hist-arriba" class="hist-arriba" style="display:none;">
   <div class="hist-box" id="hist-box">
   <button type="button" id="hist-toggle" class="hist-toggle" aria-expanded="false" aria-controls="hist-panel" onclick="alternarHistorial()">
   <span class="hist-toggle-txt"><i class="fa-solid fa-receipt"></i> Mi Historial de Compras</span>
@@ -621,7 +595,6 @@
   </div>
   </div>
   </div>
-  </section>
 
   <div class="main-layout-grid">
   
@@ -826,6 +799,38 @@
   </section>
   
   
+  <section class="card auth-card" id="auth-section">
+  <div class="step-title">
+  <span class="badge"><i class="fa-solid fa-user-gear"></i></span>
+  <h3>Cuenta Revendedor</h3>
+  </div>
+  
+  <div id="auth-forms" class="auth-box">
+  <p class="auth-desc">Iniciá sesión con tu cuenta de Google para gestionar tu monedero y chatear con soporte.</p>
+  <button class="btn-google-login" onclick="loginConGoogle()">
+  <i class="fa-brands fa-google" style="color: #ea4335;"></i> Iniciar Sesión con Google
+  </button>
+  </div>
+  
+  <div id="user-dashboard" class="dashboard-box" style="display: none;">
+  <div class="dashboard-header">
+  <span class="dashboard-user-text">Bienvenido, <b id="user-email-display">usuario@gmail.com</b></span>
+  <button class="btn-logout" onclick="logoutGoogle()">Cerrar Sesión</button>
+  </div>
+  <div class="wallet-card">
+  <span class="wallet-label">Tu Saldo Virtual</span>
+  <h2 class="wallet-amount" id="user-balance">$0.00 USD</h2>
+  <h2 class="wallet-amount" id="user-balance-ars" style="margin-top:4px;">$0,00 ARS</h2>
+  <p class="wallet-subtext">Cada recarga descuenta el saldo de la moneda del paquete (USD o ARS).</p>
+  <a href="javascript:void(0)" onclick="abrirModalSeleccionCarga()" class="btn-add-funds" style="display:inline-flex; align-items:center; gap:6px; justify-content:center; text-decoration:none;">
+  <i class="fa-solid fa-plus-circle"></i> Cargar Saldo con Binance o Mercado Pago
+  </a>
+  </div>
+
+
+  </div>
+  </section>
+
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="step-title">
   <span class="badge" style="background: #f3ba2f; color:#000;"><i class="fa-solid fa-shield-halved"></i></span>

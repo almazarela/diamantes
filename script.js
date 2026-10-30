@@ -660,6 +660,7 @@ function renderSesion(user) {
 
   $("auth-forms").style.display = logueado ? "none" : "block";
   $("user-dashboard").style.display = logueado ? "block" : "none";
+  if ($("hist-arriba")) $("hist-arriba").style.display = logueado ? "block" : "none";
   $("admin-panel-section").style.display = esAdminEmail ? "block" : "none";
   if ($("sidebar-historial")) $("sidebar-historial").style.display = logueado ? "block" : "none";
   if (logueado) $("user-email-display").textContent = user.email;
@@ -1108,7 +1109,7 @@ function abrirHistorial() {
   }
   if ($("sidebar-menu")?.classList.contains("open")) toggleMenu();
   alternarHistorial(true);
-  setTimeout(() => $("user-dashboard")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  setTimeout(() => $("hist-arriba")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
 }
 
 function resetHistorialCompras() {
