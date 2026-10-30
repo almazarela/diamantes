@@ -128,28 +128,42 @@ function prepararMensajeChat(texto) {
   input.value = texto;
   input.scrollIntoView({ behavior: "smooth", block: "center" });
   input.focus();
+  if (window.innerWidth <= 800 && typeof alternarChat === "function") alternarChat(true);
 }
 
-function procesarCarga({ inputId, moneda, metodo, url, modalCerrar }) {
+function copiarDato(id, btn) {
+  const t = $(id)?.textContent || "";
+  const ok = () => { if (btn) { const o = btn.innerHTML; btn.classList.add("ok"); btn.innerHTML = '<i class="fa-solid fa-check"></i> ¡Copiado!'; setTimeout(() => { btn.classList.remove("ok"); btn.innerHTML = o; }, 1800); } };
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(ok).catch(() => {
+    const r = document.createRange(); r.selectNodeContents($(id)); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    try { document.execCommand("copy"); ok(); } catch (e) { /* queda seleccionado */ }
+  });
+}
+function elegirMonto(inputId, valor) {
+  const i = $(inputId); if (i) i.value = valor;
+  i?.closest(".pay-box")?.querySelectorAll(".pay-chip").forEach((b) => b.classList.toggle("sel", b.textContent.replace(/\D/g, "") === String(valor)));
+}
+
+function procesarCarga({ inputId, moneda, metodo, url, modalCerrar, minimo = 0 }) {
   const monto = parseFloat($(inputId)?.value);
-  if (!(monto > 0)) return mostrarAviso("Ingresá un monto válido.", "error");
+  if (!(monto > 0)) return mostrarAviso("Elegí o escribí el monto que enviaste.", "error");
+  if (monto < minimo) return mostrarAviso(`El monto mínimo es ${minimo} ${moneda}.`, "error");
   if (!usuarioActual) {
     cerrarTodosLosModales();
     mostrarAviso("Iniciá sesión con Google para cargar saldo.", "error");
     if (!$("sidebar-menu")?.classList.contains("open")) toggleMenu();
     return;
   }
-  if (url) window.open(url, "_blank", "noopener");
   modalCerrar();
   prepararMensajeChat(`Hola! Quiero cargar ${monto} ${moneda} con ${metodo}. Ahora te envío el comprobante.`);
   mostrarAviso("Realizá el pago y enviá el comprobante por el chat.", "ok");
 }
 
 function procesarPagoBinanceSeguro() {
-  procesarCarga({ inputId: "monto-usdt", moneda: "USD", metodo: "Binance USDT", url: CONFIG.BINANCE_PAY_URL, modalCerrar: cerrarModalBinance });
+  procesarCarga({ inputId: "monto-usdt", moneda: "USD", metodo: "Binance USDT", minimo: 10, modalCerrar: cerrarModalBinance });
 }
 function procesarPagoMPSeguro() {
-  procesarCarga({ inputId: "monto-mp", moneda: "ARS", metodo: "Mercado Pago", url: CONFIG.MP_PAY_URL, modalCerrar: cerrarModalMercadoPagoSaldo });
+  procesarCarga({ inputId: "monto-mp", moneda: "ARS", metodo: "Mercado Pago", minimo: 5000, modalCerrar: cerrarModalMercadoPagoSaldo });
 }
 
 // ------------------------- CARRUSEL ----------------------------------
@@ -2814,6 +2828,7 @@ document.addEventListener("DOMContentLoaded", () => {
 Object.assign(window, {
   toggleMenu, agregarPinesStock,
   abrirModalSeleccionCarga, cerrarModalSeleccionCarga,
+  copiarDato, elegirMonto,
   abrirModalBinance, cerrarModalBinance,
   abrirModalMercadoPagoSaldo, cerrarModalMercadoPagoSaldo,
   procesarPagoBinanceSeguro, procesarPagoMPSeguro,
