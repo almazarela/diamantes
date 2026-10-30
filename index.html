@@ -263,6 +263,48 @@
   @media (max-width: 800px) { .saldo-usd-badge.saldo-binance i, .saldo-usd-badge.saldo-mp i { display: inline-block; font-size: .7rem; } }
   @media (max-width: 480px) { .como-funciona { grid-template-columns: 1fr; } .cf-item { flex-direction: row; align-items: center; gap: 10px; text-align: left; flex-wrap: wrap; } .cf-item i { margin: 0; } }
 
+
+  /* ===== Opiniones ===== */
+  .op-resumen { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; background: linear-gradient(135deg, rgba(255,200,0,.08), rgba(229,71,9,.08)); border: 1px solid rgba(255,200,0,.25); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+  .op-resumen[hidden], .op-form-login[hidden], .op-form-campos[hidden], .op-btn[hidden], #op-mas[hidden] { display: none; }
+  .op-prom { display: flex; flex-direction: column; align-items: center; min-width: 110px; }
+  .op-prom b { font-family: 'Orbitron', sans-serif; font-size: 2.2rem; color: #ffd700; line-height: 1; }
+  .op-estrellas { color: #ffd700; letter-spacing: 2px; font-size: 1rem; }
+  .op-prom small { color: #8b93a7; font-size: .75rem; margin-top: 2px; }
+  .op-barras { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 4px; }
+  .op-barra { display: flex; align-items: center; gap: 8px; font-size: .72rem; color: #aab2c5; }
+  .op-barra i { font-style: normal; width: 22px; text-align: right; }
+  .op-barra span { flex: 1; height: 7px; background: #1b2033; border-radius: 99px; overflow: hidden; }
+  .op-barra span em { display: block; height: 100%; background: linear-gradient(90deg, #ffb300, #ff6d00); border-radius: 99px; }
+  .op-barra u { width: 20px; text-decoration: none; }
+  .op-form { background: #1a1d2e; border: 1px dashed #3a4060; border-radius: 14px; padding: 12px; margin-bottom: 14px; }
+  .op-form-login { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; color: #cfd6e6; font-size: .9rem; }
+  .op-form-tit { font-weight: 800; color: #fff; margin-bottom: 6px; font-size: .92rem; }
+  .op-pick { display: flex; gap: 4px; margin-bottom: 8px; }
+  .op-pick button { background: none; border: none; font-size: 1.7rem; line-height: 1; cursor: pointer; color: #3a4060; padding: 2px; transition: transform .1s, color .15s; }
+  .op-pick button.on { color: #ffd700; text-shadow: 0 0 10px rgba(255,200,0,.5); }
+  .op-pick button:hover { transform: scale(1.15); }
+  #op-texto { width: 100%; background: #0e0f16; border: 1px solid #3a3f58; border-radius: 10px; color: #fff; padding: 10px 12px; font: inherit; font-size: 16px; resize: vertical; min-height: 78px; outline: none; }
+  #op-texto:focus { border-color: #ffb300; }
+  .op-form-pie { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+  .op-form-pie small { margin-right: auto; color: #6b7385; }
+  .op-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border: none; border-radius: 999px; cursor: pointer; font-weight: 800; font-size: .85rem; background: linear-gradient(135deg, #ffb300, #ff6d00); color: #1a0d00; }
+  .op-btn-sec { background: #232842; color: #cfd6e6; }
+  .op-btn:disabled { opacity: .6; cursor: wait; }
+  .op-card { display: flex; gap: 12px; background: #222536; border: 1px solid #343850; border-radius: 12px; padding: 12px; }
+  .op-card.mia { border-color: #ffb300; }
+  .op-avatar { flex: 0 0 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; background: linear-gradient(135deg, #e54709, #ffb300); }
+  .op-cuerpo { flex: 1; min-width: 0; }
+  .op-cab { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+  .op-cab b { color: #fff; font-size: .9rem; }
+  .op-cab .op-estrellas { font-size: .8rem; letter-spacing: 1px; }
+  .op-cab time { margin-left: auto; color: #7b8296; font-size: .72rem; }
+  .op-cuerpo p { color: #dfe3ee; font-size: .9rem; line-height: 1.45; overflow-wrap: anywhere; margin: 0; }
+  .op-acc { display: flex; gap: 8px; margin-top: 6px; }
+  .op-acc button { background: none; border: none; color: #8b93a7; font-size: .75rem; cursor: pointer; padding: 2px 4px; }
+  .op-acc button:hover { color: #ff6b6b; }
+  .op-vacio { text-align: center; color: #8b93a7; padding: 18px 8px; font-size: .9rem; }
+
   /* ===== Chat en vivo: barra de envío ===== */
   .chat-input-area { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .chat-input-area #chat-user-input {
@@ -975,22 +1017,33 @@
   </div>
   </section>
   
-  <section class="card comments-section">
+  <section class="card comments-section" id="opiniones">
   <div class="step-title">
   <span class="badge"><i class="fa-solid fa-comments"></i></span>
   <h3>Opiniones de Clientes</h3>
-  <span class="rating-overall">⭐ 4.9/5 (+73.520 recargas)</span>
   </div>
-  <div class="comments-list" id="comments-list">
-  <div class="comment-item">
-  <div class="comment-header">
-  <span class="comment-user"><i class="fa-solid fa-circle-user"></i> Matias_FF</span>
-  <span class="comment-stars">⭐⭐⭐⭐⭐</span>
-  <span class="comment-time">Hace 3 semanas</span>
+  <div class="op-resumen" id="op-resumen" hidden>
+  <div class="op-prom"><b id="op-prom-num">0.0</b><span class="op-estrellas" id="op-prom-est"></span><small id="op-prom-total"></small></div>
+  <div class="op-barras" id="op-barras"></div>
   </div>
-  <p class="comment-body">10/10 súper rápido! Cargué 520 diamantes con Mercado Pago y llegaron al toque a mi ID 🔥</p>
+  <div class="op-form" id="op-form">
+  <div class="op-form-login" id="op-form-login" hidden>
+  <span>💎 ¿Ya recargaste? Contanos cómo te fue.</span>
+  <button type="button" class="op-btn" onclick="loginConGoogle()"><i class="fa-brands fa-google"></i> Iniciar sesión para opinar</button>
+  </div>
+  <div class="op-form-campos" id="op-form-campos" hidden>
+  <div class="op-form-tit" id="op-form-tit">Dejá tu opinión</div>
+  <div class="op-pick" id="op-pick" role="radiogroup" aria-label="Tu puntuación"></div>
+  <textarea id="op-texto" maxlength="300" rows="3" placeholder="¿Cómo fue tu recarga? ¿Llegaron rápido los diamantes?"></textarea>
+  <div class="op-form-pie">
+  <small id="op-cont">0/300</small>
+  <button type="button" class="op-btn op-btn-sec" id="op-cancelar" hidden onclick="cancelarEdicionOpinion()">Cancelar</button>
+  <button type="button" class="op-btn" id="op-enviar" onclick="publicarOpinion()"><i class="fa-solid fa-paper-plane"></i> Publicar</button>
   </div>
   </div>
+  </div>
+  <div class="comments-list" id="comments-list"><p class="op-vacio">Cargando opiniones…</p></div>
+  <button type="button" class="hist-mas" id="op-mas" hidden onclick="verMasOpiniones()">Ver más opiniones</button>
   </section>
   
   </div>

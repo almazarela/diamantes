@@ -708,6 +708,175 @@ async function enviarMensajeWebhook() {
   }
 }
 
+
+// ------------------------- OPINIONES DE CLIENTES ---------------------
+const OP_PASO = 6;
+let opiniones = [], opLimite = OP_PASO, opPuntos = 5, opEditando = false, opEnviando = false, opCargadas = false;
+
+function estrellasTxt(n) { return "★".repeat(n) + "☆".repeat(5 - n); }
+function nombreCorto(user) {
+  const m = user.user_metadata || {};
+  const base = String(m.full_name || m.name || (user.email || "").split("@")[0] || "Cliente").trim();
+  const p = base.split(/\s+/);
+  const n = p[0].slice(0, 20) + (p[1] ? " " + p[1][0].toUpperCase() + "." : "");
+  return n || "Cliente";
+}
+function hace(iso) {
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return "recién";
+  if (s < 3600) return `hace ${Math.floor(s / 60)} min`;
+  if (s < 86400) return `hace ${Math.floor(s / 3600)} h`;
+  if (s < 86400 * 30) { const d = Math.floor(s / 86400); return `hace ${d} ${d === 1 ? "día" : "días"}`; }
+  return new Date(iso).toLocaleDateString("es-AR");
+}
+async function cargarOpiniones() {
+  const { data, error } = await supabase.from("opiniones").select("id,user_id,nombre,estrellas,texto,created_at").order("created_at", { ascending: false }).limit(200);
+  if (error) {
+    console.warn("Opiniones:", error.message || error);
+    const l = $("comments-list");
+    if (l) l.innerHTML = '<p class="op-vacio">Pronto vas a poder ver y dejar opiniones acá.</p>';
+    return;
+  }
+  opiniones = data || [];
+  opCargadas = true;
+  renderOpiniones();
+}
+function esAdminActual() { return !!usuarioActual && (usuarioActual.email || "").toLowerCase() === CONFIG.ADMIN_EMAIL.toLowerCase(); }
+
+function renderOpiniones() {
+  const lista = $("comments-list");
+  if (!lista) return;
+  const mia = usuarioActual ? opiniones.find((o) => o.user_id === usuarioActual.id) : null;
+
+  // formulario según sesión
+  $("op-form-login").hidden = !!usuarioActual;
+  $("op-form-campos").hidden = !usuarioActual || (!!mia && !opEditando);
+  if ($("op-form")) $("op-form").hidden = !!usuarioActual && !!mia && !opEditando;
+  if (usuarioActual && !$("op-pick").childElementCount) pintarSelectorEstrellas();
+
+  // resumen
+  const res = $("op-resumen");
+  if (res) {
+    res.hidden = !opiniones.length;
+    if (opiniones.length) {
+      const prom = opiniones.reduce((a, o) => a + o.estrellas, 0) / opiniones.length;
+      $("op-prom-num").textContent = prom.toFixed(1);
+      $("op-prom-est").textContent = estrellasTxt(Math.round(prom));
+      $("op-prom-total").textContent = `${opiniones.length} ${opiniones.length === 1 ? "opinión" : "opiniones"}`;
+      const cont = $("op-barras"); cont.replaceChildren();
+      for (let e = 5; e >= 1; e--) {
+        const c = opiniones.filter((o) => o.estrellas === e).length;
+        const fila = document.createElement("div"); fila.className = "op-barra";
+        const i = document.createElement("i"); i.textContent = e + "★";
+        const sp = document.createElement("span"); const em = document.createElement("em"); em.style.width = (c / opiniones.length * 100) + "%"; sp.appendChild(em);
+        const u = document.createElement("u"); u.textContent = c;
+        fila.append(i, sp, u); cont.appendChild(fila);
+      }
+    }
+  }
+
+  lista.replaceChildren();
+  if (!opCargadas) return;
+  if (!opiniones.length) {
+    const p = document.createElement("p"); p.className = "op-vacio";
+    p.textContent = "Todavía no hay opiniones. ¡Sé el primero en contar tu experiencia! 💎";
+    lista.appendChild(p);
+  }
+  const visibles = opiniones.slice(0, opLimite);
+  visibles.forEach((o) => {
+    const card = document.createElement("div");
+    card.className = "op-card" + (usuarioActual && o.user_id === usuarioActual.id ? " mia" : "");
+    const av = document.createElement("div"); av.className = "op-avatar"; av.textContent = (o.nombre || "?")[0].toUpperCase();
+    const cu = document.createElement("div"); cu.className = "op-cuerpo";
+    const cab = document.createElement("div"); cab.className = "op-cab";
+    const nom = document.createElement("b"); nom.textContent = o.nombre;
+    const est = document.createElement("span"); est.className = "op-estrellas"; est.textContent = estrellasTxt(o.estrellas);
+    const t = document.createElement("time"); t.textContent = hace(o.created_at);
+    cab.append(nom, est, t);
+    const tx = document.createElement("p"); tx.textContent = o.texto;
+    cu.append(cab, tx);
+    const propia = usuarioActual && o.user_id === usuarioActual.id;
+    if (propia || esAdminActual()) {
+      const acc = document.createElement("div"); acc.className = "op-acc";
+      if (propia) {
+        const ed = document.createElement("button"); ed.type = "button"; ed.textContent = "✏️ Editar";
+        ed.addEventListener("click", () => editarOpinion(o));
+        acc.appendChild(ed);
+      }
+      const del = document.createElement("button"); del.type = "button"; del.textContent = "🗑️ Eliminar";
+      del.addEventListener("click", () => eliminarOpinion(o));
+      acc.appendChild(del);
+      cu.appendChild(acc);
+    }
+    card.append(av, cu);
+    lista.appendChild(card);
+  });
+  if ($("op-mas")) $("op-mas").hidden = opiniones.length <= opLimite;
+}
+function verMasOpiniones() { opLimite += OP_PASO; renderOpiniones(); }
+
+function pintarSelectorEstrellas() {
+  const box = $("op-pick"); box.replaceChildren();
+  for (let i = 1; i <= 5; i++) {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = "★"; b.setAttribute("role", "radio"); b.setAttribute("aria-label", i + " estrellas");
+    b.addEventListener("click", () => { opPuntos = i; marcarEstrellas(); });
+    box.appendChild(b);
+  }
+  marcarEstrellas();
+}
+function marcarEstrellas() {
+  [...$("op-pick").children].forEach((b, i) => { b.classList.toggle("on", i < opPuntos); b.setAttribute("aria-checked", String(i < opPuntos && i === opPuntos - 1)); });
+}
+function editarOpinion(o) {
+  opEditando = true; opPuntos = o.estrellas;
+  $("op-texto").value = o.texto; actualizarContadorOp();
+  $("op-form-tit").textContent = "Editá tu opinión";
+  $("op-cancelar").hidden = false;
+  renderOpiniones(); marcarEstrellas();
+  $("op-form")?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+function cancelarEdicionOpinion() {
+  opEditando = false; $("op-texto").value = ""; opPuntos = 5; actualizarContadorOp();
+  $("op-form-tit").textContent = "Dejá tu opinión"; $("op-cancelar").hidden = true;
+  renderOpiniones();
+}
+function actualizarContadorOp() { const t = $("op-texto"); if (t && $("op-cont")) $("op-cont").textContent = t.value.length + "/300"; }
+
+async function publicarOpinion() {
+  if (opEnviando) return;
+  if (!usuarioActual) return mostrarAviso("Iniciá sesión con Google para opinar.", "error");
+  const texto = $("op-texto").value.trim();
+  if (texto.length < 5) return mostrarAviso("Escribí al menos unas palabras sobre tu experiencia.", "error");
+  opEnviando = true; $("op-enviar").disabled = true;
+  try {
+    const { error } = await supabase.from("opiniones").upsert(
+      { user_id: usuarioActual.id, nombre: nombreCorto(usuarioActual), estrellas: opPuntos, texto },
+      { onConflict: "user_id" }
+    );
+    if (error) throw error;
+    mostrarAviso("¡Gracias por tu opinión! 🔥", "ok");
+    opEditando = false; $("op-texto").value = ""; $("op-form-tit").textContent = "Dejá tu opinión"; $("op-cancelar").hidden = true; actualizarContadorOp();
+    await cargarOpiniones();
+  } catch (err) {
+    console.error("Opinión:", err);
+    mostrarAviso(/relation .* does not exist|42P01|opiniones/i.test(String(err.message || "")) ? "Las opiniones todavía no están activadas." : "No se pudo publicar. Reintentá.", "error");
+  } finally {
+    opEnviando = false; $("op-enviar").disabled = false;
+  }
+}
+async function eliminarOpinion(o) {
+  if (!confirm("¿Eliminar esta opinión?")) return;
+  const { error } = await supabase.from("opiniones").delete().eq("id", o.id);
+  if (error) return mostrarAviso("No se pudo eliminar.", "error");
+  opiniones = opiniones.filter((x) => x.id !== o.id);
+  if (usuarioActual && o.user_id === usuarioActual.id) opEditando = false;
+  renderOpiniones();
+  mostrarAviso("Opinión eliminada.", "ok");
+}
+$("op-texto")?.addEventListener("input", actualizarContadorOp);
+cargarOpiniones();
+
 // ------------------------- AUTENTICACIÓN -----------------------------
 async function loginConGoogle() {
   try {
@@ -738,6 +907,7 @@ function renderSesion(user) {
   $("auth-forms").style.display = logueado ? "none" : "block";
   $("user-dashboard").style.display = logueado ? "block" : "none";
   if ($("hist-arriba")) $("hist-arriba").style.display = logueado ? "block" : "none";
+  if (typeof renderOpiniones === "function") { opEditando = false; renderOpiniones(); }
   $("admin-panel-section").style.display = esAdminEmail ? "block" : "none";
   if ($("sidebar-historial")) $("sidebar-historial").style.display = logueado ? "block" : "none";
   if (logueado) $("user-email-display").textContent = user.email;
@@ -2930,5 +3100,6 @@ Object.assign(window, {
   comprarPaquete,
   mostrarVistaAdmin,
   alternarHistorial, abrirHistorial,
+  publicarOpinion, cancelarEdicionOpinion, verMasOpiniones,
   loginConGoogle, logoutGoogle,
 });
