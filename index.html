@@ -239,6 +239,30 @@
   .pay-qr-img img, .pay-qr-img canvas { max-width: 100%; height: auto; }
   .pay-qr small { color: #8b93a7; font-size: 11px; }
 
+
+  /* ===== Saldos con estilo Binance / Mercado Pago ===== */
+  .saldo-usd-badge.saldo-binance { background: linear-gradient(135deg, #2b2f36, #1e2329); color: #fcd535; border: 1px solid #fcd535; border-radius: 8px; box-shadow: 0 0 10px rgba(252,213,53,.25); animation: none; }
+  .saldo-usd-badge.saldo-binance i { color: #fcd535; }
+  .saldo-usd-badge.saldo-mp { background: linear-gradient(135deg, #00b1ea, #009ee3); color: #fff; border: 1px solid #7fd3f7; border-radius: 8px; box-shadow: 0 0 10px rgba(0,158,227,.35); animation: none; }
+  .saldo-usd-badge.saldo-mp i { color: #ffe600; }
+  .wallet-card.wallet-compacta { padding: 12px; text-align: center; }
+  .wallet-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .wallet-mini { border-radius: 12px; padding: 10px 8px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .wm-lbl { font-size: .72rem; font-weight: 700; letter-spacing: .3px; }
+  .wm-monto { font-size: 1.15rem; font-weight: 800; overflow-wrap: anywhere; }
+  .wm-mp { background: linear-gradient(135deg, #00b1ea, #009ee3); color: #fff; border: 1px solid #7fd3f7; }
+  .wm-mp .wm-lbl i { color: #ffe600; }
+  .wm-bn { background: linear-gradient(135deg, #2b2f36, #1e2329); color: #fcd535; border: 1px solid #fcd535; }
+  .btn-cargar-mini { display: inline-flex; align-items: center; gap: 6px; justify-content: center; text-decoration: none; padding: 7px 18px; font-size: .8rem; }
+  .wallet-compacta .wallet-subtext { margin: 8px 0 0; font-size: .72rem; }
+  .como-funciona { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .cf-item { background: rgba(255,255,255,.04); border: 1px solid #2b3544; border-radius: 12px; padding: 12px 8px; text-align: center; display: flex; flex-direction: column; gap: 3px; }
+  .cf-item i { font-size: 1.4rem; color: #38bdf8; margin-bottom: 4px; }
+  .cf-item b { font-size: .85rem; color: #fff; }
+  .cf-item span { font-size: .72rem; color: #8b93a7; }
+  @media (max-width: 800px) { .saldo-usd-badge.saldo-binance i, .saldo-usd-badge.saldo-mp i { display: inline-block; font-size: .7rem; } }
+  @media (max-width: 480px) { .como-funciona { grid-template-columns: 1fr; } .cf-item { flex-direction: row; align-items: center; gap: 10px; text-align: left; flex-wrap: wrap; } .cf-item i { margin: 0; } }
+
   /* ===== Chat en vivo: barra de envío ===== */
   .chat-input-area { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .chat-input-area #chat-user-input {
@@ -439,8 +463,8 @@
   <div class="region">🇦🇷 Argentina<span class="region-es"> | ES</span></div>
   <div class="header-wallet-container" style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
   <div class="saldo-badges">
-  <div class="saldo-usd-badge"><i class="fa-solid fa-wallet"></i> <span class="lbl-saldo">SALDO </span>USD <span id="header-balance-amount" style="margin-left: 5px; font-weight: 900;">$0.00</span></div>
-  <div class="saldo-usd-badge saldo-ars-badge"><i class="fa-solid fa-wallet"></i> <span class="lbl-saldo">SALDO </span>ARS <span id="header-balance-ars" style="margin-left: 5px; font-weight: 900;">$0,00</span></div>
+  <div class="saldo-usd-badge saldo-binance"><i class="fa-brands fa-bitcoin"></i> <span class="lbl-saldo">BINANCE </span>USD <span id="header-balance-amount" style="margin-left: 5px; font-weight: 900;">$0.00</span></div>
+  <div class="saldo-usd-badge saldo-ars-badge saldo-mp"><i class="fa-solid fa-handshake"></i> <span class="lbl-saldo">MERCADO PAGO </span>ARS <span id="header-balance-ars" style="margin-left: 5px; font-weight: 900;">$0,00</span></div>
   </div>
   <a href="javascript:void(0)" class="btn-cargar-saldo" aria-label="Cargar Saldo" onclick="abrirModalSeleccionCarga()" style="font-size: 0.75rem; color: #4ef38d; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;"><i class="fa-solid fa-plus-circle"></i> Cargar Saldo</a>
   </div>
@@ -842,12 +866,12 @@
   <section class="card">
   <div class="step-title">
   <span class="badge">3</span>
-  <h3>Medios de pago aceptados</h3>
+  <h3>Así de fácil funciona</h3>
   </div>
-  <div class="payment-methods">
-  <span class="pay-tag">Mercado Pago</span>
-  <span class="pay-tag">Transferencia Bancaria</span>
-  <span class="pay-tag" style="background: rgba(74, 70, 87, 0.26); color: #f3ba2f; border: 1px solid #ceb577;">Binance USDT</span>
+  <div class="como-funciona">
+  <div class="cf-item"><i class="fa-solid fa-id-card"></i><b>Ponés tu ID</b><span>Verificamos tu nombre</span></div>
+  <div class="cf-item"><i class="fa-solid fa-gem"></i><b>Elegís el paquete</b><span>Pagás con tu saldo</span></div>
+  <div class="cf-item"><i class="fa-solid fa-bolt"></i><b>Recibís al toque</b><span>Se acredita automático</span></div>
   </div>
   </section>
   
@@ -870,14 +894,21 @@
   <span class="dashboard-user-text">Bienvenido, <b id="user-email-display">usuario@gmail.com</b></span>
   <button class="btn-logout" onclick="logoutGoogle()">Cerrar Sesión</button>
   </div>
-  <div class="wallet-card">
-  <span class="wallet-label">Tu Saldo Virtual</span>
-  <h2 class="wallet-amount" id="user-balance">$0.00 USD</h2>
-  <h2 class="wallet-amount" id="user-balance-ars" style="margin-top:4px;">$0,00 ARS</h2>
-  <p class="wallet-subtext">Cada recarga descuenta el saldo de la moneda del paquete (USD o ARS).</p>
-  <a href="javascript:void(0)" onclick="abrirModalSeleccionCarga()" class="btn-add-funds" style="display:inline-flex; align-items:center; gap:6px; justify-content:center; text-decoration:none;">
-  <i class="fa-solid fa-plus-circle"></i> Cargar Saldo con Binance o Mercado Pago
+  <div class="wallet-card wallet-compacta">
+  <div class="wallet-duo">
+  <div class="wallet-mini wm-mp">
+  <span class="wm-lbl"><i class="fa-solid fa-handshake"></i> Mercado Pago</span>
+  <b class="wm-monto" id="user-balance-ars">$0,00 ARS</b>
+  </div>
+  <div class="wallet-mini wm-bn">
+  <span class="wm-lbl"><i class="fa-brands fa-bitcoin"></i> Binance</span>
+  <b class="wm-monto" id="user-balance">$0.00 USD</b>
+  </div>
+  </div>
+  <a href="javascript:void(0)" onclick="abrirModalSeleccionCarga()" class="btn-add-funds btn-cargar-mini">
+  <i class="fa-solid fa-plus-circle"></i> Cargar saldo
   </a>
+  <p class="wallet-subtext">Cada recarga descuenta el saldo de la moneda del paquete.</p>
   </div>
 
 
