@@ -334,6 +334,14 @@
   .pay-qr-img.grande { width: 200px; min-height: 200px; }
   .pay-qr-img.grande img { width: 100%; height: auto; border-radius: 6px; }
 
+
+  .adm-buscar { display: flex; align-items: center; gap: 8px; background: #0e0f16; border: 1px solid #3a3f58; border-radius: 999px; padding: 0 14px; }
+  .adm-buscar i { color: #f3ba2f; }
+  .adm-buscar:focus-within { border-color: #f3ba2f; }
+  .adm-buscar input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: #fff; padding: 10px 0; font-size: 16px; }
+  .adm-vacio { color: #8b93a7; font-size: 12px; margin: 0; text-align: center; }
+  .adm-vacio[hidden] { display: none; }
+
   /* ===== Chat en vivo: barra de envío ===== */
   .chat-input-area { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .chat-input-area #chat-user-input {
@@ -578,8 +586,6 @@
   <button type="button" class="pay-copiar" onclick="copiarDato('modal-binance-dato', this)"><i class="fa-regular fa-copy"></i> Copiar</button>
   </div>
   <p class="pay-nota">Enviá <b>USDT</b> por <b>Binance Pay</b> (transferencia interna, sin comisión).</p>
-  <button type="button" class="pay-qr-btn" hidden onclick="alternarQR('modal-binance-qr','1252553144')" aria-expanded="false"><i class="fa-solid fa-qrcode"></i><span> Generar QR</span></button>
-  <div class="pay-qr" id="modal-binance-qr" hidden><div class="pay-qr-img"></div><small>Escaneá con la app de Binance.</small></div>
   <div class="pay-chips"><button type="button" class="pay-chip" onclick="elegirMonto('monto-usdt',10)">10 USD</button><button type="button" class="pay-chip" onclick="elegirMonto('monto-usdt',20)">20 USD</button><button type="button" class="pay-chip" onclick="elegirMonto('monto-usdt',50)">50 USD</button><button type="button" class="pay-chip" onclick="elegirMonto('monto-usdt',100)">100 USD</button></div>
   <input type="number" inputmode="decimal" id="monto-usdt" placeholder="Otro monto (mínimo 10 USD)" class="pay-input">
   <button type="button" onclick="procesarPagoBinanceSeguro()" class="pay-ya" style="background:linear-gradient(135deg,#f3ba2f,#f0a500);color:#000;">
@@ -610,8 +616,6 @@
   <button type="button" class="pay-copiar" onclick="copiarDato('modal-mercadopago-cvu', this)"><i class="fa-regular fa-copy"></i> Copiar</button>
   </div>
   <p class="pay-nota">Transferencia desde cualquier banco o billetera. Titular: Julian Pereyra.</p>
-  <button type="button" class="pay-qr-btn" hidden onclick="alternarQR('modal-mercadopago-qr','almazarela.com')" aria-expanded="false"><i class="fa-solid fa-qrcode"></i><span> Generar QR</span></button>
-  <div class="pay-qr" id="modal-mercadopago-qr" hidden><div class="pay-qr-img"></div><small>Escaneá con la cámara o con la app de tu banco.</small></div>
   <div class="pay-chips"><button type="button" class="pay-chip" onclick="elegirMonto('monto-mp',5000)">$5.000</button><button type="button" class="pay-chip" onclick="elegirMonto('monto-mp',10000)">$10.000</button><button type="button" class="pay-chip" onclick="elegirMonto('monto-mp',20000)">$20.000</button><button type="button" class="pay-chip" onclick="elegirMonto('monto-mp',50000)">$50.000</button></div>
   <input type="number" inputmode="decimal" id="monto-mp" placeholder="Otro monto" class="pay-input">
   <button type="button" onclick="procesarPagoMPSeguro()" class="pay-ya" style="background:linear-gradient(135deg,#009ee3,#0073a8);color:#fff;">
@@ -1008,8 +1012,12 @@
   <div id="admin-vista-clientes" role="tabpanel">
   <p style="font-size: 13px; color: #aaa; margin-bottom: 12px;">Seleccioná un cliente para ver sus comprobantes y acreditarle saldo:</p>
   <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-  <div style="flex: 1; min-width: 200px; background: #0e0f16; border-radius: 8px; padding: 10px; min-height: 200px; max-height: min(88vh, 900px); align-self: flex-start; overflow-y: auto; overscroll-behavior: contain;" id="admin-users-list">
+  <div style="flex: 1; min-width: 200px; align-self: flex-start; display: flex; flex-direction: column; gap: 8px;">
+  <label class="adm-buscar"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="admin-buscar-cliente" placeholder="Buscar cliente (nombre o correo)" autocomplete="off" aria-label="Buscar cliente"></label>
+  <p id="admin-buscar-vacio" class="adm-vacio" hidden>No hay clientes con ese nombre.</p>
+  <div style="background: #0e0f16; border-radius: 8px; padding: 10px; min-height: 200px; max-height: min(88vh, 900px); overflow-y: auto; overscroll-behavior: contain;" id="admin-users-list">
   <p style="font-size: 12px; color: #666;">Cargando lista de clientes...</p>
+  </div>
   </div>
   <div style="flex: 2; min-width: 250px; background: #0e0f16; border-radius: 8px; padding: 12px; display: flex; flex-direction: column;" id="admin-chat-view">
   <p style="font-size: 13px; color: #888; text-align: center; margin: auto;">Seleccioná un usuario de la izquierda</p>
@@ -1106,19 +1114,6 @@ function chatRapido(t){
   var i=document.getElementById('chat-user-input'); if(!i) return;
   i.value=t; i.focus();
 }
-</script>
-<script>
-// El botón "Generar QR" solo aparece si subís la imagen del QR de cobro (qr-mercadopago.png / qr-binance.png) a la carpeta de la página
-[['modal-mercadopago','qr-mercadopago.png'],['modal-binance','qr-binance.png']].forEach(function(p){
-  var im=new Image();
-  im.onload=function(){
-    var q=document.getElementById(p[0]+'-qr'); if(!q) return;
-    var b=q.previousElementSibling, box=q.querySelector('.pay-qr-img');
-    im.alt='Código QR'; box.replaceChildren(im); box.classList.add('grande'); box.dataset.listo='1';
-    if(b) b.hidden=false;
-  };
-  im.src=p[1];
-});
 </script>
 </body>
 </html>

@@ -139,35 +139,6 @@ function copiarDato(id, btn) {
     try { document.execCommand("copy"); ok(); } catch (e) { /* queda seleccionado */ }
   });
 }
-let cargaQR = null;
-function cargarLibQR() {
-  if (window.QRCode) return Promise.resolve();
-  if (!cargaQR) cargaQR = new Promise((ok, mal) => {
-    const sc = document.createElement("script");
-    sc.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
-    sc.onload = ok; sc.onerror = () => { cargaQR = null; mal(new Error("qr")); };
-    document.head.appendChild(sc);
-  });
-  return cargaQR;
-}
-async function alternarQR(id, texto) {
-  const q = $(id); if (!q) return;
-  const abrir = q.hidden;
-  q.hidden = !abrir;
-  const b = q.previousElementSibling;
-  if (b) { b.setAttribute("aria-expanded", String(abrir)); b.querySelector("span").textContent = abrir ? " Ocultar QR" : " Generar QR"; }
-  if (!abrir) return;
-  const caja = q.querySelector(".pay-qr-img");
-  if (caja.dataset.listo) return;
-  try {
-    await cargarLibQR();
-    caja.replaceChildren();
-    new window.QRCode(caja, { text: texto, width: 150, height: 150, correctLevel: window.QRCode.CorrectLevel.M });
-    caja.dataset.listo = "1";
-  } catch (e) {
-    caja.textContent = "No se pudo generar el QR. Usá el botón Copiar.";
-  }
-}
 function elegirMonto(inputId, valor) {
   const i = $(inputId); if (i) i.value = valor;
   i?.closest(".pay-box")?.querySelectorAll(".pay-chip").forEach((b) => b.classList.toggle("sel", b.textContent.replace(/\D/g, "") === String(valor)));
@@ -997,6 +968,50 @@ async function eliminarOpinion(o) {
 }
 $("op-texto")?.addEventListener("input", actualizarContadorOp);
 cargarOpiniones();
+
+
+// ---- Lupas del panel de administrador: buscar cliente y buscar dentro de la conversación ----
+const sinTildes = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+function filtrarHijos(contenedor, consulta, omitir) {
+  const q = sinTildes(consulta).trim();
+  let visibles = 0, total = 0;
+  [...contenedor.children].forEach((el) => {
+    if (omitir && omitir(el)) return;
+    total++;
+    const ok = !q || sinTildes(el.textContent).includes(q);
+    el.style.display = ok ? "" : "none";
+    if (ok) visibles++;
+  });
+  return { visibles, total, q };
+}
+function iniciarBuscadorClientes() {
+  const inp = $("admin-buscar-cliente"), lista = $("admin-users-list");
+  if (!inp || !lista) return;
+  const aplicar = () => {
+    const r = filtrarHijos(lista, inp.value, (el) => el.tagName === "P");
+    const v = $("admin-buscar-vacio"); if (v) v.hidden = !(r.q && r.total && !r.visibles);
+  };
+  inp.addEventListener("input", aplicar);
+  new MutationObserver(aplicar).observe(lista, { childList: true });
+}
+function agregarBuscadorConversacion(vista, msgs) {
+  const caja = document.createElement("label");
+  caja.className = "adm-buscar"; caja.style.marginBottom = "8px";
+  const ic = document.createElement("i"); ic.className = "fa-solid fa-magnifying-glass";
+  const inp = document.createElement("input");
+  inp.type = "search"; inp.id = "admin-buscar-msg"; inp.placeholder = "Buscar en esta conversación…"; inp.autocomplete = "off";
+  inp.setAttribute("aria-label", "Buscar en la conversación");
+  const cont = document.createElement("small"); cont.style.cssText = "color:#8b93a7;white-space:nowrap;font-size:11px;";
+  caja.append(ic, inp, cont);
+  const aplicar = () => {
+    const r = filtrarHijos(msgs, inp.value, (el) => el.tagName === "P");
+    cont.textContent = r.q ? `${r.visibles} resultado${r.visibles === 1 ? "" : "s"}` : "";
+  };
+  inp.addEventListener("input", aplicar);
+  new MutationObserver(aplicar).observe(msgs, { childList: true });
+  vista.insertBefore(caja, msgs);
+}
+iniciarBuscadorClientes();
 
 // ------------------------- AUTENTICACIÓN -----------------------------
 async function loginConGoogle() {
@@ -2146,6 +2161,7 @@ function construirVistaCliente() {
   cargando.textContent = "Cargando mensajes…";
   msgs.appendChild(cargando);
   vista.appendChild(msgs);
+  agregarBuscadorConversacion(vista, msgs);
 
   // --- Responder ---
   const resp = document.createElement("div");
@@ -3208,7 +3224,7 @@ document.addEventListener("DOMContentLoaded", () => {
 Object.assign(window, {
   toggleMenu, agregarPinesStock,
   abrirModalSeleccionCarga, cerrarModalSeleccionCarga,
-  copiarDato, elegirMonto, alternarQR,
+  copiarDato, elegirMonto,
   abrirModalBinance, cerrarModalBinance,
   abrirModalMercadoPagoSaldo, cerrarModalMercadoPagoSaldo,
   procesarPagoBinanceSeguro, procesarPagoMPSeguro,
