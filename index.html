@@ -571,6 +571,58 @@
   
   <div class="container">
   
+  <section class="card auth-card" id="auth-section">
+  <div class="step-title">
+  <span class="badge"><i class="fa-solid fa-user-gear"></i></span>
+  <h3>Cuenta Revendedor</h3>
+  </div>
+  
+  <div id="auth-forms" class="auth-box">
+  <p class="auth-desc">Iniciá sesión con tu cuenta de Google para gestionar tu monedero y chatear con soporte.</p>
+  <button class="btn-google-login" onclick="loginConGoogle()">
+  <i class="fa-brands fa-google" style="color: #ea4335;"></i> Iniciar Sesión con Google
+  </button>
+  </div>
+  
+  <div id="user-dashboard" class="dashboard-box" style="display: none;">
+  <div class="dashboard-header">
+  <span class="dashboard-user-text">Bienvenido, <b id="user-email-display">usuario@gmail.com</b></span>
+  <button class="btn-logout" onclick="logoutGoogle()">Cerrar Sesión</button>
+  </div>
+  <div class="wallet-card">
+  <span class="wallet-label">Tu Saldo Virtual</span>
+  <h2 class="wallet-amount" id="user-balance">$0.00 USD</h2>
+  <h2 class="wallet-amount" id="user-balance-ars" style="margin-top:4px;">$0,00 ARS</h2>
+  <p class="wallet-subtext">Cada recarga descuenta el saldo de la moneda del paquete (USD o ARS).</p>
+  <a href="javascript:void(0)" onclick="abrirModalSeleccionCarga()" class="btn-add-funds" style="display:inline-flex; align-items:center; gap:6px; justify-content:center; text-decoration:none;">
+  <i class="fa-solid fa-plus-circle"></i> Cargar Saldo con Binance o Mercado Pago
+  </a>
+  </div>
+
+  <div class="hist-box" id="hist-box">
+  <button type="button" id="hist-toggle" class="hist-toggle" aria-expanded="false" aria-controls="hist-panel" onclick="alternarHistorial()">
+  <span class="hist-toggle-txt"><i class="fa-solid fa-receipt"></i> Mi Historial de Compras</span>
+  <span id="hist-contador" class="hist-contador" hidden>0</span>
+  <i class="fa-solid fa-chevron-down hist-flecha"></i>
+  </button>
+  <div id="hist-panel" class="hist-panel" hidden>
+  <div class="hist-barra">
+  <select id="hist-filtro" aria-label="Filtrar compras por estado">
+  <option value="todas">Todas</option>
+  <option value="completada">Acreditadas</option>
+  <option value="proceso">En proceso</option>
+  <option value="fallida">Devueltas</option>
+  </select>
+  <button type="button" id="hist-refrescar" class="hist-btn-ref" aria-label="Actualizar historial"><i class="fa-solid fa-rotate"></i> <span>Actualizar</span></button>
+  </div>
+  <p id="hist-resumen" class="hist-resumen" aria-live="polite"></p>
+  <div id="hist-lista" class="hist-lista"></div>
+  <button type="button" id="hist-mas" class="hist-mas" hidden>Ver más compras</button>
+  </div>
+  </div>
+  </div>
+  </section>
+
   <div class="main-layout-grid">
   
   <!-- COLUMNA IZQUIERDA -->
@@ -720,20 +772,31 @@
   
   <!-- COLUMNA DERECHA: CHAT EN VIVO -->
   <div class="right-widgets-col">
-  <div class="chat-widget-card">
+  <button type="button" id="chat-fab" class="chat-fab" aria-label="Abrir chat de soporte" onclick="alternarChat()">
+  <i class="fa-solid fa-comments"></i><span>Chat</span>
+  </button>
+  <div class="chat-widget-card chat-v2" id="chat-widget">
   <div class="chat-widget-header">
-  <span><i class="fa-solid fa-comments"></i> CHAT EN VIVO: ALMA ZARELA</span>
-  <span class="chat-status-dot"></span>
+  <div class="chat-agente">
+  <span class="chat-avatar">Z<i class="chat-status-dot"></i></span>
+  <span class="chat-agente-txt"><strong>Soporte Zarela</strong><small>En línea · te respondemos acá mismo</small></span>
+  </div>
+  <button type="button" class="chat-cerrar" aria-label="Cerrar chat" onclick="alternarChat(false)"><i class="fa-solid fa-xmark"></i></button>
   </div>
   <div class="chat-messages-area" id="chat-messages-container">
-  <div class="chat-message admin-msg">HOLA, ¿en qué te puedo ayudar hoy? Iniciá sesión con Google para guardar tu historial de compras.</div>
+  <div class="chat-message admin-msg">¡Hola! 👋 ¿En qué te puedo ayudar hoy? Iniciá sesión con Google para guardar tu historial y enviar comprobantes.</div>
+  </div>
+  <div class="chat-chips" aria-label="Preguntas rápidas">
+  <button type="button" onclick="chatRapido('Quiero hacer una recarga')">💎 Quiero recargar</button>
+  <button type="button" onclick="chatRapido('¿Cómo envío mi comprobante de pago?')">🧾 Comprobante</button>
+  <button type="button" onclick="chatRapido('Tengo un problema con mi pedido')">⚠️ Problema con pedido</button>
   </div>
   <div class="chat-input-area">
    <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarMensajeWebhook()">
-   <button type="button" class="btn-attach" aria-label="Adjuntar comprobante" onclick="document.getElementById('chat-file-input').click()" title="Adjuntar Comprobante">
+   <button type="button" class="btn-attach" aria-label="Adjuntar comprobante" onclick="document.getElementById('chat-file-input').click()" title="Adjuntar comprobante">
      <i class="fa-solid fa-paperclip"></i>
    </button>
-   <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje aquí..." onkeydown="if(event.key === 'Enter'){ enviarMensajeWebhook(); }">
+   <input type="text" id="chat-user-input" placeholder="Escribí tu mensaje..." enterkeyhint="send" autocomplete="off" onkeydown="if(event.key === 'Enter'){ enviarMensajeWebhook(); }">
    <button type="button" class="btn-send" aria-label="Enviar mensaje" onclick="enviarMensajeWebhook()" title="Enviar mensaje">
      <i class="fa-solid fa-paper-plane"></i>
    </button>
@@ -762,57 +825,6 @@
   </div>
   </section>
   
-  <section class="card auth-card" id="auth-section">
-  <div class="step-title">
-  <span class="badge"><i class="fa-solid fa-user-gear"></i></span>
-  <h3>Cuenta Revendedor</h3>
-  </div>
-  
-  <div id="auth-forms" class="auth-box">
-  <p class="auth-desc">Iniciá sesión con tu cuenta de Google para gestionar tu monedero y chatear con soporte.</p>
-  <button class="btn-google-login" onclick="loginConGoogle()">
-  <i class="fa-brands fa-google" style="color: #ea4335;"></i> Iniciar Sesión con Google
-  </button>
-  </div>
-  
-  <div id="user-dashboard" class="dashboard-box" style="display: none;">
-  <div class="dashboard-header">
-  <span class="dashboard-user-text">Bienvenido, <b id="user-email-display">usuario@gmail.com</b></span>
-  <button class="btn-logout" onclick="logoutGoogle()">Cerrar Sesión</button>
-  </div>
-  <div class="wallet-card">
-  <span class="wallet-label">Tu Saldo Virtual</span>
-  <h2 class="wallet-amount" id="user-balance">$0.00 USD</h2>
-  <h2 class="wallet-amount" id="user-balance-ars" style="margin-top:4px;">$0,00 ARS</h2>
-  <p class="wallet-subtext">Cada recarga descuenta el saldo de la moneda del paquete (USD o ARS).</p>
-  <a href="javascript:void(0)" onclick="abrirModalSeleccionCarga()" class="btn-add-funds" style="display:inline-flex; align-items:center; gap:6px; justify-content:center; text-decoration:none;">
-  <i class="fa-solid fa-plus-circle"></i> Cargar Saldo con Binance o Mercado Pago
-  </a>
-  </div>
-
-  <div class="hist-box" id="hist-box">
-  <button type="button" id="hist-toggle" class="hist-toggle" aria-expanded="false" aria-controls="hist-panel" onclick="alternarHistorial()">
-  <span class="hist-toggle-txt"><i class="fa-solid fa-receipt"></i> Mi Historial de Compras</span>
-  <span id="hist-contador" class="hist-contador" hidden>0</span>
-  <i class="fa-solid fa-chevron-down hist-flecha"></i>
-  </button>
-  <div id="hist-panel" class="hist-panel" hidden>
-  <div class="hist-barra">
-  <select id="hist-filtro" aria-label="Filtrar compras por estado">
-  <option value="todas">Todas</option>
-  <option value="completada">Acreditadas</option>
-  <option value="proceso">En proceso</option>
-  <option value="fallida">Devueltas</option>
-  </select>
-  <button type="button" id="hist-refrescar" class="hist-btn-ref" aria-label="Actualizar historial"><i class="fa-solid fa-rotate"></i> <span>Actualizar</span></button>
-  </div>
-  <p id="hist-resumen" class="hist-resumen" aria-live="polite"></p>
-  <div id="hist-lista" class="hist-lista"></div>
-  <button type="button" id="hist-mas" class="hist-mas" hidden>Ver más compras</button>
-  </div>
-  </div>
-  </div>
-  </section>
   
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="step-title">
@@ -904,5 +916,18 @@
   <img data-src="disco.jpg" id="imagen-disco" alt="Disco de Música" onerror="this.style.opacity='0';">
   <i id="icono-musica" class="fa-solid fa-play"></i>
   </button>
+<script>
+function alternarChat(forzar){
+  var w=document.getElementById('chat-widget'); if(!w) return;
+  var abrir = typeof forzar==='boolean' ? forzar : !w.classList.contains('abierto');
+  w.classList.toggle('abierto',abrir);
+  document.body.classList.toggle('chat-abierto',abrir);
+  if(abrir){ var c=document.getElementById('chat-messages-container'); if(c) c.scrollTop=c.scrollHeight; }
+}
+function chatRapido(t){
+  var i=document.getElementById('chat-user-input'); if(!i) return;
+  i.value=t; i.focus();
+}
+</script>
 </body>
 </html>
