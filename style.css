@@ -1125,11 +1125,11 @@ footer {
 body { position: relative; }
 body::before {
   content: '';
-  position: fixed;
-  inset: -30px;
+  position: absolute;
+  inset: 0;
   z-index: -2;
-  background: linear-gradient(rgba(4, 6, 20, .55), rgba(4, 6, 20, .8)), url('fondo-pagina.jpg') center top / cover no-repeat;
-  filter: blur(26px) saturate(1.2);
+  /* version difuminada, apilada con su espejo para que no se note el corte; se desliza con la pagina */
+  background: url('fondo-difuminado.jpg') center top / 100% auto repeat-y;
   pointer-events: none;
 }
 body::after {
