@@ -349,6 +349,10 @@
   .pay-chat { display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; margin: 0 0 12px; padding: 11px; border-radius: 10px; border: 1px solid #22c55e; background: rgba(34,197,94,.14); color: #86efac; font-weight: 800; font-size: 14px; cursor: pointer; }
   .pay-chat:hover { background: rgba(34,197,94,.25); }
 
+
+  .chat-avatar { overflow: visible; }
+  .chat-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+
   /* ===== Chat en vivo: barra de envío ===== */
   .chat-input-area { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .chat-input-area #chat-user-input {
@@ -703,20 +707,11 @@
   
   <div class="carousel-track-container">
   <div class="carousel-track" id="carousel-track">
-  <div class="carousel-slide prev">
-  <img src="banner1.jpg" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop';" alt="Promoción 1">
-  </div>
   <div class="carousel-slide active">
   <img src="banner2.jpg" onerror="this.onerror=null; this.src='https://i.supaimg.com/d720aa86-6d33-4180-8339-caf8d59e6a66/c4716906-2102-4bfb-9b7f-e0b5c5b33502.jpg';" alt="Promoción 2">
   </div>
-  <div class="carousel-slide next">
-  <img src="banner3.jpg" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=800&auto=format&fit=crop';" alt="Promoción 3">
-  </div>
   <div class="carousel-slide hidden">
   <img src="banner4.gif" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop';" alt="Promoción 4">
-  </div>
-  <div class="carousel-slide hidden">
-  <img src="banner5.jpg" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=800&auto=format&fit=crop';" alt="Promoción 5">
   </div>
   <div class="carousel-slide hidden">
   <img src="banner6.jpg" alt="Promoción 6">
@@ -737,9 +732,6 @@
   <span class="dot active" onclick="irASlide(1)"></span>
   <span class="dot" onclick="irASlide(2)"></span>
   <span class="dot" onclick="irASlide(3)"></span>
-  <span class="dot" onclick="irASlide(4)"></span>
-  <span class="dot" onclick="irASlide(5)"></span>
-  <span class="dot" onclick="irASlide(6)"></span>
   </div>
   </section>
   
@@ -925,8 +917,8 @@
   <div class="chat-widget-card chat-v2" id="chat-widget">
   <div class="chat-widget-header">
   <div class="chat-agente">
-  <span class="chat-avatar">Z<i class="chat-status-dot"></i></span>
-  <span class="chat-agente-txt"><strong>Soporte Zarela</strong><small>En línea · te respondemos acá mismo</small></span>
+  <span class="chat-avatar" id="chat-avatar">A<i class="chat-status-dot"></i></span>
+  <span class="chat-agente-txt"><strong>Alma Zarela</strong><small>En línea · Soporte</small></span>
   </div>
   <button type="button" class="chat-cerrar" aria-label="Cerrar chat" onclick="alternarChat(false)"><i class="fa-solid fa-xmark"></i></button>
   </div>

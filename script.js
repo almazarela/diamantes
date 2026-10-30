@@ -167,7 +167,7 @@ function procesarPagoMPSeguro() {
 }
 
 // ------------------------- CARRUSEL ----------------------------------
-let slideActual = 1;
+let slideActual = 2;
 let timerCarrusel = null;
 
 function renderCarrusel() {
@@ -714,6 +714,9 @@ function nodoAvatar(nombre, url, clase) {
   } else d.textContent = ini;
   return d;
 }
+function avatarDe(userId, url) {
+  return perfilSoporte && perfilSoporte.user_id && userId === perfilSoporte.user_id && perfilSoporte.avatar_url ? perfilSoporte.avatar_url : url;
+}
 function hace(iso) {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
   if (s < 60) return "recién";
@@ -839,7 +842,7 @@ function tarjetaOpinion(o) {
         const d2 = document.createElement("button"); d2.type = "button"; d2.className = "op-link"; d2.textContent = "🗑️ Eliminar";
         d2.addEventListener("click", () => eliminarRespuesta(r)); c2.appendChild(d2);
       }
-      it.append(nodoAvatar(r.nombre, r.avatar_url, "chico"), c2);
+      it.append(nodoAvatar(r.nombre, avatarDe(r.user_id, r.avatar_url), "chico"), c2);
       hilo.appendChild(it);
     });
     const f = document.createElement("div"); f.className = "op-resp-form";
@@ -858,7 +861,7 @@ function tarjetaOpinion(o) {
     hilo.appendChild(f);
     cu.appendChild(hilo);
   }
-  card.append(nodoAvatar(o.nombre, o.avatar_url), cu);
+  card.append(nodoAvatar(o.nombre, avatarDe(o.user_id, o.avatar_url)), cu);
   return card;
 }
 
@@ -1013,6 +1016,32 @@ function agregarBuscadorConversacion(vista, msgs) {
 }
 iniciarBuscadorClientes();
 
+// ---- Foto y nombre del soporte (se guardan en la tabla perfil_soporte; se actualizan solos cuando entrás como administradora) ----
+let perfilSoporte = null;
+function aplicarPerfilSoporte() {
+  const av = $("chat-avatar");
+  if (av && perfilSoporte && /^https:\/\//.test(perfilSoporte.avatar_url || "") && !av.querySelector("img")) {
+    const img = document.createElement("img");
+    img.alt = ""; img.referrerPolicy = "no-referrer"; img.src = perfilSoporte.avatar_url;
+    img.addEventListener("error", () => img.remove());
+    av.prepend(img);
+    [...av.childNodes].forEach((nd) => { if (nd.nodeType === 3) nd.remove(); });   // saca la letra
+  }
+  if (typeof renderOpiniones === "function" && opCargadas) renderOpiniones();
+}
+async function cargarPerfilSoporte() {
+  const { data, error } = await supabase.from("perfil_soporte").select("user_id,nombre,avatar_url").eq("id", 1).maybeSingle();
+  if (!error && data) { perfilSoporte = data; aplicarPerfilSoporte(); }
+}
+async function sincronizarPerfilSoporte(user) {
+  const foto = fotoDe(user);
+  if (!foto) return;
+  if (perfilSoporte && perfilSoporte.avatar_url === foto && perfilSoporte.user_id === user.id) return;
+  const { error } = await supabase.from("perfil_soporte").upsert({ id: 1, user_id: user.id, nombre: "Alma Zarela", avatar_url: foto, updated_at: new Date().toISOString() });
+  if (!error) { perfilSoporte = { user_id: user.id, nombre: "Alma Zarela", avatar_url: foto }; aplicarPerfilSoporte(); }
+}
+cargarPerfilSoporte();
+
 // ------------------------- AUTENTICACIÓN -----------------------------
 async function loginConGoogle() {
   try {
@@ -1044,6 +1073,7 @@ function renderSesion(user) {
   $("user-dashboard").style.display = logueado ? "block" : "none";
   if ($("hist-arriba")) $("hist-arriba").style.display = logueado ? "block" : "none";
   if (typeof renderOpiniones === "function") { opEditando = false; renderOpiniones(); }
+  if (esAdminEmail) setTimeout(() => sincronizarPerfilSoporte(user), 0);
   $("admin-panel-section").style.display = esAdminEmail ? "block" : "none";
   if ($("sidebar-historial")) $("sidebar-historial").style.display = logueado ? "block" : "none";
   if (logueado) $("user-email-display").textContent = user.email;
