@@ -2438,10 +2438,10 @@ function inyectarEstilosMensajes() {
   st.id = "estilos-mensajes";
   st.textContent = `
     .msg-ctx{position:relative;cursor:pointer}
-    .msg-chev{position:absolute;top:2px;right:4px;width:20px;height:20px;padding:0;border:none;border-radius:50%;
-      background:rgba(13,14,21,.88);color:#f3ba2f;font-size:12px;line-height:20px;cursor:pointer;opacity:0;transition:opacity .15s;z-index:1}
+    .msg-chev{position:absolute;top:-8px;right:-6px;width:18px;height:18px;padding:0;border:none;border-radius:50%;
+      background:rgba(13,14,21,.88);color:#f3ba2f;font-size:11px;line-height:18px;cursor:pointer;opacity:0;box-shadow:0 0 0 1px #3a3f58;transition:opacity .15s;z-index:1}
     .msg-ctx:hover .msg-chev,.msg-chev:focus-visible,.msg-ctx.msg-abierto .msg-chev{opacity:1}
-    @media (hover:none){.msg-chev{opacity:.75}}
+    @media (hover:none){.msg-chev{display:none}}
     .msg-ctx.msg-abierto{outline:1px solid #f3ba2f}
     .msg-pin{font-size:10px;color:#f3ba2f;margin-bottom:2px;font-weight:700}
     .msg-quote{border-left:3px solid #f3ba2f;background:rgba(0,0,0,.28);border-radius:4px;padding:3px 7px;margin-bottom:4px;

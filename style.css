@@ -1120,19 +1120,43 @@ footer {
     grid-template-columns: 1fr;
   }
 }
-/* Fondo de toda la pagina (fondo.jpg), fijo y a pantalla completa */
+/* Fondo de la pagina (fondo-pagina.jpg): la imagen entera, larga, arriba de todo y se desliza con la pagina.
+   Detras hay una version difuminada fija para rellenar los costados y el resto. */
+body { position: relative; }
 body::before {
   content: '';
   position: fixed;
-  inset: 0;
-  z-index: -1;
-  background-image:
-    linear-gradient(to bottom, rgba(4, 6, 20, .35) 0%, rgba(4, 6, 20, .55) 55%, rgba(4, 6, 20, .78) 100%),
-    url('fondo-pagina.jpg');
-  background-size: cover;
-  background-position: center 22%;
-  background-repeat: no-repeat;
+  inset: -30px;
+  z-index: -2;
+  background: linear-gradient(rgba(4, 6, 20, .55), rgba(4, 6, 20, .8)), url('fondo-pagina.jpg') center top / cover no-repeat;
+  filter: blur(26px) saturate(1.2);
   pointer-events: none;
+}
+body::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(100vw, 1100px);
+  height: calc(min(100vw, 1100px) * 1.5);
+  z-index: -1;
+  background:
+    linear-gradient(to bottom, rgba(4, 6, 20, .15) 0%, rgba(4, 6, 20, .35) 100%),
+    url('fondo-pagina.jpg') center top / 100% 100% no-repeat;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 62%, transparent 100%), linear-gradient(to right, transparent 0, #000 9%, #000 91%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to bottom, #000 0, #000 62%, transparent 100%), linear-gradient(to right, transparent 0, #000 9%, #000 91%, transparent 100%);
+  mask-composite: intersect;
+  pointer-events: none;
+}
+
+/* Botones flotantes (música y chat): no tapan lo que se está escribiendo */
+@media (max-width: 800px) {
+  body { padding-bottom: 170px; }
+  body:has(input:focus, textarea:focus) .btn-musica-flotante,
+  body:has(input:focus, textarea:focus) .chat-fab { display: none; }
+  body.chat-abierto .btn-musica-flotante { display: none; }
 }
 
 /* ===== Chat v2 + cuenta arriba ===== */
