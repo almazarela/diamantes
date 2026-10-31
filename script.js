@@ -113,7 +113,7 @@ function mostrarModal(id, visible) {
   if (el) el.style.display = visible ? "flex" : "none";
 }
 function cerrarTodosLosModales() {
-  ["modal-seleccion-carga", "modal-binance", "modal-mercadopago"].forEach((id) => mostrarModal(id, false));
+  ["modal-seleccion-carga", "modal-binance", "modal-mercadopago", "modal-convertir"].forEach((id) => mostrarModal(id, false));
 }
 function abrirModalSeleccionCarga() { cerrarTodosLosModales(); mostrarModal("modal-seleccion-carga", true); }
 function cerrarModalSeleccionCarga() { mostrarModal("modal-seleccion-carga", false); }
@@ -1625,8 +1625,8 @@ const fechaCorta = (v) => {
 };
 
 function mostrarVistaAdmin(vista) {
-  vistaAdmin = vista === "ordenes" || vista === "stock" ? vista : "clientes";
-  [["clientes", "admin-vista-clientes", "admin-tab-clientes"], ["ordenes", "admin-vista-ordenes", "admin-tab-ordenes"], ["stock", "admin-vista-stock", "admin-tab-stock"]].forEach(([v, vid, tid]) => {
+  vistaAdmin = vista === "ordenes" || vista === "stock" || vista === "cobro" ? vista : "clientes";
+  [["clientes", "admin-vista-clientes", "admin-tab-clientes"], ["ordenes", "admin-vista-ordenes", "admin-tab-ordenes"], ["stock", "admin-vista-stock", "admin-tab-stock"], ["cobro", "admin-vista-cobro", "admin-tab-cobro"]].forEach(([v, vid, tid]) => {
     const vistaEl = $(vid), t = $(tid);
     if (vistaEl) vistaEl.hidden = v !== vistaAdmin;
     if (t) {
@@ -1636,6 +1636,7 @@ function mostrarVistaAdmin(vista) {
   });
   if (vistaAdmin === "ordenes") cargarOrdenesAdmin(false);
   if (vistaAdmin === "stock") cargarStockPines();
+  if (vistaAdmin === "cobro") rellenarCobro();
 }
 
 // ------------------------- STOCK DE PINs (solo admin) ------------------
@@ -3407,7 +3408,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === "Escape") { cerrarTodosLosModales(); if ($("sidebar-menu")?.classList.contains("open")) toggleMenu(); }
   });
   // Cerrar modales al tocar el fondo oscuro
-  ["modal-seleccion-carga", "modal-binance", "modal-mercadopago"].forEach((id) => {
+  ["modal-seleccion-carga", "modal-binance", "modal-mercadopago", "modal-convertir"].forEach((id) => {
     $(id)?.addEventListener("click", (e) => { if (e.target.id === id) mostrarModal(id, false); });
   });
 });
@@ -3579,12 +3580,22 @@ async function cargarTopMes() {
     if (error) ({ data, error } = await conTimeout(supabase.rpc("top_compradores_mes"), 8000));
     if (error || !Array.isArray(data) || !data.length) { sec.hidden = true; return; }
     const medallas = ["🥇", "🥈", "🥉", "4", "5"];
+    const colores = [["#ff7a18", "#ffd23f"], ["#2979ff", "#00e5ff"], ["#b266ff", "#ff4fd8"], ["#19e68c", "#9dff6a"], ["#ff2d55", "#ff8a5c"]];
     ol.replaceChildren(...data.slice(0, 5).map((r, i) => {
-      const li = document.createElement("li");
+      const nombre = r.nombre || "Cliente";
+      const li = document.createElement("li"); li.className = "u" + i + (i < 3 ? " pod" : "");
       const p = document.createElement("span"); p.className = "pos"; p.textContent = medallas[i] || String(i + 1);
-      const n = document.createElement("span"); n.className = "nom"; n.textContent = r.nombre || "Cliente";
+      let av;
+      const letra = () => { const s = document.createElement("span"); s.className = "av"; s.style.background = `linear-gradient(135deg,${colores[i][0]},${colores[i][1]})`; s.textContent = (nombre[0] || "C").toUpperCase(); return s; };
+      if (/^https:\/\//.test(r.avatar || "")) {
+        av = document.createElement("img"); av.className = "av"; av.alt = ""; av.referrerPolicy = "no-referrer"; av.src = r.avatar;
+        av.addEventListener("error", () => av.replaceWith(letra()));
+      } else av = letra();
+      const n = document.createElement("span"); n.className = "nom";
+      const t = document.createElement("span"); t.className = "t"; t.textContent = nombre; n.appendChild(t);
+      if (r.es_soporte) { const b = document.createElement("span"); b.className = "op-badge"; b.textContent = "Soporte"; n.appendChild(b); }
       const d = document.createElement("span"); d.className = "dia"; d.textContent = fmtNum(r.diamantes) + " 💎";
-      li.append(p, n, d); return li;
+      li.append(p, av, n, d); return li;
     }));
     sec.hidden = false;
   } catch (_) { sec.hidden = true; }
@@ -3794,4 +3805,97 @@ function montarAyudaPagos() {
     });
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", arrancar); else arrancar();
+})();
+
+
+// =====================================================================
+// v3: datos de cobro editables, conversión ARS -> USD, chip "Mis compras"
+// =====================================================================
+const COBRO_DEF = { alias_mp: "almazarela.com", cvu_mp: "0000003100098290851840", titular_mp: "Julian Pereyra", binance_id: "1252553144", tasa_ars_usd: "1700" };
+let cobro = { ...COBRO_DEF };
+function aplicarCobro() {
+  const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
+  set("modal-mercadopago-dato", cobro.alias_mp);
+  set("modal-mercadopago-cvu", cobro.cvu_mp);
+  set("mp-titular", cobro.titular_mp);
+  set("modal-binance-dato", cobro.binance_id);
+  set("conv-tasa", "1 USD = " + formatoARS(Number(cobro.tasa_ars_usd)).replace(/,00$/, ""));
+}
+async function cargarCobro() {
+  try {
+    const { data, error } = await conTimeout(supabase.from("config_pago").select("clave, valor"), 8000);
+    if (!error && Array.isArray(data)) data.forEach((r) => { if (r.clave in COBRO_DEF && r.valor) cobro[r.clave] = r.valor; });
+  } catch (_) { /* quedan los datos por defecto */ }
+  aplicarCobro();
+}
+function rellenarCobro() {
+  Object.keys(COBRO_DEF).forEach((k) => { const i = $("cobro-" + k); if (i) i.value = cobro[k]; });
+}
+async function guardarCobro() {
+  const btn = $("cobro-guardar"); btn.disabled = true;
+  try {
+    let n = 0;
+    for (const k of Object.keys(COBRO_DEF)) {
+      const v = ($("cobro-" + k)?.value || "").trim();
+      if (!v || v === cobro[k]) continue;
+      const { error } = await supabase.rpc("admin_guardar_config_pago", { p_clave: k, p_valor: v });
+      if (error) { mostrarAviso(/TASA/.test(error.message) ? "La tasa tiene que ser un número mayor a 0." : "No se pudo guardar. ¿Ejecutaste novedades_clientes_v3.sql?", "error"); return; }
+      cobro[k] = v; n++;
+    }
+    aplicarCobro();
+    mostrarAviso(n ? "Datos de cobro guardados. Ya los ven todos los clientes." : "No había cambios para guardar.", n ? "ok" : "info");
+  } finally { btn.disabled = false; }
+}
+
+// ---- Conversión de pesos a dólares
+function abrirModalConvertir() {
+  if (!usuarioActual) { mostrarAviso("Iniciá sesión con Google para convertir tu saldo.", "error"); return; }
+  cerrarTodosLosModales(); aplicarCobro();
+  $("conv-saldo").textContent = formatoARS(saldos.ARS) + " ARS";
+  $("conv-monto").value = ""; convPreview();
+  mostrarModal("modal-convertir", true);
+}
+function cerrarModalConvertir() { mostrarModal("modal-convertir", false); }
+const convTasa = () => Number(cobro.tasa_ars_usd) > 0 ? Number(cobro.tasa_ars_usd) : 1700;
+function convMonto(n) { $("conv-monto").value = Math.min(n, Math.floor(saldos.ARS)); convPreview(); }
+function convTodo() { $("conv-monto").value = Math.floor(saldos.ARS); convPreview(); }
+function convPreview() {
+  const m = Number($("conv-monto").value) || 0;
+  $("conv-res").innerHTML = `Vas a recibir <b>US$ ${(Math.floor(m / convTasa() * 100) / 100).toLocaleString("es-AR", { minimumFractionDigits: 2 })}</b>`;
+}
+async function confirmarConversion() {
+  const m = Number($("conv-monto").value) || 0;
+  const tasa = convTasa();
+  if (m < tasa * 0.5) return mostrarAviso(`El mínimo para convertir es ${formatoARS(Math.ceil(tasa * 0.5)).replace(/,00$/, "")}.`, "error");
+  if (m > saldos.ARS) return mostrarAviso("No tenés tanto saldo en pesos.", "error");
+  const usd = Math.round((m / tasa) * 100) / 100;
+  cerrarModalConvertir();
+  const ok = await mostrarConfirmacion({
+    tono: "ok", icono: "💱", titulo: "Confirmá la conversión",
+    filas: [["Convertís", formatoARS(m) + " ARS"], ["Tasa", "1 USD = " + formatoARS(tasa).replace(/,00$/, "")], ["Recibís", "US$ " + usd.toLocaleString("es-AR", { minimumFractionDigits: 2 })]],
+    nota: "La conversión no se puede deshacer.", confirmar: "Convertir",
+  });
+  if (!ok) return;
+  mostrarDialogo({ tono: "warn", titulo: "Convirtiendo…", texto: "Un momento.", cargando: true });
+  const { data, error } = await supabase.rpc("convertir_ars_a_usd", { p_monto_ars: m });
+  if (error) {
+    const t = /SALDO/.test(error.message) ? "No tenés saldo suficiente en pesos." : /MONTO/.test(error.message) ? "El monto es muy bajo." : "No pudimos convertir. No se descontó nada. Probá de nuevo o escribinos por el chat.";
+    return mostrarDialogo({ tono: "error", icono: "⚠️", titulo: "No se pudo convertir", texto: t, botones: [{ texto: "Cerrar", primario: true }] });
+  }
+  if (data) { pintarSaldo(data.saldo_ars, "ARS"); pintarSaldo(data.saldo_usd, "USD"); } else cargarSaldo(usuarioActual);
+  mostrarDialogo({ tono: "ok", icono: "✅", titulo: "¡Listo!", texto: `Convertiste ${formatoARS(m)} ARS a US$ ${usd.toLocaleString("es-AR", { minimumFractionDigits: 2 })}.`, botones: [{ texto: "Genial", primario: true, verde: true }] });
+}
+Object.assign(window, { abrirModalConvertir, cerrarModalConvertir, convMonto, convTodo, convPreview, confirmarConversion, guardarCobro });
+
+// ---- Chip "Mis compras" junto al título (se ve solo con sesión; copia el contador de pedidos en proceso)
+(function chipCompras() {
+  const sync = () => {
+    const chip = $("chip-compras"); if (!chip) return;
+    chip.hidden = !usuarioActual;
+    const c = $("hist-contador"), n = $("chip-compras-n");
+    const v = c && !c.hidden ? c.textContent : "";
+    if (n) { n.textContent = v; n.hidden = !v; }
+  };
+  setInterval(sync, 1000);
+  document.addEventListener("DOMContentLoaded", () => { sync(); cargarCobro(); });
 })();

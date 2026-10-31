@@ -576,6 +576,9 @@
   <button onclick="abrirModalMercadoPagoSaldo()" style="width:100%; padding:12px; background:linear-gradient(135deg, #009ee3, #0073a8); border:none; border-radius:8px; color:#fff; font-weight:bold; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
   <i class="fa-solid fa-bolt"></i> MERCADO PAGO ( ARS )
   </button>
+  <button onclick="abrirModalConvertir()" style="width:100%; padding:11px; background:transparent; border:1px solid #4a5580; border-radius:8px; color:#cfd8f5; font-weight:700; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+  <i class="fa-solid fa-right-left"></i> Convertir mis pesos a dólares
+  </button>
   </div>
   </div>
   </div>
@@ -628,12 +631,27 @@
   <strong id="modal-mercadopago-cvu" class="pay-cvu">0000003100098290851840</strong>
   <button type="button" class="pay-copiar" onclick="copiarDato('modal-mercadopago-cvu', this)"><i class="fa-regular fa-copy"></i> Copiar</button>
   </div>
-  <p class="pay-nota">Transferencia desde cualquier banco o billetera. Titular: Julian Pereyra.</p>
+  <p class="pay-nota">Transferencia desde cualquier banco o billetera. Titular: <span id="mp-titular">Julian Pereyra</span>.</p>
   <div class="pay-chips"><button type="button" class="pay-chip" onclick="elegirMonto('monto-mp',5000)">$5.000</button><button type="button" class="pay-chip" onclick="elegirMonto('monto-mp',10000)">$10.000</button><button type="button" class="pay-chip" onclick="elegirMonto('monto-mp',20000)">$20.000</button><button type="button" class="pay-chip" onclick="elegirMonto('monto-mp',50000)">$50.000</button></div>
   <input type="number" inputmode="decimal" id="monto-mp" placeholder="Otro monto" class="pay-input">
   <button type="button" onclick="procesarPagoMPSeguro()" class="pay-ya" style="background:linear-gradient(135deg,#009ee3,#0073a8);color:#fff;">
   <i class="fa-solid fa-check"></i> Ya pagué, enviar comprobante
   </button>
+  </div>
+  </div>
+
+  <!-- MODAL CONVERTIR PESOS A DÓLARES -->
+  <div id="modal-convertir" class="pay-modal" style="display:none;">
+  <div class="pay-box" style="border-color:#7fd6ff; box-shadow:0 0 25px rgba(127,214,255,0.3);">
+  <button type="button" class="pay-x" onclick="cerrarModalConvertir()" aria-label="Cerrar">✕</button>
+  <i class="fa-solid fa-right-left" style="font-size:30px; color:#7fd6ff;"></i>
+  <h3 class="pay-titulo">Convertir pesos a dólares</h3>
+  <p class="pay-nota" style="margin:0 0 8px;">Pasá tu saldo de Mercado Pago a USD para comprar con precio de dólares.</p>
+  <div class="conv-datos"><div><small>Tu saldo en pesos</small><b id="conv-saldo">$0,00 ARS</b></div><div><small>Tasa</small><b id="conv-tasa">1 USD = $1.700</b></div></div>
+  <div class="pay-chips"><button type="button" class="pay-chip" onclick="convTodo()">Todo mi saldo</button><button type="button" class="pay-chip" onclick="convMonto(5000)">$5.000</button><button type="button" class="pay-chip" onclick="convMonto(10000)">$10.000</button><button type="button" class="pay-chip" onclick="convMonto(20000)">$20.000</button></div>
+  <input type="number" inputmode="decimal" id="conv-monto" placeholder="¿Cuántos pesos querés convertir?" class="pay-input" oninput="convPreview()">
+  <div class="conv-res" id="conv-res">Vas a recibir <b>US$ 0,00</b></div>
+  <button type="button" id="conv-ok" onclick="confirmarConversion()" class="pay-ya" style="background:linear-gradient(135deg,#7fd6ff,#3aa0ff);color:#04121c;"><i class="fa-solid fa-check"></i> Convertir</button>
   </div>
   </div>
 
@@ -683,6 +701,7 @@
   <span class="sb-saldo-txt"><small>Binance · Dólares</small><strong id="menu-wallet-balance">$0.00 USD</strong></span>
   </div>
   <button type="button" class="sb-cargar" onclick="toggleMenu(); abrirModalSeleccionCarga()"><i class="fa-solid fa-circle-plus"></i> Cargar saldo</button>
+  <button type="button" class="sb-conv" onclick="toggleMenu(); abrirModalConvertir()"><i class="fa-solid fa-right-left"></i> Convertir pesos a USD</button>
   </div>
 
   <div class="status-indicator">
@@ -767,6 +786,7 @@
   <div class="step-title">
   <span class="badge">1</span>
   <h3>Ingresar ID de jugador</h3>
+  <button type="button" id="chip-compras" class="hchip" onclick="abrirHistorial()" hidden><i class="fa-solid fa-receipt"></i> Mis compras <em id="chip-compras-n" hidden></em></button>
   </div>
   
   <div id="player-card" class="player-card" hidden>
@@ -1035,6 +1055,7 @@
   <button type="button" id="admin-tab-clientes" class="admin-tab activa" role="tab" aria-selected="true" aria-controls="admin-vista-clientes" onclick="mostrarVistaAdmin('clientes')">💬 Mensajes y saldos</button>
   <button type="button" id="admin-tab-ordenes" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-ordenes" onclick="mostrarVistaAdmin('ordenes')">🧾 Historial de órdenes <span id="admin-ordenes-alerta" class="admin-alerta" hidden>0</span></button>
   <button type="button" id="admin-tab-stock" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-stock" onclick="mostrarVistaAdmin('stock')">📦 Stock de PINs</button>
+  <button type="button" id="admin-tab-cobro" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-cobro" onclick="mostrarVistaAdmin('cobro')">💳 Datos de cobro</button>
   </div>
 
   <div id="admin-vista-clientes" role="tabpanel">
@@ -1069,6 +1090,18 @@
   <p id="ord-resumen" class="ord-resumen" aria-live="polite"></p>
   <div id="admin-ordenes-lista" class="ord-lista">
   <p style="font-size: 12px; color: #666;">Cargando historial...</p>
+  </div>
+  </div>
+
+  <div id="admin-vista-cobro" role="tabpanel" hidden>
+  <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;">Lo que cambies acá se ve al instante en las ventanas de <b>Cargar saldo</b> de todos los clientes.</p>
+  <div class="cobro-form">
+  <label>Alias de Mercado Pago<input type="text" id="cobro-alias_mp" maxlength="60" autocomplete="off"></label>
+  <label>CVU<input type="text" id="cobro-cvu_mp" maxlength="40" inputmode="numeric" autocomplete="off"></label>
+  <label>Titular<input type="text" id="cobro-titular_mp" maxlength="60" autocomplete="off"></label>
+  <label>Binance Pay ID<input type="text" id="cobro-binance_id" maxlength="40" autocomplete="off"></label>
+  <label>Tasa de conversión (pesos por 1 USD)<input type="number" id="cobro-tasa_ars_usd" inputmode="decimal" step="any" min="1"></label>
+  <button type="button" id="cobro-guardar" class="ord-btn" onclick="guardarCobro()">💾 Guardar cambios</button>
   </div>
   </div>
 

@@ -1409,3 +1409,29 @@ body::after {
 .reproductor.abierto .mus-lado{width:40px;opacity:1;border:2px solid rgba(255,255,255,.7)}
 .mus-lado:hover{border-color:#1af106!important;color:#1af106}
 .reproductor.abierto{background:rgba(14,16,24,.55);padding:6px;margin:-6px;border-radius:999px;backdrop-filter:blur(4px)}
+
+/* ===== v3: tarjeta del jugador (cristal con aro), chip de compras, top, conversión, cobro ===== */
+#player-card.player-card{background:linear-gradient(120deg,rgba(255,255,255,.08),rgba(255,255,255,.02)),linear-gradient(135deg,#1c3a52,#10121c);border:1px solid #7fd6ff;box-shadow:0 6px 22px rgba(0,0,0,.45),0 0 16px rgba(127,214,255,.15);min-height:84px}
+#player-card.con-banner{background-size:cover;background-position:center}
+#player-card .player-avatar{border-radius:50%;border:3px solid #7fd6ff;box-shadow:0 0 14px rgba(127,214,255,.7)}
+#player-card .player-label{color:#7fd6ff;font-size:10.5px;letter-spacing:1.2px;font-weight:800}
+#player-card .player-name{color:#fff!important;font-family:inherit!important;font-size:21px;font-weight:800;letter-spacing:.3px}
+#player-card .player-meta{color:#cfd8f5;opacity:.9}
+#player-card .player-ok{background:#7fd6ff;color:#04121c;box-shadow:0 0 14px rgba(127,214,255,.7)}
+.step-title .hchip{margin-left:auto;font-size:12px;font-weight:700;background:#232944;border:1px solid #7fd6ff;color:#fff;border-radius:999px;padding:5px 12px;cursor:pointer;white-space:nowrap}
+.step-title .hchip[hidden]{display:none}
+.hchip em{font-style:normal;background:#7fd6ff;color:#04121c;border-radius:99px;padding:0 7px;margin-left:4px}
+.top-lista li{background:#171b2d}
+.top-lista li.pod{background:#232a44;border:1px solid #7fd6ff}
+.top-lista li.u0.pod{box-shadow:0 0 14px rgba(127,214,255,.35)}
+.top-lista li .av{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.6);flex:none;display:inline-flex;align-items:center;justify-content:center;font-weight:800;color:#fff}
+.top-lista li .nom{display:flex;align-items:center;gap:8px}
+.top-lista li .nom span.t{overflow:hidden;text-overflow:ellipsis}
+.top-lista .op-badge{background:linear-gradient(135deg,#ffb300,#ff6d00);color:#1a0d00;font-size:.65rem;font-weight:800;padding:1px 8px;border-radius:99px;flex:none}
+.conv-datos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+.conv-datos div{background:#0e0f16;border:1px dashed #3a3f58;border-radius:10px;padding:8px}
+.conv-datos small{display:block;color:#8b93a7;font-size:11px}.conv-datos b{color:#fff;font-size:14px}
+.conv-res{margin:8px 0;font-size:15px;color:#cfd8f5}.conv-res b{color:#7fd6ff;font-size:19px}
+.sb-conv{margin-top:6px;width:100%;background:transparent;border:1px solid #4a5580;color:#cfd8f5;border-radius:10px;padding:8px;font-size:13px;font-weight:700;cursor:pointer}
+.cobro-form{display:grid;gap:10px;max-width:420px}.cobro-form label{display:grid;gap:4px;font-size:12px;color:#aab3cc}
+.cobro-form input{background:#0a0c14;border:1px solid #2c3350;border-radius:8px;padding:9px 11px;color:#fff;font-size:14px}
