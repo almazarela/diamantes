@@ -3268,6 +3268,7 @@ async function comprarPaquete(ev, paqueteId, moneda = "USD") {
     const monedaOrden = orden.moneda === "ARS" ? "ARS" : moneda;
     if (Number.isFinite(Number(orden.saldo_nuevo))) pintarSaldo(Number(orden.saldo_nuevo), monedaOrden);
     const nombrePaquete = orden.paquete || nombre;
+    try { iniciarSeguimiento(orden.orden_id, nombrePaquete); } catch (_) { /* decorativo */ }
 
     let estado = "completada";
     if (pedidoDemorado) {
@@ -3488,4 +3489,248 @@ Object.assign(window, {
   addEventListener("scroll", pedir, { passive: true });
   addEventListener("mousemove", (e) => { mx = e.clientX / innerWidth - 0.5; pedir(); }, { passive: true });
   pintar();
+})();
+
+
+// =====================================================================
+// NOVEDADES PARA CLIENTES: cinta en vivo, IDs guardados, top del mes,
+// seguimiento del pedido, aviso de acreditación, estado del servicio y ayuda de pago.
+// Todo es opcional: si falta algo en la base, esa parte se oculta y la web sigue igual.
+// =====================================================================
+const fmtNum = (n) => Number(n).toLocaleString("es-AR");
+function haceTexto(seg) {
+  if (seg < 90) return "hace instantes";
+  const m = Math.round(seg / 60);
+  if (m < 60) return `hace ${m} min`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.round(h / 24);
+  return d === 1 ? "hace 1 día" : `hace ${d} días`;
+}
+
+// ---- Cinta de compras recientes
+async function cargarCinta() {
+  const mov = $("zt-mov");
+  if (!mov) return;
+  try {
+    const { data, error } = await conTimeout(supabase.rpc("compras_recientes"), 8000);
+    if (error || !Array.isArray(data) || !data.length) return;
+    const frag = document.createDocumentFragment();
+    const hacer = () => data.forEach((c) => {
+      const it = document.createElement("span"); it.className = "zt-item";
+      const b = document.createElement("b"); b.textContent = c.nombre || "Cliente";
+      const em = document.createElement("em"); em.textContent = fmtNum(c.diamantes) + " 💎";
+      it.append(b, " compró ", em, " " + haceTexto(Number(c.hace_seg) || 0));
+      frag.appendChild(it);
+    });
+    hacer(); hacer();   // duplicado: el recorrido queda continuo
+    mov.replaceChildren(frag);
+    mov.style.setProperty("--zt-dur", Math.max(20, data.length * 7) + "s");
+  } catch (_) { /* queda el texto fijo */ }
+}
+
+// ---- Top compradores del mes
+async function cargarTopMes() {
+  const sec = $("top-mes"), ol = $("top-lista");
+  if (!sec || !ol) return;
+  try {
+    const { data, error } = await conTimeout(supabase.rpc("top_compradores_mes"), 8000);
+    if (error || !Array.isArray(data) || !data.length) { sec.hidden = true; return; }
+    const medallas = ["🥇", "🥈", "🥉", "4", "5"];
+    ol.replaceChildren(...data.map((r, i) => {
+      const li = document.createElement("li");
+      const p = document.createElement("span"); p.className = "pos"; p.textContent = medallas[i] || String(i + 1);
+      const n = document.createElement("span"); n.className = "nom"; n.textContent = r.nombre || "Cliente";
+      const d = document.createElement("span"); d.className = "dia"; d.textContent = fmtNum(r.diamantes) + " 💎";
+      li.append(p, n, d); return li;
+    }));
+    sec.hidden = false;
+  } catch (_) { sec.hidden = true; }
+}
+
+// ---- Estado del servicio (cinta + menú lateral)
+async function actualizarEstadoServicio() {
+  if (document.hidden) return;
+  const ok = await servidorDisponible();
+  const z = $("zt-estado");
+  if (z) { z.classList.toggle("lento", !ok); z.querySelector("b").textContent = ok ? "Recargas activas" : "Recargas demoradas"; }
+  const sb = document.querySelector(".status-indicator");
+  if (sb) {
+    sb.querySelector(".status-dot")?.classList.toggle("online", ok);
+    const t = $("sb-estado-txt"); if (t) t.textContent = ok ? "ONLINE" : "DEMORADO";
+  }
+}
+
+// ---- IDs guardados
+let idsGuardados = [];
+let idsEnTabla = true;
+const claveIds = () => "zarela_ids:" + (usuarioActual ? usuarioActual.id : "");
+function leerIdsLocal() { try { return JSON.parse(localStorage.getItem(claveIds()) || "[]"); } catch (_) { return []; } }
+function guardarIdsLocal() { try { localStorage.setItem(claveIds(), JSON.stringify(idsGuardados)); } catch (_) {} }
+
+async function cargarIdsGuardados() {
+  idsGuardados = [];
+  if (usuarioActual) {
+    try {
+      const { data, error } = await conTimeout(supabase.from("ids_guardados").select("id, id_jugador, apodo").order("created_at", { ascending: false }).limit(6), 8000);
+      if (error) throw error;
+      idsGuardados = data || []; idsEnTabla = true;
+    } catch (_) { idsEnTabla = false; idsGuardados = leerIdsLocal(); }
+  }
+  pintarIdsGuardados();
+}
+function pintarIdsGuardados() {
+  const caja = $("ids-guardados"), lista = $("zi-lista"), btn = $("zi-guardar");
+  if (!caja) return;
+  const actual = ($("player-id")?.value || "").trim();
+  const valido = /^\d{5,15}$/.test(actual);
+  const yaEsta = idsGuardados.some((x) => x.id_jugador === actual);
+  lista.replaceChildren(...idsGuardados.map((x) => {
+    const chip = document.createElement("span"); chip.className = "zi-chip";
+    const b = document.createElement("button"); b.type = "button"; b.title = "Usar este ID";
+    b.append(x.apodo ? x.apodo : x.id_jugador);
+    if (x.apodo) { const sm = document.createElement("small"); sm.textContent = x.id_jugador.slice(-4).padStart(x.id_jugador.length > 4 ? 5 : 4, "…"); b.append(sm); }
+    b.onclick = () => { $("player-id").value = x.id_jugador; alEditarId(); pintarIdsGuardados(); verificarJugador(); };
+    const del = document.createElement("button"); del.type = "button"; del.className = "zi-x"; del.textContent = "✕"; del.title = "Borrar este ID guardado";
+    del.onclick = () => borrarIdGuardado(x);
+    chip.append(b, del); return chip;
+  }));
+  const puedeGuardar = !!usuarioActual && valido && !yaEsta && idsGuardados.length < 6;
+  btn.hidden = !puedeGuardar;
+  caja.hidden = !usuarioActual || (!idsGuardados.length && !puedeGuardar);
+}
+async function guardarIdActual() {
+  const id = ($("player-id")?.value || "").trim();
+  if (!usuarioActual || !/^\d{5,15}$/.test(id) || idsGuardados.some((x) => x.id_jugador === id)) return;
+  const apodo = jugadorVerificado && jugadorVerificado.id === id && jugadorVerificado.nombre ? jugadorVerificado.nombre.slice(0, 30) : null;
+  if (idsEnTabla) {
+    const { error } = await supabase.from("ids_guardados").insert({ id_jugador: id, apodo });
+    if (error) idsEnTabla = false;
+  }
+  if (idsEnTabla) await cargarIdsGuardados();
+  else { idsGuardados = [{ id: Date.now(), id_jugador: id, apodo }, ...idsGuardados].slice(0, 6); guardarIdsLocal(); pintarIdsGuardados(); }
+  mostrarAviso("ID guardado.", "ok");
+}
+async function borrarIdGuardado(x) {
+  idsGuardados = idsGuardados.filter((y) => y !== x);
+  if (idsEnTabla) { try { await supabase.from("ids_guardados").delete().eq("id", x.id); } catch (_) {} } else guardarIdsLocal();
+  pintarIdsGuardados();
+}
+
+// ---- Seguimiento del pedido + aviso de acreditación
+let seg = null, segTimer = null;
+const claveCerrada = () => "zarela_seg_cerrado";
+function textoPaso(estado) {
+  if (estado === "completada") return ["¡Listo! Tus diamantes ya están en tu cuenta.", 4];
+  if (estado === "fallida") return ["No se pudo acreditar. Tu saldo fue devuelto.", -1];
+  if (estado === "error_envio") return ["En espera: se acredita apenas retomemos las recargas.", 2];
+  return ["Cargando tus diamantes… suele tardar menos de un minuto.", 2];
+}
+function pintarSeguimiento() {
+  const caja = $("seguimiento");
+  if (!caja || !seg) { if (caja) caja.hidden = true; return; }
+  $("seg-num").textContent = "#" + seg.id;
+  $("seg-paq").textContent = seg.paquete || "";
+  const [txt, activo] = textoPaso(seg.estado);
+  $("seg-txt").textContent = txt;
+  caja.querySelectorAll("#seg-pasos li").forEach((li) => {
+    const p = Number(li.dataset.p);
+    li.className = activo === -1 ? (p <= 1 ? "hecho" : p === 2 ? "error" : "") : p < activo ? "hecho" : p === activo ? "activo" : "";
+  });
+  const pedir = "Notification" in window && Notification.permission === "default" && seg.estado !== "completada" && seg.estado !== "fallida";
+  $("seg-aviso").hidden = !pedir;
+  caja.hidden = false;
+}
+function avisarAcreditada(seguimiento) {
+  const texto = `¡Tus ${seguimiento.paquete || "diamantes"} ya están acreditados! 💎`;
+  if (!comprando) mostrarAviso(texto, "ok");
+  if (document.hidden) {
+    const tit = document.title; let n = 0;
+    const t = setInterval(() => { document.title = n++ % 2 ? tit : "💎 ¡Carga acreditada!"; if (!document.hidden || n > 40) { clearInterval(t); document.title = tit; } }, 1000);
+    try { if ("Notification" in window && Notification.permission === "granted") new Notification("Zarela", { body: texto }); } catch (_) {}
+  }
+}
+async function consultarSeguimiento() {
+  if (!seg || !usuarioActual) return;
+  try {
+    const { data, error } = await conTimeout(supabase.from("ordenes_recarga").select("estado").eq("id", seg.id).maybeSingle(), 8000);
+    if (error || !data) return;
+    const antes = seg.estado;
+    seg.estado = data.estado;
+    pintarSeguimiento();
+    if (data.estado === "completada" || data.estado === "fallida") {
+      clearInterval(segTimer); segTimer = null;
+      if (antes !== data.estado && seg.visto) {
+        if (data.estado === "completada") avisarAcreditada(seg); else cargarSaldo(usuarioActual);
+      }
+    }
+  } catch (_) {}
+}
+function iniciarSeguimiento(id, paquete, estado = "pendiente", visto = true) {
+  if (!id) return;
+  seg = { id, paquete, estado, visto };
+  pintarSeguimiento();
+  clearInterval(segTimer); segTimer = null;
+  if (estado !== "completada" && estado !== "fallida") segTimer = setInterval(consultarSeguimiento, 5000);
+}
+async function buscarPedidoReciente() {
+  if (!usuarioActual) { seg = null; clearInterval(segTimer); pintarSeguimiento(); return; }
+  try {
+    const { data } = await conTimeout(supabase.from("ordenes_recarga").select("id, estado, diamantes, created_at").eq("user_id", usuarioActual.id).order("created_at", { ascending: false }).limit(1), 8000);
+    const o = data && data[0];
+    if (!o) return;
+    const edadMin = (Date.now() - new Date(o.created_at).getTime()) / 60000;
+    const activa = o.estado === "pendiente" || o.estado === "error_envio";
+    let cerrada = false; try { cerrada = sessionStorage.getItem(claveCerrada()) === String(o.id); } catch (_) {}
+    if (cerrada || (!activa && edadMin > 10)) return;
+    iniciarSeguimiento(o.id, o.diamantes ? fmtNum(o.diamantes) + " 💎" : "", o.estado, true);
+  } catch (_) {}
+}
+
+// ---- Ayuda "?" en los modales de pago
+const SVG_GUIA = {
+  copiar: '<svg viewBox="0 0 84 56"><rect x="8" y="12" width="68" height="32" rx="7" fill="#1b2033" stroke="#38426a"/><text x="16" y="32" fill="#fff" font-size="11" font-family="sans-serif" font-weight="700">tu.alias</text><rect x="52" y="19" width="20" height="18" rx="4" fill="#38bdf8"/><rect x="58" y="23" width="9" height="11" rx="2" fill="none" stroke="#04121c" stroke-width="1.6"/></svg>',
+  pagar: '<svg viewBox="0 0 84 56"><rect x="26" y="4" width="32" height="48" rx="6" fill="#1b2033" stroke="#38426a"/><rect x="31" y="12" width="22" height="9" rx="3" fill="#2ecc70"/><text x="35" y="19.5" fill="#04210f" font-size="7" font-family="sans-serif" font-weight="800">$ OK</text><rect x="31" y="26" width="22" height="3" rx="1.5" fill="#38426a"/><rect x="31" y="32" width="16" height="3" rx="1.5" fill="#38426a"/><path d="M8 28h14m-5-5 5 5-5 5" stroke="#f3ba2f" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  chat: '<svg viewBox="0 0 84 56"><rect x="6" y="4" width="72" height="48" rx="7" fill="#1b2033" stroke="#38426a"/><rect x="12" y="11" width="34" height="8" rx="4" fill="#2a3047"/><rect x="36" y="23" width="34" height="8" rx="4" fill="#1f5a3a"/><circle cx="66" cy="42" r="8" fill="#25d366"/><path d="M62 39h8v6h-5l-3 3z" fill="#fff"/><path d="M49 49 59 44" stroke="#f3ba2f" stroke-width="2" stroke-linecap="round"/></svg>',
+};
+function montarAyudaPagos() {
+  [["modal-mercadopago", "el alias"], ["modal-binance", "el Pay ID"]].forEach(([mid, dato]) => {
+    const modal = $(mid); if (!modal) return;
+    const primero = modal.querySelector(".pay-dato"); if (!primero || primero.querySelector(".pay-ayuda")) return;
+    const guia = document.createElement("div"); guia.className = "pay-guia"; guia.hidden = true;
+    guia.innerHTML = `<ol>
+      <li>${SVG_GUIA.copiar}<span><b>1.</b> Tocá <b>Copiar</b> para llevarte ${dato}.</span></li>
+      <li>${SVG_GUIA.pagar}<span><b>2.</b> Hacé la transferencia desde tu app del banco o billetera.</span></li>
+      <li>${SVG_GUIA.chat}<span><b>3.</b> Mandanos la <b>captura del pago por el chat</b>: botón verde <b>Chat</b> (abajo a la derecha) o <b>Ir al chat</b>.</span></li></ol>
+      <p class="zg-fin">Te respondemos lo antes posible y acreditamos tu saldo. 💚</p>`;
+    const b = document.createElement("button"); b.type = "button"; b.className = "pay-ayuda"; b.textContent = "?"; b.title = "¿Cómo cargo saldo?"; b.setAttribute("aria-label", "Ayuda para cargar saldo");
+    b.onclick = () => { guia.hidden = !guia.hidden; b.classList.toggle("on", !guia.hidden); };
+    primero.appendChild(b);
+    const ultimo = [...modal.querySelectorAll(".pay-dato")].pop();
+    ultimo.insertAdjacentElement("afterend", guia);
+  });
+}
+
+// ---- Arranque
+(function iniciarNovedades() {
+  const arrancar = () => {
+    cargarCinta(); cargarTopMes(); montarAyudaPagos();
+    actualizarEstadoServicio();
+    setInterval(actualizarEstadoServicio, 180000);
+    setInterval(cargarCinta, 120000);
+    $("player-id")?.addEventListener("input", pintarIdsGuardados);
+    $("zi-guardar")?.addEventListener("click", guardarIdActual);
+    $("seg-x")?.addEventListener("click", () => { try { sessionStorage.setItem(claveCerrada(), String(seg?.id)); } catch (_) {} seg = null; clearInterval(segTimer); pintarSeguimiento(); });
+    $("seg-aviso")?.addEventListener("click", async () => { try { await Notification.requestPermission(); } catch (_) {} pintarSeguimiento(); });
+    const alCambioJugador = new MutationObserver(pintarIdsGuardados);
+    const pc = $("player-card"); if (pc) alCambioJugador.observe(pc, { attributes: true, attributeFilter: ["hidden"] });
+    let ultimoUid = null;
+    supabase.auth.onAuthStateChange((_e, session) => {
+      const uid = session?.user?.id || null;
+      if (uid === ultimoUid) return;
+      ultimoUid = uid;
+      setTimeout(() => { cargarIdsGuardados(); buscarPedidoReciente(); }, 80);
+    });
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", arrancar); else arrancar();
 })();

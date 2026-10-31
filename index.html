@@ -687,7 +687,7 @@
 
   <div class="status-indicator">
   <span class="status-dot online"></span>
-  <span>Servidores de recarga: <b>ONLINE</b></span>
+  <span>Servidores de recarga: <b id="sb-estado-txt">ONLINE</b></span>
   </div>
   </div>
 
@@ -697,6 +697,12 @@
   </div>
   </aside>
   
+  <div id="ticker" class="zt" aria-label="Compras recientes">
+  <span class="zt-tag"><i class="fa-solid fa-bolt"></i> <span>En vivo</span></span>
+  <div class="zt-pista"><div id="zt-mov" class="zt-mov"><span class="zt-item">Recargas con acreditación automática 💎</span></div></div>
+  <span id="zt-estado" class="zt-estado" title="Estado del servicio de recargas"><i></i><b>Recargas activas</b></span>
+  </div>
+
   <section class="hero-banner-section">
   <div class="live-counter-badge">
   <span class="live-green-dot"></span>
@@ -746,6 +752,16 @@
   <!-- COLUMNA IZQUIERDA -->
   <div class="left-content-col">
   
+  <!-- SEGUIMIENTO DEL PEDIDO (compacto) -->
+  <div id="seguimiento" class="seg" hidden>
+  <div class="seg-cab"><span class="seg-tit"><i class="fa-solid fa-truck-fast"></i> Tu pedido <b id="seg-num"></b> · <span id="seg-paq"></span></span>
+  <span class="seg-acc"><button type="button" id="seg-aviso" class="seg-btn" hidden><i class="fa-solid fa-bell"></i> Avisarme</button><button type="button" id="seg-x" class="seg-btn seg-cerrar" aria-label="Cerrar">✕</button></span></div>
+  <ol class="seg-pasos" id="seg-pasos">
+  <li data-p="0"><i></i><span>Pagado</span></li><li data-p="1"><i></i><span>PIN reservado</span></li><li data-p="2"><i></i><span>Cargando</span></li><li data-p="3"><i></i><span>Acreditado</span></li>
+  </ol>
+  <p class="seg-txt" id="seg-txt"></p>
+  </div>
+
   <!-- PASO 1: ID DE JUGADOR -->
   <section class="card">
   <div class="step-title">
@@ -770,6 +786,7 @@
   </button>
   </div>
   <p id="verify-status" class="verify-status"></p>
+  <div id="ids-guardados" class="zi" hidden><div class="zi-lista" id="zi-lista"></div><button type="button" id="zi-guardar" class="zi-guardar" hidden><i class="fa-regular fa-bookmark"></i> Guardar este ID</button></div>
   <p class="subtext">⚠️ Verificá bien tu ID antes de enviar el pedido.</p>
   </section>
   
@@ -1064,6 +1081,11 @@
   </div>
   </section>
   
+  <section class="card top-mes" id="top-mes" hidden>
+  <div class="step-title"><span class="badge"><i class="fa-solid fa-trophy"></i></span><h3>Top compradores del mes</h3></div>
+  <ol class="top-lista" id="top-lista"></ol>
+  </section>
+
   <section class="card comments-section" id="opiniones">
   <div class="step-title">
   <span class="badge"><i class="fa-solid fa-comments"></i></span>
