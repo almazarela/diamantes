@@ -36,7 +36,7 @@ const CONFIG = {
   BUCKET_COMPROBANTES: "comprobantes",   // bucket PRIVADO de Storage (lo crea chat_cliente.sql)
   // Compra con saldo: true = la página espera la confirmación de n8n antes de decir "acreditados"
   ESPERAR_CONFIRMACION: true,
-  ESPERA_ORDEN_MS: 45000,
+  ESPERA_ORDEN_MS: 30000,
   MAX_ARCHIVO_MB: 5,
   TIMEOUT_MS: 15000,
 };
@@ -1889,6 +1889,12 @@ function renderOrdenesAdmin() {
       b.textContent = ocupada ? "Reenviando…" : "🔁 Reenviar a n8n";
       b.addEventListener("click", () => reenviarOrden(o, b));
       acciones.appendChild(b);
+      const c = document.createElement("button");
+      c.type = "button";
+      c.className = "ord-btn peligro";
+      c.textContent = "✖ Cancelar y devolver";
+      c.addEventListener("click", () => cancelarOrden(o, c));
+      acciones.appendChild(c);
     }
     if (o.user_id && clientesAdmin.some((c) => c[CONFIG.COL_ID] === o.user_id)) {
       const v = document.createElement("button");
@@ -1917,6 +1923,40 @@ function textoErrorReenvio(err) {
   if (msg.includes("ORDEN_NO_ENCONTRADA")) return "La orden ya no existe.";
   if (msg.includes("cerrada")) return "Esa orden ya estaba cerrada: actualizá la lista.";
   return "No se pudo reenviar la orden. Probá de nuevo en un momento.";
+}
+
+async function cancelarOrden(o, boton) {
+  const ok = await mostrarConfirmacion({
+    tono: "warn", icono: "✖", titulo: `Cancelar orden #${o.id}`,
+    texto: "Se le devuelve el saldo al cliente y el PIN vuelve a tu stock. Hacelo solo si estás seguro de que los diamantes NO se acreditaron (revisá el ID en Free Fire o el estado del PIN): si ya se cargaron, el cliente quedaría con diamantes y saldo.",
+    filas: [
+      ["Cliente", etiquetaCliente(o.user_id) || "-"],
+      ["ID Free Fire", String(o.id_jugador || "-")],
+      ["Paquete", o.diamantes ? o.diamantes + " 💎" : String(o.paquete_id)],
+      ["Se le devuelve", montoOrden(o)],
+    ],
+    confirmar: "Sí, cancelar y devolver", cancelar: "No, volver",
+  });
+  if (!ok) return;
+  if (boton) { boton.disabled = true; boton.textContent = "Cancelando…"; }
+  try {
+    const { data, error } = await conTimeout(supabase.rpc("admin_cancelar_orden", { p_orden_id: o.id, p_devolver_pin: true }), 25000);
+    if (error) throw error;
+    ultimaCargaOrdenes = 0;
+    await cargarOrdenesAdmin(true);
+    if (data && data.sin_cambios) mostrarAviso(`La orden #${o.id} ya estaba cerrada.`, "info");
+    else mostrarAviso(`Orden #${o.id} cancelada: saldo devuelto al cliente y PIN de vuelta en el stock.`, "ok");
+    if (typeof cargarStockPines === "function") cargarStockPines();
+  } catch (err) {
+    console.warn("No se pudo cancelar la orden:", err.message || err);
+    const msg = String((err && err.message) || "");
+    mostrarAviso(
+      err && err.code === "PGRST202" ? "Falta ejecutar cancelar_orden.sql en Supabase."
+      : msg.includes("ORDEN_CERRADA") ? "Esa orden ya estaba cerrada: actualizá la lista."
+      : err && err.name === "TimeoutError" ? "Tardó demasiado. Actualizá la lista para ver cómo quedó antes de reintentar."
+      : "No se pudo cancelar la orden. Probá de nuevo en un momento.", "error");
+    renderOrdenesAdmin();
+  }
 }
 
 async function reenviarOrden(o, boton) {
@@ -3074,7 +3114,7 @@ function precioDeCaja(caja) {
 
 async function esperarOrden(ordenId, alDemorar) {
   const fin = Date.now() + CONFIG.ESPERA_ORDEN_MS;
-  const demora = Date.now() + 20000;
+  const demora = Date.now() + 10000;
   let avisado = false;
   while (Date.now() < fin) {
     await dormir(1000);
@@ -3501,4 +3541,22 @@ Object.assign(window, {
     requestAnimationFrame(cuadro);
   }
   requestAnimationFrame(cuadro);
+})();
+
+// ------------------------- FONDO CON PARALLAX (solo PC) -----------------
+// La foto queda completa y nítida; al scrollear sube mucho más lento que el contenido y se mueve un poquito con el mouse.
+(function fondoParalaje() {
+  if (!window.matchMedia("(min-width: 801px)").matches || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const raiz = document.documentElement;
+  let mx = 0, pendiente = false;
+  const pintar = () => {
+    pendiente = false;
+    const y = -Math.min(scrollY * 0.07, innerHeight * 0.38);
+    raiz.style.setProperty("--bgy", y.toFixed(1) + "px");
+    raiz.style.setProperty("--bgx", (mx * -14).toFixed(1) + "px");
+  };
+  const pedir = () => { if (!pendiente) { pendiente = true; requestAnimationFrame(pintar); } };
+  addEventListener("scroll", pedir, { passive: true });
+  addEventListener("mousemove", (e) => { mx = e.clientX / innerWidth - 0.5; pedir(); }, { passive: true });
+  pintar();
 })();

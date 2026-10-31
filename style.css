@@ -1312,3 +1312,19 @@ body::after {
 /* ===== Sakura: capa de pétalos y ramas (solo PC) ===== */
 #sakura-fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
 @media (max-width: 800px), (prefers-reduced-motion: reduce) { #sakura-fx { display: none; } }
+
+/* ===== Fondo PC: foto completa y nítida, fija, con parallax lento (se mueve apenas al scrollear) ===== */
+@media (min-width: 801px) {
+  body::before {
+    position: fixed; inset: auto; top: 0; left: -2vw; width: 104vw; height: 140vh; z-index: -2;
+    background:
+      linear-gradient(to bottom, rgba(4, 6, 20, .16) 0%, rgba(4, 6, 20, .34) 100%),
+      url('fondo-pagina-pc.jpg') center top / cover no-repeat;
+    transform: translate3d(var(--bgx, 0px), var(--bgy, 0px), 0);
+    will-change: transform;
+  }
+  body::after { display: none; }
+}
+.ord-btn.peligro { background: #3a1517; color: #ff8a8e; border: 1px solid #7a2a2e; }
+.ord-btn.peligro:hover { background: #4a1a1d; }
+.ord-btn.peligro[disabled] { opacity: .6; }
