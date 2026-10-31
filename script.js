@@ -1075,6 +1075,7 @@ function renderSesion(user) {
   if (typeof renderOpiniones === "function") { opEditando = false; renderOpiniones(); }
   if (esAdminEmail) setTimeout(() => sincronizarPerfilSoporte(user), 0);
   $("admin-panel-section").style.display = esAdminEmail ? "block" : "none";
+  document.body.classList.toggle("es-admin", esAdminEmail);
   if ($("sidebar-historial")) $("sidebar-historial").style.display = logueado ? "block" : "none";
   if (logueado) $("user-email-display").textContent = user.email;
 
@@ -3350,3 +3351,128 @@ Object.assign(window, {
   publicarOpinion, cancelarEdicionOpinion, verMasOpiniones,
   loginConGoogle, logoutGoogle,
 });
+
+// ------------------------- FONDO SAKURA (solo PC) ----------------------
+// Pétalos 3D que caen con el viento (el scroll los empuja) + ramas de cerezo en los costados que se mueven con parallax.
+(function sakura() {
+  if (!window.matchMedia("(min-width: 801px)").matches || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cv = document.createElement("canvas");
+  cv.id = "sakura-fx"; cv.setAttribute("aria-hidden", "true");
+  document.body.appendChild(cv);
+  const ctx = cv.getContext("2d");
+  let W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  let semilla = 7;
+  const rnd = () => { semilla = (semilla * 16807) % 2147483647; return semilla / 2147483647; };   // aleatorio fijo: las ramas siempre salen iguales
+
+  // ---- sprite de pétalo (con degradé para dar volumen)
+  const sprites = [];
+  [["#fff3f7", "#ffb7cf"], ["#ffe1ec", "#ff9ec0"], ["#ffd0e0", "#f77fab"]].forEach(([c1, c2]) => {
+    const s = document.createElement("canvas"); s.width = 40; s.height = 40;
+    const g = s.getContext("2d");
+    const gr = g.createRadialGradient(20, 26, 2, 20, 20, 20);
+    gr.addColorStop(0, c1); gr.addColorStop(1, c2);
+    g.fillStyle = gr;
+    g.beginPath();
+    g.moveTo(20, 36);
+    g.bezierCurveTo(2, 28, 0, 8, 14, 3);
+    g.quadraticCurveTo(20, 8, 26, 3);      // muesca típica del pétalo de cerezo
+    g.bezierCurveTo(40, 8, 38, 28, 20, 36);
+    g.fill();
+    g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 1; g.stroke();
+    sprites.push(s);
+  });
+
+  // ---- rama de cerezo pre-dibujada (se redibuja solo al cambiar el tamaño)
+  function dibujarRama(w, h) {
+    const o = document.createElement("canvas"); o.width = w; o.height = h;
+    const g = o.getContext("2d");
+    semilla = 7;
+    const flores = [];
+    function rama(x, y, ang, largo, grosor, nivel) {
+      const x2 = x + Math.cos(ang) * largo, y2 = y + Math.sin(ang) * largo;
+      const cx = (x + x2) / 2 + (rnd() - 0.5) * largo * 0.35, cy = (y + y2) / 2 + (rnd() - 0.5) * largo * 0.35;
+      g.strokeStyle = nivel < 2 ? "#3a2230" : "#52303f"; g.lineWidth = grosor; g.lineCap = "round";
+      g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(cx, cy, x2, y2); g.stroke();
+      if (nivel >= 3) for (let i = 0; i < 2; i++) flores.push([Math.min(w - 14, Math.max(8, x2 + (rnd() - 0.5) * 22)), Math.min(h - 14, Math.max(8, y2 + (rnd() - 0.5) * 22)), 4.5 + rnd() * 4.5]);
+      if (nivel >= 4) return;
+      const n = nivel < 2 ? 2 : 2 + (rnd() > 0.5 ? 1 : 0);
+      for (let i = 0; i < n; i++) rama(x2, y2, ang + (rnd() - 0.5) * 1.3, largo * (0.66 + rnd() * 0.12), Math.max(1, grosor * 0.62), nivel + 1);
+    }
+    rama(-6, h * 0.08, 0.5, h * 0.26, 8, 0);
+    rama(-6, h * 0.08, 0.1, h * 0.22, 5, 1);
+    flores.forEach(([x, y, r]) => {
+      const t = rnd();
+      for (let k = 0; k < 5; k++) {
+        const a = (k / 5) * Math.PI * 2 + t * 6;
+        const px = x + Math.cos(a) * r * 0.62, py = y + Math.sin(a) * r * 0.62;
+        const gr = g.createRadialGradient(px, py, 0, px, py, r * 0.8);
+        gr.addColorStop(0, "#fff7fa"); gr.addColorStop(1, t > 0.5 ? "#ffb3cd" : "#ff93b8");
+        g.fillStyle = gr; g.globalAlpha = 0.93;
+        g.beginPath(); g.arc(px, py, r * 0.55, 0, 7); g.fill();
+      }
+      g.globalAlpha = 1; g.fillStyle = "#ffd36b"; g.beginPath(); g.arc(x, y, r * 0.18, 0, 7); g.fill();
+    });
+    return o;
+  }
+  let rama = null;
+
+  const petalos = [];
+  function nuevoPetalo(arriba) {
+    const z = 0.35 + Math.random() * 0.9;   // profundidad: más grande y rápido = más cerca
+    return {
+      x: Math.random() * W, y: arriba ? -30 - Math.random() * 100 : Math.random() * H, z,
+      s: (10 + Math.random() * 12) * z, vy: (0.35 + Math.random() * 0.55) * (0.5 + z),
+      ph: Math.random() * 6.28, vph: 0.012 + Math.random() * 0.02,
+      rot: Math.random() * 6.28, vrot: (Math.random() - 0.5) * 0.04,
+      voltea: Math.random() * 6.28, vvolt: 0.02 + Math.random() * 0.035,
+      sp: sprites[(Math.random() * sprites.length) | 0],
+    };
+  }
+  function medir() {
+    W = innerWidth; H = innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    rama = dibujarRama(200, 260);
+    const n = Math.round(Math.min(46, Math.max(24, W / 32)));
+    while (petalos.length < n) petalos.push(nuevoPetalo(false));
+    petalos.length = n;
+  }
+  medir();
+  addEventListener("resize", medir);
+
+  let viento = 0, ultimoY = scrollY, empuje = 0, vivo = true;
+  addEventListener("scroll", () => { empuje += (scrollY - ultimoY) * 0.05; ultimoY = scrollY; }, { passive: true });
+  document.addEventListener("visibilitychange", () => { vivo = !document.hidden; if (vivo) requestAnimationFrame(cuadro); });
+
+  function cuadro(t) {
+    if (!vivo) return;
+    ctx.clearRect(0, 0, W, H);
+    empuje *= 0.92;
+    viento = Math.sin(t / 3200) * 0.6 + 0.35 + Math.max(-4, Math.min(4, empuje));
+
+    // ramas en los costados (solo si hay lugar), con leve parallax y balanceo
+    if (W > 1180) {
+      const desp = Math.max(-260, -scrollY * 0.12);
+      const bal = Math.sin(t / 2600) * 0.012;
+      ctx.save(); ctx.globalAlpha = 0.9;
+      ctx.translate(0, 150 + desp); ctx.rotate(bal); ctx.drawImage(rama, 0, 0); ctx.restore();
+      ctx.save(); ctx.globalAlpha = 0.9;
+      ctx.translate(W, 150 + desp); ctx.scale(-1, 1); ctx.rotate(-bal); ctx.drawImage(rama, 0, 0); ctx.restore();
+    }
+
+    for (const p of petalos) {
+      p.ph += p.vph; p.rot += p.vrot + empuje * 0.004; p.voltea += p.vvolt;
+      p.y += p.vy + Math.max(0, empuje) * 0.8 * p.z;
+      p.x += Math.sin(p.ph) * 0.7 * p.z + viento * (0.4 + p.z * 0.9);
+      if (p.y > H + 30 || p.x > W + 40 || p.x < -60) Object.assign(p, nuevoPetalo(true), { x: Math.random() * (W + 60) - 40 });
+      const giro = Math.abs(Math.cos(p.voltea));          // el pétalo se "da vuelta" en 3D
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalAlpha = Math.min(0.9, 0.35 + p.z * 0.5);
+      ctx.drawImage(p.sp, -p.s / 2, -p.s / 2 * (0.25 + giro * 0.75), p.s, p.s * (0.25 + giro * 0.75));
+      ctx.restore();
+    }
+    requestAnimationFrame(cuadro);
+  }
+  requestAnimationFrame(cuadro);
+})();
