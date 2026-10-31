@@ -1487,3 +1487,39 @@ body::after {
 .st-nom{font-size:clamp(9px,2.6vw,12px);color:#fff;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .st-dia{font-size:clamp(8.5px,2.4vw,11px);color:#ffd23f;font-weight:700;white-space:nowrap}
 .st-sop{font-style:normal;font-size:8px;font-weight:800;background:linear-gradient(135deg,#ffb300,#ff6d00);color:#1a0d00;border-radius:99px;padding:0 5px}
+
+/* Slide: cómo cargar saldo */
+.slide-ayuda{background:radial-gradient(circle at 15% 0%,rgba(46,226,122,.18),transparent 55%),linear-gradient(135deg,#17233d,#0d0e15)!important}
+.sa-in{height:100%;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:8px 12px}
+.sa-h{text-align:center;font-weight:800;font-size:clamp(13px,3.5vw,17px);color:#fff}
+.sa-pasos{position:relative;min-height:84px}
+.sa-paso{display:none;align-items:center;gap:10px;animation:sa-in .35s ease}
+.sa-paso.on{display:flex}
+@keyframes sa-in{from{opacity:0;transform:translateX(10px)}}
+.sa-paso p{margin:0;font-size:clamp(11px,3vw,14px);line-height:1.35;color:#dfe5f3;flex:1}
+.sa-paso p small{color:#9db4d9;font-size:.85em}
+.sa-ill{flex:none;width:clamp(96px,28vw,150px);min-height:56px;background:#0b0d16;border:1px solid #2c3350;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:5px;padding:6px;position:relative;flex-wrap:wrap}
+.mk-head{display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:center;position:relative}
+.mk-p{font-size:9px;font-weight:800;border-radius:6px;padding:2px 6px}.mk-bn{background:#2b2410;border:1px solid #f3ba2f;color:#f3ba2f}.mk-mp{background:#009ee3;color:#fff}
+.mk-cargar{font-size:9px;font-weight:800;background:#2ee27a;color:#031a0d;border-radius:6px;padding:3px 6px;box-shadow:0 0 0 2px rgba(46,226,122,.4);animation:sa-pulso 1s infinite}
+.mk-flecha{position:absolute;top:-10px;right:-8px;font-size:15px;color:#ffd23f}
+@keyframes sa-pulso{50%{box-shadow:0 0 0 5px rgba(46,226,122,.15)}}
+.mk-alias{font-size:10px;font-weight:800;color:#fff;background:#1b2033;border:1px dashed #5a6690;border-radius:6px;padding:3px 6px;word-break:break-all}
+.mk-copiar{font-size:9px;font-weight:800;background:#38bdf8;color:#04121c;border-radius:6px;padding:3px 6px;animation:sa-pulso 1s infinite}
+.mk-transf{text-align:center}.mk-transf small{display:block;font-size:9px;color:#8b93a7}.mk-transf b{font-size:11px;color:#fff}
+.mk-pc{display:flex;gap:4px;width:100%;height:42px}.mk-pc i{flex:1;background:#1b2033;border-radius:4px}.mk-chatp{width:42%;background:#143a2a;border:1px solid #2ee27a;border-radius:4px;font-size:9px;font-weight:800;color:#7dffb0;display:flex;align-items:center;justify-content:center;animation:sa-pulso 1s infinite}
+.mk-fab{font-size:11px;font-weight:800;background:#25d366;color:#04210f;border-radius:99px;padding:6px 12px;box-shadow:0 0 0 3px rgba(37,211,102,.3)}
+.sa-cel{display:none}
+@media(max-width:800px){.sa-pc{display:none!important}.sa-cel{display:flex!important}span.sa-cel{display:inline!important}}
+@media(min-width:801px){span.sa-cel{display:none!important}}
+.sa-puntos{display:flex;gap:5px;justify-content:center}.sa-puntos i{width:6px;height:6px;border-radius:50%;background:#38426a}.sa-puntos i.on{background:#2ee27a;width:16px;border-radius:9px}
+/* Niveles */
+.cu-nivel{display:flex;gap:12px;align-items:center;margin-top:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px 12px}
+.cu-niv-ico{font-size:30px;flex:none;filter:drop-shadow(0 0 8px rgba(255,210,63,.5))}
+.cu-niv-t{flex:1;min-width:0;display:grid;gap:4px}
+.cu-niv-fila{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.cu-niv-fila b{font-size:16px;color:#fff}.cu-niv-fila small,.cu-niv-t>small{color:#9db4d9;font-size:12px}
+.cu-niv-bar{height:8px;background:#0d1020;border-radius:9px;overflow:hidden}.cu-niv-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#7fd6ff,#3aa0ff);border-radius:9px;transition:width .6s}
+.sb-niv{display:inline-block;margin-top:3px;font-size:11px;font-weight:800;background:rgba(127,214,255,.15);border:1px solid #7fd6ff;color:#bfe9ff;border-radius:99px;padding:1px 8px;width:max-content}
+.cobro-sep{margin-top:6px;padding-top:10px;border-top:1px solid #2b3544;font-size:12px;font-weight:700;color:#7fd6ff}
+.top-lista .niv{margin-left:2px;font-size:14px}

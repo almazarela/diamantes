@@ -169,6 +169,7 @@ function procesarPagoMPSeguro() {
 // ------------------------- CARRUSEL ----------------------------------
 let slideActual = 2;
 let timerCarrusel = null;
+let esperaAyuda = false;
 
 function renderCarrusel() {
   const slides = document.querySelectorAll("#carousel-track .carousel-slide");
@@ -197,6 +198,9 @@ function reiniciarAutoplay() {
   clearInterval(timerCarrusel);
   timerCarrusel = setInterval(() => {
     const n = document.querySelectorAll("#carousel-track .carousel-slide").length;
+    const act = document.querySelector("#carousel-track .carousel-slide.active");
+    if (act && act.classList.contains("slide-ayuda") && !esperaAyuda) { esperaAyuda = true; return; }   // la guía se queda el doble de tiempo
+    esperaAyuda = false;
     if (n) { slideActual = (slideActual + 1) % n; renderCarrusel(); }
   }, 5000);
 }
@@ -3601,17 +3605,13 @@ async function cargarCinta() {
 }
 
 // ---- Top compradores del mes
-async function cargarTopMes() {
-  const sec = $("top-mes"), ol = $("top-lista");
-  if (!sec || !ol) return;
-  try {
-    let { data, error } = await conTimeout(supabase.rpc("top_compradores"), 8000);
-    if (error) ({ data, error } = await conTimeout(supabase.rpc("top_compradores_mes"), 8000));
-    if (error || !Array.isArray(data) || !data.length) { sec.hidden = true; return; }
-    pintarTopCarrusel(data.slice(0, 5));
+let topPrevio = null;
+function pintarTopLista(data) {
+  const ol = $("top-lista"); if (!ol) return;
+    pintarTopCarrusel(data);
     const medallas = ["🥇", "🥈", "🥉", "4", "5"];
     const colores = [["#ff7a18", "#ffd23f"], ["#2979ff", "#00e5ff"], ["#b266ff", "#ff4fd8"], ["#19e68c", "#9dff6a"], ["#ff2d55", "#ff8a5c"]];
-    ol.replaceChildren(...data.slice(0, 5).map((r, i) => {
+    ol.replaceChildren(...data.map((r, i) => {
       const nombre = r.nombre || "Cliente";
       const li = document.createElement("li"); li.className = "u" + i + (i < 3 ? " pod" : "");
       const p = document.createElement("span"); p.className = "pos"; p.textContent = medallas[i] || String(i + 1);
@@ -3623,10 +3623,22 @@ async function cargarTopMes() {
       } else av = letra();
       const n = document.createElement("span"); n.className = "nom";
       const t = document.createElement("span"); t.className = "t"; t.textContent = nombre; n.appendChild(t);
+      const nv = nivelDe(r.diamantes); if (nv >= 0) { const ni = document.createElement("span"); ni.className = "niv"; ni.title = NIVELES[nv].n; ni.textContent = NIVELES[nv].ico; n.appendChild(ni); }
       if (r.es_soporte) { const b = document.createElement("span"); b.className = "op-badge"; b.textContent = "Soporte"; n.appendChild(b); }
       const d = document.createElement("span"); d.className = "dia"; d.textContent = fmtNum(r.diamantes) + " 💎";
       li.append(p, av, n, d); return li;
     }));
+}
+
+async function cargarTopMes() {
+  const sec = $("top-mes"), ol = $("top-lista");
+  if (!sec || !ol) return;
+  try {
+    let { data, error } = await conTimeout(supabase.rpc("top_compradores"), 8000);
+    if (error) ({ data, error } = await conTimeout(supabase.rpc("top_compradores_mes"), 8000));
+    if (error || !Array.isArray(data) || !data.length) { sec.hidden = true; return; }
+    topPrevio = data.slice(0, 5);
+    pintarTopLista(topPrevio);
     sec.hidden = false;
   } catch (_) { sec.hidden = true; }
 }
@@ -3841,7 +3853,7 @@ function montarAyudaPagos() {
 // =====================================================================
 // v3: datos de cobro editables, conversión ARS -> USD, chip "Mis compras"
 // =====================================================================
-const COBRO_DEF = { alias_mp: "almazarela.com", cvu_mp: "0000003100098290851840", titular_mp: "Julian Pereyra", binance_id: "1252553144", tasa_ars_usd: "1700" };
+const COBRO_DEF = { alias_mp: "almazarela.com", cvu_mp: "0000003100098290851840", titular_mp: "Julian Pereyra", binance_id: "1252553144", tasa_ars_usd: "1700", nivel_1: "110", nivel_2: "1000", nivel_3: "3000", nivel_4: "7000", nivel_5: "15000" };
 let cobro = { ...COBRO_DEF };
 function aplicarCobro() {
   const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
@@ -3849,6 +3861,10 @@ function aplicarCobro() {
   set("modal-mercadopago-cvu", cobro.cvu_mp);
   set("mp-titular", cobro.titular_mp);
   set("modal-binance-dato", cobro.binance_id);
+  document.querySelectorAll(".js-alias").forEach((e) => { e.textContent = cobro.alias_mp; });
+  document.querySelectorAll(".js-titular").forEach((e) => { e.textContent = cobro.titular_mp; });
+  document.querySelectorAll(".js-bn").forEach((e) => { e.textContent = cobro.binance_id; });
+  pintarNivel(); if (typeof topPrevio !== "undefined" && topPrevio) pintarTopLista(topPrevio);
   set("conv-tasa", "1 USD = " + formatoARS(Number(cobro.tasa_ars_usd)).replace(/,00$/, ""));
 }
 async function cargarCobro() {
@@ -3864,6 +3880,8 @@ function rellenarCobro() {
 async function guardarCobro() {
   const btn = $("cobro-guardar"); btn.disabled = true;
   try {
+    const nv = [1, 2, 3, 4, 5].map((i) => Number($("cobro-nivel_" + i)?.value));
+    if (nv.some((x, i) => !(x > 0) || (i && x <= nv[i - 1]))) { mostrarAviso("Los niveles tienen que ser números que van subiendo (cada uno mayor al anterior).", "error"); return; }
     let n = 0;
     for (const k of Object.keys(COBRO_DEF)) {
       const v = ($("cobro-" + k)?.value || "").trim();
@@ -4005,3 +4023,63 @@ function pintarTopCarrusel(data) {
   }));
 }
 Object.assign(window, { alternarBloqueo });
+
+
+// =====================================================================
+// v6: niveles de cliente (umbrales editables por la administradora) y guía animada del carrusel
+// =====================================================================
+const NIVELES = [
+  { n: "Bronce", ico: "🥉", k: "nivel_1" }, { n: "Plata", ico: "🥈", k: "nivel_2" }, { n: "Oro", ico: "🥇", k: "nivel_3" },
+  { n: "Diamante", ico: "💎", k: "nivel_4" }, { n: "Leyenda", ico: "👑", k: "nivel_5" },
+];
+const minNivel = (i) => Number(cobro[NIVELES[i].k]) || Number(COBRO_DEF[NIVELES[i].k]);
+function nivelDe(total) {
+  let r = -1;
+  for (let i = 0; i < NIVELES.length; i++) if ((Number(total) || 0) >= minNivel(i)) r = i;
+  return r;
+}
+let misDiamantes = null;
+async function cargarNivel() {
+  if (!usuarioActual) { misDiamantes = null; pintarNivel(); return; }
+  try {
+    const { data, error } = await conTimeout(supabase.rpc("mis_diamantes_totales"), 8000);
+    misDiamantes = !error && Number.isFinite(Number(data)) ? Number(data) : null;
+  } catch (_) { misDiamantes = null; }
+  pintarNivel();
+}
+function pintarNivel() {
+  const caja = $("cu-nivel"), chip = $("sb-niv");
+  if (!usuarioActual || misDiamantes === null) { if (caja) caja.hidden = true; if (chip) chip.hidden = true; return; }
+  const t = misDiamantes, i = nivelDe(t);
+  const sig = i + 1 < NIVELES.length ? i + 1 : -1;
+  const desde = i >= 0 ? minNivel(i) : 0;
+  if (caja) {
+    $("cu-niv-ico").textContent = i >= 0 ? NIVELES[i].ico : "🌱";
+    $("cu-niv-nom").textContent = i >= 0 ? "Nivel " + NIVELES[i].n : "Cliente nuevo";
+    $("cu-niv-total").textContent = fmtNum(t) + " 💎 recargados";
+    const pct = sig < 0 ? 100 : Math.max(3, Math.min(100, ((t - desde) / (minNivel(sig) - desde)) * 100));
+    $("cu-niv-fill").style.width = pct + "%";
+    $("cu-niv-txt").textContent = sig < 0 ? "¡Llegaste al nivel máximo! 🎉" : `Te faltan ${fmtNum(Math.max(0, minNivel(sig) - t))} 💎 para ${NIVELES[sig].ico} ${NIVELES[sig].n}`;
+    caja.hidden = false;
+  }
+  if (chip) { chip.textContent = i >= 0 ? NIVELES[i].ico + " " + NIVELES[i].n : "🌱 Nuevo"; chip.hidden = false; }
+}
+// al acreditarse una compra o iniciar sesión se actualiza el nivel
+{
+  const orig = avisarAcreditada;
+  avisarAcreditada = function (x) { orig(x); setTimeout(cargarNivel, 1500); };
+}
+supabase.auth.onAuthStateChange((_e, session) => { setTimeout(cargarNivel, 150); });
+
+// ---- Guía "Cómo cargar saldo": los pasos se van pasando solos mientras el slide está a la vista
+(function guiaCarrusel() {
+  let i = 0;
+  setInterval(() => {
+    const sl = $("slide-ayuda"); if (!sl) return;
+    const pasos = sl.querySelectorAll(".sa-paso"), pts = sl.querySelectorAll(".sa-puntos i");
+    if (!sl.classList.contains("active")) { if (i !== 0) { i = 0; pasos.forEach((p, k) => p.classList.toggle("on", k === 0)); pts.forEach((p, k) => p.classList.toggle("on", k === 0)); } return; }
+    i = (i + 1) % pasos.length;
+    pasos.forEach((p, k) => p.classList.toggle("on", k === i));
+    pts.forEach((p, k) => p.classList.toggle("on", k === i));
+  }, 2400);
+})();

@@ -666,7 +666,7 @@
   <div class="sidebar-content">
   <div id="sb-perfil" class="sb-perfil" hidden>
   <span class="sb-avatar" id="sb-avatar">A</span>
-  <div class="sb-perfil-txt"><strong id="sb-nombre">Mi cuenta</strong><small id="sb-email"></small></div>
+  <div class="sb-perfil-txt"><strong id="sb-nombre">Mi cuenta</strong><small id="sb-email"></small><span class="sb-niv" id="sb-niv" hidden></span></div>
   </div>
 
   <div id="sidebar-auth-btn-area" class="sb-login">
@@ -744,6 +744,18 @@
   <div class="carousel-slide hidden">
   <img src="banner6.jpg" alt="Promoción 6">
   </div>
+  <div class="carousel-slide hidden slide-ayuda" id="slide-ayuda">
+  <div class="sa-in">
+  <div class="sa-h">💳 Cómo cargar saldo</div>
+  <div class="sa-pasos">
+  <div class="sa-paso on"><div class="sa-ill"><div class="mk-head"><span class="mk-p mk-bn">USD</span><span class="mk-p mk-mp">ARS</span><span class="mk-cargar">＋ Cargar saldo</span><span class="mk-flecha">↗</span></div></div><p><b>1.</b> Arriba a la derecha tocá <b>Cargar saldo</b> y elegí Mercado Pago o Binance.</p></div>
+  <div class="sa-paso"><div class="sa-ill"><span class="mk-alias js-alias">almazarela.com</span><span class="mk-copiar">⧉ Copiar</span></div><p><b>2.</b> Copiá el alias <b class="js-alias">almazarela.com</b> <small>(Binance: ID <span class="js-bn">1252553144</span>)</small></p></div>
+  <div class="sa-paso"><div class="sa-ill"><div class="mk-transf"><small>Transferir a</small><b class="js-titular">Julian Pereyra</b></div></div><p><b>3.</b> Hacé la transferencia <b>a nombre de <span class="js-titular">Julian Pereyra</span></b>.</p></div>
+  <div class="sa-paso"><div class="sa-ill sa-pc"><div class="mk-pc"><i></i><div class="mk-chatp">💬 Chat</div></div></div><div class="sa-ill sa-cel"><span class="mk-fab">💬 Chat</span></div><p><b>4.</b> Mandá la <b>captura</b> por el chat <span class="sa-pc">(panel de la derecha)</span><span class="sa-cel">(botón verde, abajo a la derecha)</span>. ¡Te acreditamos el saldo!</p></div>
+  </div>
+  <div class="sa-puntos"><i class="on"></i><i></i><i></i><i></i></div>
+  </div>
+  </div>
   <div class="carousel-slide hidden">
   <img src="banner7.jpg" alt="Promoción 7">
   </div>
@@ -760,6 +772,7 @@
   <span class="dot active" onclick="irASlide(1)"></span>
   <span class="dot" onclick="irASlide(2)"></span>
   <span class="dot" onclick="irASlide(3)"></span>
+  <span class="dot" onclick="irASlide(4)"></span>
   </div>
   </section>
   
@@ -1025,6 +1038,7 @@
   <div class="cu-quien"><small>Bienvenido/a</small><b id="cu-nombre">Usuario</b><span id="user-email-display">usuario@gmail.com</span></div>
   <button type="button" class="cu-salir" onclick="logoutGoogle()"><i class="fa-solid fa-right-from-bracket"></i> <span>Cerrar sesión</span></button>
   </div>
+  <div class="cu-nivel" id="cu-nivel" hidden><span class="cu-niv-ico" id="cu-niv-ico">🌱</span><div class="cu-niv-t"><div class="cu-niv-fila"><b id="cu-niv-nom">Nuevo</b><small id="cu-niv-total"></small></div><div class="cu-niv-bar"><i id="cu-niv-fill"></i></div><small id="cu-niv-txt"></small></div></div>
   <div class="cu-saldos">
   <div class="cu-saldo cu-mp"><span><i class="fa-solid fa-handshake"></i> Mercado Pago</span><b id="user-balance-ars">$0,00 ARS</b></div>
   <div class="cu-saldo cu-bn"><span><i class="fa-brands fa-bitcoin"></i> Binance</span><b id="user-balance">$0.00 USD</b></div>
@@ -1047,7 +1061,7 @@
   <button type="button" id="admin-tab-clientes" class="admin-tab activa" role="tab" aria-selected="true" aria-controls="admin-vista-clientes" onclick="mostrarVistaAdmin('clientes')">💬 Mensajes y saldos</button>
   <button type="button" id="admin-tab-ordenes" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-ordenes" onclick="mostrarVistaAdmin('ordenes')">🧾 Historial de órdenes <span id="admin-ordenes-alerta" class="admin-alerta" hidden>0</span></button>
   <button type="button" id="admin-tab-stock" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-stock" onclick="mostrarVistaAdmin('stock')">📦 Stock de PINs</button>
-  <button type="button" id="admin-tab-cobro" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-cobro" onclick="mostrarVistaAdmin('cobro')">💳 Datos de cobro</button>
+  <button type="button" id="admin-tab-cobro" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-cobro" onclick="mostrarVistaAdmin('cobro')">💳 Cobro y niveles</button>
   </div>
 
   <div id="admin-vista-clientes" role="tabpanel">
@@ -1093,6 +1107,12 @@
   <label>Titular<input type="text" id="cobro-titular_mp" maxlength="60" autocomplete="off"></label>
   <label>Binance Pay ID<input type="text" id="cobro-binance_id" maxlength="40" autocomplete="off"></label>
   <label>Tasa de conversión (pesos por 1 USD)<input type="number" id="cobro-tasa_ars_usd" inputmode="decimal" step="any" min="1"></label>
+  <div class="cobro-sep">Niveles de cliente: diamantes que tiene que haber recargado en total</div>
+  <label>🥉 Bronce desde<input type="number" id="cobro-nivel_1" inputmode="numeric" min="1"></label>
+  <label>🥈 Plata desde<input type="number" id="cobro-nivel_2" inputmode="numeric" min="1"></label>
+  <label>🥇 Oro desde<input type="number" id="cobro-nivel_3" inputmode="numeric" min="1"></label>
+  <label>💎 Diamante desde<input type="number" id="cobro-nivel_4" inputmode="numeric" min="1"></label>
+  <label>👑 Leyenda desde<input type="number" id="cobro-nivel_5" inputmode="numeric" min="1"></label>
   <button type="button" id="cobro-guardar" class="ord-btn" onclick="guardarCobro()">💾 Guardar cambios</button>
   </div>
   </div>
