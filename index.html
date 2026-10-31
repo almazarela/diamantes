@@ -646,52 +646,55 @@
   </div>
   
   <div class="sidebar-content">
-  <div class="sidebar-card user-wallet-box">
-  <div class="wallet-header"><i class="fa-solid fa-wallet"></i><span>billetera Virtual</span></div>
-  <div class="wallet-id">ID Monedero: <strong id="menu-wallet-id">#REV-84920</strong></div>
-  <div class="wallet-balance-row">
-  <span>Saldo Disponible:</span>
-  <strong class="balance-text" id="menu-wallet-balance">$0.00 USD</strong>
+  <div id="sb-perfil" class="sb-perfil" hidden>
+  <span class="sb-avatar" id="sb-avatar">A</span>
+  <div class="sb-perfil-txt"><strong id="sb-nombre">Mi cuenta</strong><small id="sb-email"></small></div>
   </div>
-  <div class="wallet-balance-row">
-  <span>Saldo en pesos:</span>
-  <strong class="balance-text" id="menu-wallet-balance-ars">$0,00 ARS</strong>
-  </div>
-  </div>
-  
-  <div class="sidebar-section">
-  <h4><i class="fa-solid fa-user-gear"></i> Revendedores</h4>
-  <div id="sidebar-auth-btn-area">
+
+  <div id="sidebar-auth-btn-area" class="sb-login">
   <button class="btn-google-login" onclick="loginConGoogle()">
   <i class="fa-brands fa-google" style="color: #ea4335;"></i> Iniciar Sesión con Google
   </button>
+  <p class="sb-login-nota">Ingresá para ver tu saldo, tus compras y chatear con soporte.</p>
   </div>
-  </div>
-  
+
+  <a id="sb-wa" href="https://wa.me/" target="_blank" rel="noopener" class="sb-accion sb-wa">
+  <span class="sb-ico"><i class="fa-brands fa-whatsapp"></i></span>
+  <span class="sb-txt"><b>Atención por WhatsApp</b><small>Escribinos, respondemos rápido</small></span>
+  <i class="fa-solid fa-chevron-right sb-flecha"></i>
+  </a>
+
   <div class="sidebar-section" id="sidebar-historial" style="display: none;">
-  <h4><i class="fa-solid fa-receipt"></i> Mis compras</h4>
-  <button type="button" class="menu-link hist-menu-link" onclick="abrirHistorial()">
-  <i class="fa-solid fa-clock-rotate-left"></i> Mi Historial de Compras
+  <button type="button" class="sb-accion sb-hist" onclick="abrirHistorial()">
+  <span class="sb-ico"><i class="fa-solid fa-clock-rotate-left"></i></span>
+  <span class="sb-txt"><b>Mi historial de compras</b><small>Mirá tus recargas y cómo van</small></span>
+  <i class="fa-solid fa-chevron-right sb-flecha"></i>
   </button>
   </div>
 
-  <div class="sidebar-section">
-  <h4><i class="fa-solid fa-headset"></i> Soporte & Contacto</h4>
-  <a href="https://wa.me/54911XXXXXXXX?text=Hola!%20Tengo%20una%20consulta%20sobre%20las%20recargas." target="_blank" class="menu-link whatsapp-link">
-  <i class="fa-brands fa-whatsapp"></i> Atención por WhatsApp
-  </a>
+  <div class="sb-wallet" id="sb-wallet" hidden>
+  <div class="sb-wallet-tit"><span><i class="fa-solid fa-wallet"></i> Mi billetera</span><small>ID <strong id="menu-wallet-id">#REV-00000</strong></small></div>
+  <div class="sb-saldo sb-mp">
+  <span class="sb-saldo-ico"><i class="fa-solid fa-handshake"></i></span>
+  <span class="sb-saldo-txt"><small>Mercado Pago · Pesos</small><strong id="menu-wallet-balance-ars">$0,00 ARS</strong></span>
   </div>
-  
-  <div class="sidebar-section">
-  <h4><i class="fa-solid fa-circle-info"></i> Estado del Sistema</h4>
+  <div class="sb-saldo sb-bn">
+  <span class="sb-saldo-ico"><i class="fa-solid fa-coins"></i></span>
+  <span class="sb-saldo-txt"><small>Binance · Dólares</small><strong id="menu-wallet-balance">$0.00 USD</strong></span>
+  </div>
+  <button type="button" class="sb-cargar" onclick="toggleMenu(); abrirModalSeleccionCarga()"><i class="fa-solid fa-circle-plus"></i> Cargar saldo</button>
+  </div>
+
   <div class="status-indicator">
   <span class="status-dot online"></span>
-  <span>Servidores de Recarga: <b>ONLINE</b></span>
+  <span>Servidores de recarga: <b>ONLINE</b></span>
   </div>
   </div>
+
+  <div class="sidebar-footer">
+  <button type="button" id="sb-logout" class="sb-logout" hidden><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</button>
+  <p>© Centro de Recargas FF - Argentina</p>
   </div>
-  
-  <div class="sidebar-footer"><p>© Centro de Recargas FF - Argentina</p></div>
   </aside>
   
   <section class="hero-banner-section">
@@ -1012,7 +1015,7 @@
   <div id="admin-vista-clientes" role="tabpanel">
   <p style="font-size: 13px; color: #aaa; margin-bottom: 12px;">Seleccioná un cliente para ver sus comprobantes y acreditarle saldo:</p>
   <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-  <div style="flex: 1; min-width: 200px; align-self: flex-start; display: flex; flex-direction: column; gap: 8px;">
+  <div id="admin-col-lista" style="flex: 1; min-width: 200px; align-self: flex-start; display: flex; flex-direction: column; gap: 8px;">
   <label class="adm-buscar"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="admin-buscar-cliente" placeholder="Buscar cliente…" autocomplete="off" aria-label="Buscar cliente"></label>
   <p id="admin-buscar-vacio" class="adm-vacio" hidden>No hay clientes con ese nombre.</p>
   <div style="background: #0e0f16; border-radius: 8px; padding: 10px; min-height: 200px; max-height: min(88vh, 900px); overflow-y: auto; overscroll-behavior: contain;" id="admin-users-list">

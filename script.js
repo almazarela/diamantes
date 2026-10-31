@@ -1078,20 +1078,32 @@ function renderSesion(user) {
   if ($("sidebar-historial")) $("sidebar-historial").style.display = logueado ? "block" : "none";
   if (logueado) $("user-email-display").textContent = user.email;
 
-  // Sidebar: botón de login o de logout
+  // Sidebar: perfil, login/logout y billetera
   const area = $("sidebar-auth-btn-area");
-  if (area) {
-    area.replaceChildren();
-    const btn = document.createElement("button");
-    btn.className = "btn-google-login";
-    if (logueado) {
-      btn.textContent = "Cerrar sesión (" + user.email + ")";
-      btn.addEventListener("click", logoutGoogle);
-    } else {
-      btn.innerHTML = '<i class="fa-brands fa-google" style="color:#ea4335;"></i> Iniciar Sesión con Google';
-      btn.addEventListener("click", loginConGoogle);
-    }
-    area.appendChild(btn);
+  if (area) area.style.display = logueado ? "none" : "block";
+  const sb = (id) => $(id);
+  if (sb("sb-perfil")) sb("sb-perfil").hidden = !logueado;
+  if (sb("sb-wallet")) sb("sb-wallet").hidden = !logueado;
+  if (sb("sb-logout")) { sb("sb-logout").hidden = !logueado; sb("sb-logout").onclick = logoutGoogle; }
+  if (logueado) {
+    const md = user.user_metadata || {};
+    const nombre = md.full_name || md.name || (user.email || "").split("@")[0];
+    sb("sb-nombre").textContent = nombre;
+    sb("sb-email").textContent = user.email || "";
+    const av = sb("sb-avatar");
+    av.replaceChildren();
+    if (/^https:\/\//.test(md.avatar_url || md.picture || "")) {
+      const img = document.createElement("img");
+      img.alt = ""; img.referrerPolicy = "no-referrer"; img.src = md.avatar_url || md.picture;
+      img.addEventListener("error", () => { img.remove(); av.textContent = (nombre[0] || "A").toUpperCase(); });
+      av.appendChild(img);
+    } else av.textContent = (nombre[0] || "A").toUpperCase();
+  }
+  const wa = $("sb-wa");
+  if (wa) {
+    let n = String(CONFIG.WHATSAPP_NUMBER || "").replace(/\D/g, "");
+    if (n && !n.startsWith("54")) n = "549" + n;
+    wa.href = "https://wa.me/" + n + "?text=" + encodeURIComponent("¡Hola! Tengo una consulta sobre las recargas.");
   }
 
   $("menu-wallet-id").textContent = logueado ? "#REV-" + user.id.replace(/-/g, "").slice(0, 5).toUpperCase() : "#REV-00000";
@@ -2060,6 +2072,7 @@ function seleccionarCliente(fila, etiqueta) {
     fila,
   };
   respuestaPendiente.admin = null;
+  abrirChatMovilAdmin();
   renderListaClientes();   // resalta el cliente elegido
   firmaMsgs = "";
   construirVistaCliente();
@@ -2068,13 +2081,42 @@ function seleccionarCliente(fila, etiqueta) {
   pollAdmin = setInterval(() => { if (!document.hidden) refrescarMensajes(false); }, 8000);
 }
 
+// ---- Celular: el chat del cliente se abre a pantalla completa (como WhatsApp) y "atrás" vuelve a la lista ----
+const esMovil = () => window.matchMedia("(max-width: 800px)").matches;
+function abrirChatMovilAdmin() {
+  if (!esMovil()) return;
+  const v = $("admin-vista-clientes");
+  if (!v || v.classList.contains("adm-chat-abierto")) return;
+  v.classList.add("adm-chat-abierto");
+  document.body.classList.add("adm-chat-on");
+  try { history.pushState({ admChat: 1 }, ""); } catch (e) {}
+}
+function cerrarChatAdmin(desdePop) {
+  const v = $("admin-vista-clientes");
+  if (!v || !v.classList.contains("adm-chat-abierto")) return;
+  v.classList.remove("adm-chat-abierto");
+  document.body.classList.remove("adm-chat-on");
+  clearInterval(pollAdmin);
+  clienteSel = null;
+  renderListaClientes();
+  if (!desdePop && history.state && history.state.admChat) { try { history.back(); } catch (e) {} }
+}
+window.addEventListener("popstate", () => cerrarChatAdmin(true));
+window.addEventListener("resize", () => { if (!esMovil()) cerrarChatAdmin(false); });
+
 function construirVistaCliente() {
   const vista = $("admin-chat-view");
   vista.replaceChildren();
   vista.style.justifyContent = "flex-start";
 
   const cab = document.createElement("div");
+  cab.className = "adm-cab";
   cab.style.cssText = "font-size:13px;color:#ddd;margin-bottom:10px;word-break:break-all;";
+  const atras = document.createElement("button");
+  atras.type = "button"; atras.className = "adm-atras";
+  atras.setAttribute("aria-label", "Volver a la lista de chats");
+  atras.innerHTML = '<i class="fa-solid fa-arrow-left"></i> Chats';
+  atras.addEventListener("click", () => cerrarChatAdmin(false));
   const nombre = document.createElement("strong");
   nombre.textContent = clienteSel.etiqueta;
   const sub = document.createElement("div");
@@ -2087,7 +2129,7 @@ function construirVistaCliente() {
     filtroOrdenesInicial = false;
     mostrarVistaAdmin("ordenes");
   });
-  cab.append(nombre, sub, verOrdenes);
+  cab.append(atras, nombre, sub, verOrdenes);
   vista.appendChild(cab);
 
   // --- Saldos (USD y ARS, independientes) ---
@@ -2185,6 +2227,7 @@ function construirVistaCliente() {
   // --- Conversación ---
   const msgs = document.createElement("div");
   msgs.id = "admin-msgs";
+  msgs.className = "adm-msgs";
   msgs.style.cssText = "background:#0b0c12;border-radius:8px;padding:8px;height:min(52vh,460px);min-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px;";
   const cargando = document.createElement("p");
   cargando.style.cssText = "font-size:12px;color:#666;margin:auto;";
@@ -2195,6 +2238,7 @@ function construirVistaCliente() {
 
   // --- Responder ---
   const resp = document.createElement("div");
+  resp.className = "adm-resp";
   resp.style.cssText = "display:flex;gap:6px;";
   const inp = document.createElement("input");
   inp.id = "admin-respuesta"; inp.type = "text"; inp.placeholder = "Responder al cliente…"; inp.maxLength = 1000;
@@ -3252,6 +3296,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ------------------------- EXPOSICIÓN GLOBAL (onclick del HTML) ------
 Object.assign(window, {
+  cerrarChatAdmin,
   toggleMenu, agregarPinesStock,
   abrirModalSeleccionCarga, cerrarModalSeleccionCarga,
   copiarDato, elegirMonto,
