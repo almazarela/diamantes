@@ -287,7 +287,7 @@ function pintarJugador(info, id, validado) {
   $("player-meta").textContent = meta.join(" · ");
 
   // Mismo diseño verde en ambos casos; "Jugador verificado" solo si n8n confirmó que el jugador existe
-  card.querySelector(".player-label").textContent = validado ? "Jugador verificado" : "ID listo para recargar";
+  card.querySelector(".player-label").textContent = validado ? "Jugador encontrado" : "ID listo para recargar";
 
   // Avatar: si falta o no carga, queda el ícono por defecto (nunca una imagen rota)
   const img = $("player-avatar-img");
@@ -1101,7 +1101,22 @@ function renderSesion(user) {
   $("admin-panel-section").style.display = esAdminEmail ? "block" : "none";
   document.body.classList.toggle("es-admin", esAdminEmail);
   if ($("sidebar-historial")) $("sidebar-historial").style.display = logueado ? "block" : "none";
-  if (logueado) $("user-email-display").textContent = user.email;
+  if (logueado) {
+    $("user-email-display").textContent = user.email;
+    const md0 = user.user_metadata || {};
+    const nom0 = md0.full_name || md0.name || (user.email || "").split("@")[0];
+    if ($("cu-nombre")) $("cu-nombre").textContent = nom0;
+    const cav = $("cu-av");
+    if (cav) {
+      cav.replaceChildren();
+      const foto = md0.avatar_url || md0.picture || "";
+      if (/^https:\/\//.test(foto)) {
+        const im = document.createElement("img"); im.alt = ""; im.referrerPolicy = "no-referrer"; im.src = foto;
+        im.addEventListener("error", () => { im.remove(); cav.textContent = (nom0[0] || "A").toUpperCase(); });
+        cav.appendChild(im);
+      } else cav.textContent = (nom0[0] || "A").toUpperCase();
+    }
+  }
 
   // Sidebar: perfil, login/logout y billetera
   const area = $("sidebar-auth-btn-area");
@@ -3700,7 +3715,7 @@ function pintarSeguimiento() {
   const caja = $("seguimiento");
   if (!caja || !seg) { if (caja) caja.hidden = true; return; }
   $("seg-num").textContent = seg.num ? "#" + seg.num : "";
-  $("seg-paq").textContent = seg.paquete || "";
+  $("seg-paq").textContent = seg.paquete ? "· " + seg.paquete : "";
   const [txt, activo] = textoPaso(seg.estado);
   $("seg-txt").textContent = txt;
   caja.querySelectorAll("#seg-pasos li").forEach((li) => {
@@ -3839,7 +3854,7 @@ async function guardarCobro() {
       const v = ($("cobro-" + k)?.value || "").trim();
       if (!v || v === cobro[k]) continue;
       const { error } = await supabase.rpc("admin_guardar_config_pago", { p_clave: k, p_valor: v });
-      if (error) { mostrarAviso(/TASA/.test(error.message) ? "La tasa tiene que ser un número mayor a 0." : "No se pudo guardar. ¿Ejecutaste novedades_clientes_v3.sql?", "error"); return; }
+      if (error) { mostrarAviso(/TASA/.test(error.message) ? "La tasa tiene que ser un número mayor a 0." : /NO_AUTORIZADO/.test(error.message) ? "Falta ejecutar novedades_clientes_v4.sql en Supabase." : "No se pudo guardar. ¿Ejecutaste novedades_clientes_v3.sql y v4?", "error"); return; }
       cobro[k] = v; n++;
     }
     aplicarCobro();

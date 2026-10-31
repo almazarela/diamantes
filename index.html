@@ -773,7 +773,7 @@
   
   <!-- SEGUIMIENTO DEL PEDIDO (compacto) -->
   <div id="seguimiento" class="seg" hidden>
-  <div class="seg-cab"><span class="seg-tit"><i class="fa-solid fa-truck-fast"></i> Tu pedido <b id="seg-num"></b> · <span id="seg-paq"></span></span>
+  <div class="seg-cab"><span class="seg-tit"><i class="fa-solid fa-truck-fast"></i> Tu pedido <b id="seg-num"></b> <span id="seg-paq"></span></span>
   <span class="seg-acc"><button type="button" id="seg-aviso" class="seg-btn" hidden><i class="fa-solid fa-bell"></i> Avisarme</button><button type="button" id="seg-x" class="seg-btn seg-cerrar" aria-label="Cerrar">✕</button></span></div>
   <ol class="seg-pasos" id="seg-pasos">
   <li data-p="0"><i></i><span>Pagado</span></li><li data-p="1"><i></i><span>PIN reservado</span></li><li data-p="2"><i></i><span>Cargando</span></li><li data-p="3"><i></i><span>Acreditado</span></li>
@@ -786,13 +786,13 @@
   <div class="step-title">
   <span class="badge">1</span>
   <h3>Ingresar ID de jugador</h3>
-  <button type="button" id="chip-compras" class="hchip" onclick="abrirHistorial()" hidden><i class="fa-solid fa-receipt"></i> Mis compras <em id="chip-compras-n" hidden></em></button>
+  <button type="button" id="chip-compras" class="hchip" onclick="abrirHistorial()" hidden><i class="fa-solid fa-receipt"></i> <span class="hc-mis">Mis </span>compras <em id="chip-compras-n" hidden></em></button>
   </div>
   
   <div id="player-card" class="player-card" hidden>
   <div class="player-avatar"><img id="player-avatar-img" alt="Avatar" hidden><i id="player-avatar-icon" class="fa-solid fa-user-astronaut"></i></div>
   <div class="player-info">
-  <span class="player-label">Jugador verificado</span>
+  <span class="player-label">Jugador encontrado</span>
   <strong id="player-name" class="player-name"></strong>
   <span id="player-meta" class="player-meta"></span>
   </div>
@@ -1007,41 +1007,33 @@
   </section>
 
   <section class="card auth-card" id="auth-section">
-  <div class="step-title">
-  <span class="badge"><i class="fa-solid fa-user-gear"></i></span>
-  <h3>Cuenta Revendedor</h3>
+  <div class="cu-head">
+  <span class="cu-ico"><i class="fa-solid fa-user-gear"></i></span>
+  <div class="cu-ttl"><h3>Cuenta Revendedor</h3><small>Tu monedero, tus compras y el chat con soporte</small></div>
   </div>
-  
+
   <div id="auth-forms" class="auth-box">
   <p class="auth-desc">Iniciá sesión con tu cuenta de Google para gestionar tu monedero y chatear con soporte.</p>
   <button class="btn-google-login" onclick="loginConGoogle()">
   <i class="fa-brands fa-google" style="color: #ea4335;"></i> Iniciar Sesión con Google
   </button>
   </div>
-  
-  <div id="user-dashboard" class="dashboard-box" style="display: none;">
-  <div class="dashboard-header">
-  <span class="dashboard-user-text">Bienvenido, <b id="user-email-display">usuario@gmail.com</b></span>
-  <button class="btn-logout" onclick="logoutGoogle()">Cerrar Sesión</button>
-  </div>
-  <div class="wallet-card wallet-compacta">
-  <div class="wallet-duo">
-  <div class="wallet-mini wm-mp">
-  <span class="wm-lbl"><i class="fa-solid fa-handshake"></i> Mercado Pago</span>
-  <b class="wm-monto" id="user-balance-ars">$0,00 ARS</b>
-  </div>
-  <div class="wallet-mini wm-bn">
-  <span class="wm-lbl"><i class="fa-brands fa-bitcoin"></i> Binance</span>
-  <b class="wm-monto" id="user-balance">$0.00 USD</b>
-  </div>
-  </div>
-  <a href="javascript:void(0)" onclick="abrirModalSeleccionCarga()" class="btn-add-funds btn-cargar-mini">
-  <i class="fa-solid fa-plus-circle"></i> Cargar saldo
-  </a>
-  <p class="wallet-subtext">Cada recarga descuenta el saldo de la moneda del paquete.</p>
-  </div>
 
-
+  <div id="user-dashboard" class="dashboard-box cu" style="display: none;">
+  <div class="cu-perfil">
+  <span class="cu-av" id="cu-av">A</span>
+  <div class="cu-quien"><small>Bienvenido/a</small><b id="cu-nombre">Usuario</b><span id="user-email-display">usuario@gmail.com</span></div>
+  <button type="button" class="cu-salir" onclick="logoutGoogle()"><i class="fa-solid fa-right-from-bracket"></i> <span>Cerrar sesión</span></button>
+  </div>
+  <div class="cu-saldos">
+  <div class="cu-saldo cu-mp"><span><i class="fa-solid fa-handshake"></i> Mercado Pago</span><b id="user-balance-ars">$0,00 ARS</b></div>
+  <div class="cu-saldo cu-bn"><span><i class="fa-brands fa-bitcoin"></i> Binance</span><b id="user-balance">$0.00 USD</b></div>
+  </div>
+  <div class="cu-acciones">
+  <button type="button" class="cu-btn cu-cargar" onclick="abrirModalSeleccionCarga()"><i class="fa-solid fa-circle-plus"></i> Cargar saldo</button>
+  <button type="button" class="cu-btn cu-conv" onclick="abrirModalConvertir()"><i class="fa-solid fa-right-left"></i> Convertir saldo</button>
+  </div>
+  <p class="cu-nota">Cada recarga descuenta el saldo de la moneda del paquete. Podés pasar tus pesos a dólares cuando quieras.</p>
   </div>
   </section>
 
