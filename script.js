@@ -3071,10 +3071,12 @@ function precioDeCaja(caja) {
   return Number.isFinite(n) ? n : null;
 }
 
-async function esperarOrden(ordenId) {
+async function esperarOrden(ordenId, alDemorar) {
   const fin = Date.now() + CONFIG.ESPERA_ORDEN_MS;
+  const demora = Date.now() + 20000;
+  let avisado = false;
   while (Date.now() < fin) {
-    await dormir(2000);
+    await dormir(1000);
     let respuesta;
     try { respuesta = await conTimeout(supabase.from("ordenes_recarga").select("estado").eq("id", ordenId).maybeSingle(), 8000); }
     catch (_) { continue; }   // una consulta colgada no frena la espera
@@ -3082,8 +3084,17 @@ async function esperarOrden(ordenId) {
     if (error || !data) continue;
     if (data.estado === "completada" || data.estado === "fallida") return data.estado;
     if (data.estado === "error_envio") return "pendiente";   // no tiene sentido seguir esperando
+    if (!avisado && alDemorar && Date.now() > demora) { avisado = true; alDemorar(); }
   }
   return "pendiente";
+}
+
+// ¿Está encendido el servidor que entrega las recargas? (una consulta liviana, ~0,5 s; si no responde en 5 s se da por apagado)
+async function servidorDisponible() {
+  try {
+    const r = await postWebhook({ ping: true }, 5000);
+    return r.ok || r.status < 500;
+  } catch (_) { return false; }
 }
 
 function irAlChat(texto) {
@@ -3166,11 +3177,26 @@ async function comprarPaquete(ev, paqueteId, moneda = "USD") {
   const ctxError = { moneda, saldo: saldos[moneda], precio, nombre, id };
   try {
     // saldo al día antes de confirmar (puede haberse acreditado recién); si tarda, se sigue con el que está en pantalla
+    // (en paralelo: el saldo y si el servidor de recargas está encendido)
+    const sondaServidor = servidorDisponible();
     try { await conTimeout(cargarSaldo(usuarioActual), 8000); } catch (_) { /* sin bloqueo */ }
     ctxError.saldo = saldos[moneda];
     const saldo = saldos[moneda];
 
     if (precio != null && saldo < precio) return mostrarErrorCompra({ message: "SALDO_INSUFICIENTE" }, ctxError);
+
+    // Si el servidor de recargas está apagado, el cliente decide ANTES de pagar si quiere esperar
+    let pedidoDemorado = false;
+    if (!(await sondaServidor)) {
+      const esperar = await mostrarConfirmacion({
+        tono: "warn", icono: "⏳", titulo: "Tu recarga puede demorar",
+        texto: "En este momento estamos procesando las recargas más lento de lo normal. Si comprás ahora, tu pedido queda en pendiente y se acredita apenas retomemos, y eso puede tardar varias horas.",
+        nota: "Si preferís no esperar, cancelá y no se descuenta nada de tu saldo. Podés volver a intentarlo más tarde.",
+        confirmar: "Quiero esperar", cancelar: "Cancelar compra",
+      });
+      if (!esperar) return;
+      pedidoDemorado = true;
+    }
 
     const confirmado = await mostrarConfirmacion({
       tono: "ok", icono: "💎", titulo: "Confirmá tu compra",
@@ -3187,7 +3213,7 @@ async function comprarPaquete(ev, paqueteId, moneda = "USD") {
     });
     if (!confirmado) return;
 
-    mostrarDialogo({ tono: "warn", titulo: "Procesando tu compra…", texto: "No cierres esta ventana.", cargando: true });
+    mostrarDialogo({ tono: "warn", titulo: "Procesando tu compra…", texto: "Un momento, estamos reservando tu pin.", cargando: true });
 
     const { data, error } = await conTimeout(supabase.rpc(RPC_COMPRA, {
       p_paquete_id: paqueteId,
@@ -3203,9 +3229,16 @@ async function comprarPaquete(ev, paqueteId, moneda = "USD") {
     const nombrePaquete = orden.paquete || nombre;
 
     let estado = "completada";
-    if (CONFIG.ESPERAR_CONFIRMACION) {
-      mostrarDialogo({ tono: "warn", titulo: "Acreditando tus diamantes…", texto: `${nombrePaquete} para el ID ${id}`, cargando: true });
-      estado = await esperarOrden(orden.orden_id);
+    if (pedidoDemorado) {
+      estado = "pendiente";   // el servidor estaba apagado: no se hace esperar al cliente frente a una pantalla de carga
+    } else if (CONFIG.ESPERAR_CONFIRMACION) {
+      const textoEspera = `${nombrePaquete} para el ID ${id}`;
+      mostrarDialogo({ tono: "warn", titulo: "Acreditando tus diamantes…", texto: textoEspera, cargando: true });
+      estado = await esperarOrden(orden.orden_id, () => mostrarDialogo({
+        tono: "warn", titulo: "Está tardando un poco más…", cargando: true,
+        texto: `${textoEspera}. Tu compra ya está registrada: si querés, podés cerrar esta ventana y fijarte en "Mi historial de compras".`,
+        botones: [{ texto: "Cerrar y seguir", primario: true }],
+      }));
     }
 
     if (estado === "completada") {
@@ -3226,7 +3259,9 @@ async function comprarPaquete(ev, paqueteId, moneda = "USD") {
     } else {
       mostrarDialogo({
         tono: "info", icono: "⏳", titulo: "Compra registrada",
-        texto: `Tu pedido #${orden.orden_id} está en proceso. Tus diamantes se acreditan en unos minutos. Si tarda, escribinos por el chat.`,
+        texto: pedidoDemorado
+          ? `Tu pedido #${orden.orden_id} quedó en pendiente. Tus diamantes se acreditan apenas retomemos las recargas. No hace falta que hagas nada más: podés seguirlo en "Mi historial de compras".`
+          : `Tu pedido #${orden.orden_id} está en proceso. Tus diamantes se acreditan en unos minutos. Si tarda, escribinos por el chat.`,
         botones: [{ texto: "Entendido", primario: true }],
       });
     }
