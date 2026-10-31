@@ -844,6 +844,11 @@ function tarjetaOpinion(o) {
     const ed = document.createElement("button"); ed.type = "button"; ed.className = "op-link"; ed.textContent = "✏️ Editar";
     ed.addEventListener("click", () => editarOpinion(o)); rx.appendChild(ed);
   }
+  if (esAdminActual() && !propia) {
+    const bl = document.createElement("button"); bl.type = "button"; bl.className = "op-link";
+    bl.textContent = bloqueados.has(o.user_id) ? "✅ Desbloquear" : "🚫 Bloquear";
+    bl.addEventListener("click", async () => { await alternarBloqueo(o.user_id, o.nombre); renderOpiniones(); }); rx.appendChild(bl);
+  }
   if (propia || esAdminActual()) {
     const del = document.createElement("button"); del.type = "button"; del.className = "op-link"; del.textContent = "🗑️ Eliminar";
     del.addEventListener("click", () => eliminarOpinion(o)); rx.appendChild(del);
@@ -1097,7 +1102,7 @@ function renderSesion(user) {
   $("user-dashboard").style.display = logueado ? "block" : "none";
   if ($("hist-arriba")) $("hist-arriba").style.display = logueado ? "block" : "none";
   if (typeof renderOpiniones === "function") { opEditando = false; renderOpiniones(); }
-  if (esAdminEmail) setTimeout(() => sincronizarPerfilSoporte(user), 0);
+  if (esAdminEmail) { setTimeout(() => sincronizarPerfilSoporte(user), 0); setTimeout(cargarBloqueados, 300); }
   $("admin-panel-section").style.display = esAdminEmail ? "block" : "none";
   document.body.classList.toggle("es-admin", esAdminEmail);
   if ($("sidebar-historial")) $("sidebar-historial").style.display = logueado ? "block" : "none";
@@ -2226,8 +2231,17 @@ function construirVistaCliente() {
     filtroOrdenesInicial = false;
     mostrarVistaAdmin("ordenes");
   });
-  cab.append(atras, nombre, sub, verOrdenes);
+  const btnBloq = creaBoton("", "margin-top:6px;margin-left:6px;padding:6px 10px;font-size:12px;");
+  const pintarBloq = () => {
+    const b = bloqueados.has(clienteSel.id);
+    btnBloq.textContent = b ? "✅ Desbloquear" : "🚫 Bloquear";
+    btnBloq.style.background = b ? "#12351f" : "#3a1717"; btnBloq.style.color = b ? "#7dffb0" : "#ff9c9c"; btnBloq.style.border = b ? "1px solid #2e7d4f" : "1px solid #7d2e2e";
+  };
+  pintarBloq();
+  btnBloq.addEventListener("click", async () => { await alternarBloqueo(clienteSel.id, clienteSel.etiqueta); pintarBloq(); });
+  cab.append(atras, nombre, sub, verOrdenes, btnBloq);
   vista.appendChild(cab);
+  agregarMovimientos(vista, clienteSel.id);
 
   // --- Saldos (USD y ARS, independientes) ---
   if (clienteSel.saldos) {
@@ -3594,6 +3608,7 @@ async function cargarTopMes() {
     let { data, error } = await conTimeout(supabase.rpc("top_compradores"), 8000);
     if (error) ({ data, error } = await conTimeout(supabase.rpc("top_compradores_mes"), 8000));
     if (error || !Array.isArray(data) || !data.length) { sec.hidden = true; return; }
+    pintarTopCarrusel(data.slice(0, 5));
     const medallas = ["🥇", "🥈", "🥉", "4", "5"];
     const colores = [["#ff7a18", "#ffd23f"], ["#2979ff", "#00e5ff"], ["#b266ff", "#ff4fd8"], ["#19e68c", "#9dff6a"], ["#ff2d55", "#ff8a5c"]];
     ol.replaceChildren(...data.slice(0, 5).map((r, i) => {
@@ -3914,3 +3929,79 @@ Object.assign(window, { abrirModalConvertir, cerrarModalConvertir, convMonto, co
   setInterval(sync, 1000);
   document.addEventListener("DOMContentLoaded", () => { sync(); cargarCobro(); });
 })();
+
+
+// =====================================================================
+// v5: bloqueo de usuarios (comentarios ocultos para los demás; el chat sigue funcionando),
+// movimientos de saldo en el panel y Top de recargas en el carrusel
+// =====================================================================
+let bloqueados = new Set();
+async function cargarBloqueados() {
+  if (!esAdminActual()) return;
+  try {
+    const { data, error } = await conTimeout(supabase.from("usuarios_baneados").select("user_id"), 8000);
+    if (!error && Array.isArray(data)) { bloqueados = new Set(data.map((r) => r.user_id)); if (opCargadas) renderOpiniones(); }
+  } catch (_) {}
+}
+async function alternarBloqueo(userId, nombre) {
+  if (!esAdminActual() || !userId) return;
+  const yaBloq = bloqueados.has(userId);
+  const ok = await mostrarConfirmacion({
+    tono: yaBloq ? "ok" : "warn", icono: yaBloq ? "✅" : "🚫",
+    titulo: yaBloq ? "¿Desbloquear a " + (nombre || "este usuario") + "?" : "¿Bloquear a " + (nombre || "este usuario") + "?",
+    texto: yaBloq ? "Sus comentarios y respuestas vuelven a verse para todos."
+      : "Sus comentarios y respuestas dejan de verse para los demás. Él los sigue viendo como siempre, así no se entera. El chat con vos sigue funcionando.",
+    confirmar: yaBloq ? "Desbloquear" : "Bloquear", cancelar: "Cancelar",
+  });
+  if (!ok) return;
+  const { error } = await supabase.rpc(yaBloq ? "admin_desbloquear_usuario" : "admin_bloquear_usuario", yaBloq ? { p_user_id: userId } : { p_user_id: userId, p_motivo: null });
+  if (error) return mostrarAviso("No se pudo cambiar el bloqueo. ¿Ejecutaste novedades_clientes_v5.sql?", "error");
+  if (yaBloq) bloqueados.delete(userId); else bloqueados.add(userId);
+  mostrarAviso(yaBloq ? "Usuario desbloqueado." : "Usuario bloqueado: sus comentarios ya no se ven.", "ok");
+}
+
+// ---- Movimientos de saldo del cliente (incluye las conversiones de pesos a dólares)
+async function agregarMovimientos(vista, userId) {
+  const det = document.createElement("details");
+  det.style.cssText = "background:#161822;border:1px solid #2b3544;border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:12px;color:#cfd8f5;";
+  const sm = document.createElement("summary"); sm.style.cssText = "cursor:pointer;font-weight:700;"; sm.textContent = "📒 Últimos movimientos de saldo";
+  const cuerpo = document.createElement("div"); cuerpo.style.cssText = "margin-top:8px;display:grid;gap:5px;"; cuerpo.textContent = "Cargando…";
+  det.append(sm, cuerpo);
+  const cab = vista.querySelector(".adm-cab"); (cab ? cab.insertAdjacentElement("afterend", det) : vista.appendChild(det));
+  det.addEventListener("toggle", async () => {
+    if (!det.open || det.dataset.ok) return;
+    det.dataset.ok = "1";
+    const { data, error } = await supabase.from("saldo_movimientos").select("created_at, moneda, monto, nota, modo").eq("user_id", userId).order("created_at", { ascending: false }).limit(10);
+    cuerpo.replaceChildren();
+    if (error || !data?.length) { cuerpo.textContent = error ? "No se pudieron cargar." : "Sin movimientos todavía."; return; }
+    data.forEach((m) => {
+      const f = document.createElement("div"); f.style.cssText = "display:flex;justify-content:space-between;gap:8px;background:#0e0f16;border-radius:7px;padding:5px 8px;";
+      const monto = Number(m.monto) || 0, mon = m.moneda === "ARS" ? "ARS" : "USD";
+      const izq = document.createElement("span"); izq.textContent = `${fechaHora(m.created_at)} · ${m.nota || (m.modo === "establecer" ? "Saldo establecido" : "Ajuste")}`;
+      const der = document.createElement("b"); der.style.color = monto < 0 ? "#ff9c9c" : "#7dffb0"; der.textContent = (monto > 0 ? "+" : "") + formatoMoneda(mon, monto) + " " + mon;
+      f.append(izq, der); cuerpo.appendChild(f);
+    });
+  });
+}
+
+// ---- Top de recargas dentro del carrusel
+function pintarTopCarrusel(data) {
+  const cont = $("st-lista"); if (!cont || !data?.length) return;
+  const colores = [["#ff7a18", "#ffd23f"], ["#2979ff", "#00e5ff"], ["#b266ff", "#ff4fd8"], ["#19e68c", "#9dff6a"], ["#ff2d55", "#ff8a5c"]];
+  const medallas = ["🥇", "🥈", "🥉", "4°", "5°"];
+  cont.replaceChildren(...data.map((r, i) => {
+    const c = document.createElement("div"); c.className = "st-item st" + i;
+    const m = document.createElement("span"); m.className = "st-med"; m.textContent = medallas[i];
+    const nombre = r.nombre || "Cliente";
+    let av;
+    const letra = () => { const e = document.createElement("span"); e.className = "st-av"; e.style.background = `linear-gradient(135deg,${colores[i][0]},${colores[i][1]})`; e.textContent = (nombre[0] || "C").toUpperCase(); return e; };
+    if (/^https:\/\//.test(r.avatar || "")) { av = document.createElement("img"); av.className = "st-av"; av.alt = ""; av.referrerPolicy = "no-referrer"; av.src = r.avatar; av.addEventListener("error", () => av.replaceWith(letra())); }
+    else av = letra();
+    const n = document.createElement("b"); n.className = "st-nom"; n.textContent = nombre.split(" ")[0];
+    const d = document.createElement("span"); d.className = "st-dia"; d.textContent = fmtNum(r.diamantes) + " 💎";
+    c.append(m, av, n, d);
+    if (r.es_soporte) { const t = document.createElement("i"); t.className = "st-sop"; t.textContent = "Soporte"; c.appendChild(t); }
+    return c;
+  }));
+}
+Object.assign(window, { alternarBloqueo });
