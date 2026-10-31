@@ -1523,3 +1523,43 @@ body::after {
 .sb-niv{display:inline-block;margin-top:3px;font-size:11px;font-weight:800;background:rgba(127,214,255,.15);border:1px solid #7fd6ff;color:#bfe9ff;border-radius:99px;padding:1px 8px;width:max-content}
 .cobro-sep{margin-top:6px;padding-top:10px;border-top:1px solid #2b3544;font-size:12px;font-weight:700;color:#7fd6ff}
 .top-lista .niv{margin-left:2px;font-size:14px}
+
+/* Modo administrador (secreto: se entra tocando "Zarela" en el menú) */
+.adm-modo{display:none}
+body.modo-admin .adm-modo{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;padding:8px 12px;background:rgba(243,186,47,.12);border:1px solid #f3ba2f;border-radius:10px;font-weight:800;color:#f3ba2f;font-size:14px}
+.adm-modo button{background:#232944;border:1px solid #7fd6ff;color:#fff;border-radius:9px;padding:7px 12px;font-weight:700;font-size:13px;cursor:pointer}
+body.modo-admin .zt, body.modo-admin .hero-banner-section, body.modo-admin .main-layout-grid, body.modo-admin #top-mes, body.modo-admin #auth-section,
+body.modo-admin #opiniones, body.modo-admin footer, body.modo-admin #reproductor, body.modo-admin #chat-fab, body.modo-admin #sakura-fx{display:none!important}
+body.modo-admin #admin-panel-section{margin-top:14px}
+#sb-logo{cursor:default;-webkit-tap-highlight-color:transparent;user-select:none}
+/* Pausa del carrusel + controles de la guía */
+.carousel-wrapper{position:relative}
+.car-pausa{position:absolute;top:6px;right:6px;z-index:20;width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.5);background:rgba(10,12,20,.7);color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.car-pausa.on{background:#2ee27a;color:#031a0d;border-color:#2ee27a}
+.sa-ctrl{display:flex;align-items:center;justify-content:center;gap:8px}
+.sa-nav{width:26px;height:26px;border-radius:50%;border:1px solid #4a5580;background:#1b2033;color:#fff;font-size:16px;line-height:1;cursor:pointer;padding:0}
+.sa-pausa{margin-left:6px;border:1px solid #4a5580;background:#1b2033;color:#cfd8f5;border-radius:99px;font-size:10px;font-weight:700;padding:3px 9px;cursor:pointer}
+.sa-pausa.on{background:#2ee27a;color:#031a0d;border-color:#2ee27a}
+.slide-ayuda .sa-in{pointer-events:auto}
+/* Guía en ¿Cómo funciona? */
+.cf-guia{display:grid;gap:10px}
+.cf-paso{display:flex;gap:12px;align-items:center;background:#171b2d;border:1px solid #2c3350;border-radius:12px;padding:10px}
+.cf-paso p{margin:0;font-size:13.5px;line-height:1.45;color:#dfe5f3;flex:1}.cf-paso p b{color:#fff}
+.cf-paso .sa-ill{width:130px}
+@media(max-width:480px){.cf-paso{flex-direction:column;align-items:stretch}.cf-paso .sa-ill{width:100%}}
+.mk-input{display:flex;gap:4px;align-items:center;width:100%}.mk-input span{flex:1;background:#0a0c14;border:1px solid #2c3350;border-radius:5px;font-size:10px;padding:4px 6px;color:#fff}.mk-input em{font-style:normal;font-size:9px;font-weight:800;background:linear-gradient(135deg,#ff4d2e,#ff8a1d);border-radius:5px;padding:4px 6px}
+.mk-pack{text-align:center}.mk-pack b{display:block;font-size:12px;color:#ffd23f}.mk-pack span{display:inline-block;margin-top:3px;background:#efff00;color:#000;font-weight:800;font-size:9px;border-radius:5px;padding:2px 10px}
+.mk-ok{font-size:12px;font-weight:800;color:#7dffb0;background:#12351f;border:1px solid #2e7d4f;border-radius:8px;padding:6px 10px}
+/* Audio en el chat */
+.chat-audio{display:block;width:100%;max-width:240px;height:38px;margin-top:6px}
+.rec-bar{position:absolute;inset:0;z-index:5;display:flex;align-items:center;gap:8px;padding:6px 10px;background:#161a2c;border-radius:inherit}
+.rec-bar .rec-dot{width:10px;height:10px;border-radius:50%;background:#ff3b3b;animation:rec-p 1s infinite}
+@keyframes rec-p{50%{opacity:.25}}
+.rec-bar .rec-t{font-weight:800;font-variant-numeric:tabular-nums;color:#fff;flex:1}
+.rec-bar .rec-t small{color:#9db4d9;font-weight:400;margin-left:6px}
+.rec-bar button{border:0;border-radius:50%;width:36px;height:36px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.rec-bar .rec-no{background:#3a1717;color:#ff9c9c}.rec-bar .rec-si{background:#2ee27a;color:#031a0d}
+.btn-mic{background:none;border:0;color:#cfd8f5;font-size:18px;cursor:pointer;padding:0 6px}
+.btn-mic:hover{color:#2ee27a}
+.adm-mic{padding:6px 10px!important}
+.adm-mic.escuchando{background:#c0262d!important;color:#fff!important;animation:rec-p 1s infinite}

@@ -659,7 +659,7 @@
   
   <aside class="sidebar-menu" id="sidebar-menu">
   <div class="sidebar-header">
-  <div class="sidebar-logo"><span class="zl">Zarela</span> <span class="zl-flor" aria-hidden="true">✿</span></div>
+  <div class="sidebar-logo" id="sb-logo"><span class="zl">Zarela</span> <span class="zl-flor" aria-hidden="true">✿</span></div>
   <button class="close-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-xmark"></i></button>
   </div>
   
@@ -729,6 +729,7 @@
   </div>
   
   <div class="carousel-wrapper" id="carousel-wrapper">
+  <button type="button" id="car-pausa" class="car-pausa" onclick="alternarPausa()" aria-label="Pausar el carrusel" title="Pausar / seguir"><i class="fa-solid fa-pause"></i></button>
   <button class="carousel-btn prev-btn" onclick="moverCarrusel(-1)" aria-label="Anterior">
   <i class="fa-solid fa-chevron-left"></i>
   </button>
@@ -753,7 +754,7 @@
   <div class="sa-paso"><div class="sa-ill"><div class="mk-transf"><small>Transferir a</small><b class="js-titular">Julian Pereyra</b></div></div><p><b>3.</b> Hacé la transferencia <b>a nombre de <span class="js-titular">Julian Pereyra</span></b>.</p></div>
   <div class="sa-paso"><div class="sa-ill sa-pc"><div class="mk-pc"><i></i><div class="mk-chatp">💬 Chat</div></div></div><div class="sa-ill sa-cel"><span class="mk-fab">💬 Chat</span></div><p><b>4.</b> Mandá la <b>captura</b> por el chat <span class="sa-pc">(panel de la derecha)</span><span class="sa-cel">(botón verde, abajo a la derecha)</span>. ¡Te acreditamos el saldo!</p></div>
   </div>
-  <div class="sa-puntos"><i class="on"></i><i></i><i></i><i></i></div>
+  <div class="sa-ctrl"><button type="button" class="sa-nav" onclick="guiaPaso(-1)" aria-label="Paso anterior">‹</button><div class="sa-puntos"><i class="on"></i><i></i><i></i><i></i></div><button type="button" class="sa-nav" onclick="guiaPaso(1)" aria-label="Paso siguiente">›</button><button type="button" class="sa-pausa" onclick="alternarPausa()">⏸ Pausar</button></div>
   </div>
   </div>
   <div class="carousel-slide hidden">
@@ -965,10 +966,13 @@
   <i class="fa-solid fa-chevron-down hist-flecha"></i>
   </button>
   <div id="como-panel" class="hist-panel" hidden>
-  <div class="como-funciona">
-  <div class="cf-item"><i class="fa-solid fa-id-card"></i><b>Ponés tu ID</b><span>Verificamos tu nombre</span></div>
-  <div class="cf-item"><i class="fa-solid fa-gem"></i><b>Elegís el paquete</b><span>Pagás con tu saldo</span></div>
-  <div class="cf-item"><i class="fa-solid fa-bolt"></i><b>Recibís al toque</b><span>Se acredita automático</span></div>
+  <div class="cf-guia">
+  <div class="cf-paso"><div class="sa-ill"><div class="mk-input"><span>73270042</span><em>Verificar</em></div></div><p><b>1. Poné tu ID de jugador</b><br>Escribilo arriba y tocá <b>Verificar</b>: te mostramos el nombre para que confirmes que es tu cuenta.</p></div>
+  <div class="cf-paso"><div class="sa-ill"><div class="mk-head"><span class="mk-p mk-bn">USD</span><span class="mk-p mk-mp">ARS</span><span class="mk-cargar">＋ Cargar saldo</span><span class="mk-flecha">↗</span></div></div><p><b>2. Cargá saldo</b><br>Arriba a la derecha tocá <b>Cargar saldo</b> y elegí Mercado Pago o Binance. Si cargás pesos, podés pasarlos a dólares con <b>Convertir saldo</b>.</p></div>
+  <div class="cf-paso"><div class="sa-ill"><span class="mk-alias js-alias">almazarela.com</span><span class="mk-copiar">⧉ Copiar</span></div><p><b>3. Copiá el alias y transferí</b><br>Copiá <b class="js-alias">almazarela.com</b> (Binance: ID <span class="js-bn">1252553144</span>) y hacé la transferencia <b>a nombre de <span class="js-titular">Julian Pereyra</span></b>.</p></div>
+  <div class="cf-paso"><div class="sa-ill sa-pc"><div class="mk-pc"><i></i><div class="mk-chatp">💬 Chat</div></div></div><div class="sa-ill sa-cel"><span class="mk-fab">💬 Chat</span></div><p><b>4. Mandá el comprobante por el chat</b><br>Enviá la <b>captura</b> <span class="sa-pc">en el panel de chat de la derecha</span><span class="sa-cel">con el botón verde “Chat” de abajo a la derecha</span>. Te acreditamos el saldo lo antes posible.</p></div>
+  <div class="cf-paso"><div class="sa-ill"><div class="mk-pack"><b>110 💎</b><span>COMPRAR</span></div></div><p><b>5. Elegí tu paquete</b><br>Seleccioná la moneda, elegí el paquete y tocá <b>Comprar</b>. Confirmás los datos y listo.</p></div>
+  <div class="cf-paso"><div class="sa-ill"><div class="mk-ok">✅ ¡Acreditado!</div></div><p><b>6. Recibís al toque</b><br>Los diamantes llegan solos a tu cuenta. Reiniciá el juego para verlos y seguí el pedido en <b>Mi historial</b>.</p></div>
   </div>
   </div>
   </div>
@@ -1056,6 +1060,8 @@
   <span class="badge" style="background: #f3ba2f; color:#000;"><i class="fa-solid fa-shield-halved"></i></span>
   <h3 style="color: #f3ba2f;">PANEL ADMINISTRADOR</h3>
   </div>
+
+  <div class="adm-modo" id="adm-modo"><span>🛡️ Modo administrador</span><button type="button" onclick="salirModoAdmin()"><i class="fa-solid fa-arrow-left"></i> Volver al modo normal</button></div>
 
   <div class="admin-tabs" role="tablist" aria-label="Secciones del panel">
   <button type="button" id="admin-tab-clientes" class="admin-tab activa" role="tab" aria-selected="true" aria-controls="admin-vista-clientes" onclick="mostrarVistaAdmin('clientes')">💬 Mensajes y saldos</button>

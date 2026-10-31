@@ -170,6 +170,7 @@ function procesarPagoMPSeguro() {
 let slideActual = 2;
 let timerCarrusel = null;
 let esperaAyuda = false;
+let carruselPausado = false;
 
 function renderCarrusel() {
   const slides = document.querySelectorAll("#carousel-track .carousel-slide");
@@ -198,6 +199,7 @@ function reiniciarAutoplay() {
   clearInterval(timerCarrusel);
   timerCarrusel = setInterval(() => {
     const n = document.querySelectorAll("#carousel-track .carousel-slide").length;
+    if (carruselPausado) return;
     const act = document.querySelector("#carousel-track .carousel-slide.active");
     if (act && act.classList.contains("slide-ayuda") && !esperaAyuda) { esperaAyuda = true; return; }   // la guía se queda el doble de tiempo
     esperaAyuda = false;
@@ -594,7 +596,9 @@ async function cargarHistorialCliente(forzar) {
       t.textContent = String(texto);
       div.appendChild(t);
     }
-    if (f[MSG.archivoCol]) {
+    if (f[MSG.archivoCol] && esAudioRuta(f[MSG.archivoCol])) {
+      resolverArchivo(f[MSG.archivoCol]).then((u) => { if (u) div.appendChild(nodoAudio(u, cont)); else div.appendChild(Object.assign(document.createElement("span"), { textContent: "🎤 Audio" })); });
+    } else if (f[MSG.archivoCol]) {
       const img = document.createElement("img");
       img.alt = "Comprobante";
       img.style.cssText = "display:block;max-width:100%;max-height:200px;margin-top:6px;border-radius:8px;cursor:zoom-in;";
@@ -2446,6 +2450,7 @@ async function refrescarMensajes(forzar) {
     const archivo = f[MSG.archivoCol];
     if (archivo) {
       const conectar = (u) => {
+        if (esAudioRuta(archivo)) { burbuja.appendChild(nodoAudio(u, cont)); return; }
         const img = document.createElement("img");
         img.alt = "Comprobante";
         img.addEventListener("load", () => seguirAbajo(cont));
@@ -2622,7 +2627,7 @@ async function consultarMensajes(userId) {
 const firmaDe = (filas) =>
   filas.map((f) => f.id + (f.pinned_at ? "p" : "") + (f.reactions ? JSON.stringify(f.reactions) : "")).join(",");
 
-const previewDe = (f) => String(f[MSG.textoCol] || (f[MSG.archivoCol] ? "📎 Comprobante" : "")).slice(0, 140);
+const previewDe = (f) => String(f[MSG.textoCol] || (f[MSG.archivoCol] ? (esAudioRuta(f[MSG.archivoCol]) ? "🎤 Audio" : "📎 Comprobante") : "")).slice(0, 140);
 
 function autorDe(f, ctx) {
   const admin = esDelAdmin(f);
@@ -4071,15 +4076,190 @@ function pintarNivel() {
 }
 supabase.auth.onAuthStateChange((_e, session) => { setTimeout(cargarNivel, 150); });
 
-// ---- Guía "Cómo cargar saldo": los pasos se van pasando solos mientras el slide está a la vista
+// ---- Guía "Cómo cargar saldo": los pasos se pasan solos (cada 3,5 s) y se pueden frenar, ir atrás o adelante
+let guiaI = 0;
+function guiaMostrar(i) {
+  const sl = $("slide-ayuda"); if (!sl) return;
+  const pasos = sl.querySelectorAll(".sa-paso"), pts = sl.querySelectorAll(".sa-puntos i");
+  guiaI = (i + pasos.length) % pasos.length;
+  pasos.forEach((p, k) => p.classList.toggle("on", k === guiaI));
+  pts.forEach((p, k) => p.classList.toggle("on", k === guiaI));
+}
+function pintarPausa() {
+  $("car-pausa")?.classList.toggle("on", carruselPausado);
+  const ic = $("car-pausa")?.querySelector("i"); if (ic) ic.className = "fa-solid " + (carruselPausado ? "fa-play" : "fa-pause");
+  const sp = document.querySelector(".sa-pausa"); if (sp) { sp.classList.toggle("on", carruselPausado); sp.textContent = carruselPausado ? "▶ Seguir" : "⏸ Pausar"; }
+}
+function alternarPausa(forzar) {
+  carruselPausado = typeof forzar === "boolean" ? forzar : !carruselPausado;
+  pintarPausa();
+}
+function guiaPaso(d) { alternarPausa(true); guiaMostrar(guiaI + d); }   // si el cliente navega a mano, el carrusel se frena para que pueda leer
+Object.assign(window, { alternarPausa, guiaPaso });
 (function guiaCarrusel() {
-  let i = 0;
   setInterval(() => {
     const sl = $("slide-ayuda"); if (!sl) return;
-    const pasos = sl.querySelectorAll(".sa-paso"), pts = sl.querySelectorAll(".sa-puntos i");
-    if (!sl.classList.contains("active")) { if (i !== 0) { i = 0; pasos.forEach((p, k) => p.classList.toggle("on", k === 0)); pts.forEach((p, k) => p.classList.toggle("on", k === 0)); } return; }
-    i = (i + 1) % pasos.length;
-    pasos.forEach((p, k) => p.classList.toggle("on", k === i));
-    pts.forEach((p, k) => p.classList.toggle("on", k === i));
-  }, 2400);
+    if (!sl.classList.contains("active")) { if (guiaI !== 0) guiaMostrar(0); return; }
+    if (carruselPausado) return;
+    guiaMostrar(guiaI + 1);
+  }, 3500);
+  // tocar la guía la frena (celular)
+  document.addEventListener("DOMContentLoaded", () => $("slide-ayuda")?.addEventListener("pointerdown", () => alternarPausa(true)));
 })();
+
+// =====================================================================
+// v7: modo administrador secreto, audios en el chat y dictado por voz
+// =====================================================================
+const CLAVE_MODO_ADMIN = "zarela_modo_admin";
+function entrarModoAdmin() {
+  if (!esAdminActual()) return;
+  document.body.classList.add("modo-admin");
+  try { sessionStorage.setItem(CLAVE_MODO_ADMIN, "1"); } catch (_) {}
+  if ($("sidebar-menu")?.classList.contains("open")) toggleMenu();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function salirModoAdmin() {
+  document.body.classList.remove("modo-admin");
+  try { sessionStorage.removeItem(CLAVE_MODO_ADMIN); } catch (_) {}
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+Object.assign(window, { salirModoAdmin });
+document.addEventListener("DOMContentLoaded", () => {
+  $("sb-logo")?.addEventListener("click", entrarModoAdmin);   // sin ningún botón visible: es el acceso secreto
+});
+supabase.auth.onAuthStateChange((_e, session) => {
+  setTimeout(() => {
+    const admin = !!session && (session.user.email || "").toLowerCase() === CONFIG.ADMIN_EMAIL.toLowerCase();
+    if (!admin) { document.body.classList.remove("modo-admin"); return; }
+    try { if (sessionStorage.getItem(CLAVE_MODO_ADMIN) === "1") document.body.classList.add("modo-admin"); } catch (_) {}
+  }, 100);
+});
+
+// ---- Grabador de audio (se usa en el chat del cliente y en el del administrador)
+const esAudioRuta = (r) => /\.(webm|ogg|m4a|mp3|wav)$/i.test(String(r || "").split("?")[0]);
+const MAX_AUDIO_S = 120;
+function elegirMimeAudio() {
+  const c = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"];
+  return (window.MediaRecorder && c.find((m) => MediaRecorder.isTypeSupported(m))) || "";
+}
+async function grabarAudio(host, alTerminar) {
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return mostrarAviso("Tu navegador no permite grabar audio.", "error");
+  if (host.querySelector(".rec-bar")) return;
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (_) { return mostrarAviso("Necesitamos permiso para usar el micrófono. Activalo en tu navegador y probá de nuevo.", "error"); }
+  const mime = elegirMimeAudio();
+  const mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+  const trozos = []; let cancelado = false, t0 = Date.now();
+  mr.ondataavailable = (e) => { if (e.data.size) trozos.push(e.data); };
+  const cerrar = () => { clearInterval(tm); stream.getTracks().forEach((t) => t.stop()); bar.remove(); };
+  mr.onstop = () => {
+    cerrar();
+    if (cancelado || !trozos.length) return;
+    const tipo = (mr.mimeType || mime || "audio/webm").split(";")[0];
+    const ext = tipo.includes("mp4") ? "m4a" : tipo.includes("ogg") ? "ogg" : "webm";
+    alTerminar(new Blob(trozos, { type: tipo }), ext, tipo);
+  };
+  const bar = document.createElement("div"); bar.className = "rec-bar";
+  const dot = document.createElement("span"); dot.className = "rec-dot";
+  const t = document.createElement("span"); t.className = "rec-t"; t.textContent = "0:00";
+  const no = document.createElement("button"); no.type = "button"; no.className = "rec-no"; no.textContent = "✕"; no.setAttribute("aria-label", "Cancelar audio");
+  const si = document.createElement("button"); si.type = "button"; si.className = "rec-si"; si.textContent = "➤"; si.setAttribute("aria-label", "Enviar audio");
+  no.onclick = () => { cancelado = true; if (mr.state !== "inactive") mr.stop(); else cerrar(); };
+  si.onclick = () => { if (mr.state !== "inactive") mr.stop(); };
+  bar.append(dot, t, no, si);
+  if (getComputedStyle(host).position === "static") host.style.position = "relative";
+  host.appendChild(bar);
+  const tm = setInterval(() => {
+    const seg = Math.floor((Date.now() - t0) / 1000);
+    t.textContent = Math.floor(seg / 60) + ":" + String(seg % 60).padStart(2, "0");
+    if (seg >= MAX_AUDIO_S && mr.state !== "inactive") mr.stop();
+  }, 250);
+  mr.start();
+}
+function nodoAudio(url, cont) {
+  const a = document.createElement("audio"); a.className = "chat-audio"; a.controls = true; a.preload = "metadata"; a.src = url;
+  a.addEventListener("loadedmetadata", () => seguirAbajo(cont));
+  return a;
+}
+
+// Cliente: botón de micrófono junto a enviar
+async function enviarAudioCliente(blob, ext, tipo) {
+  if (!usuarioActual) return mostrarAviso("Iniciá sesión con Google para enviar audios.", "error");
+  if (blob.size > CONFIG.MAX_ARCHIVO_MB * 1024 * 1024) return mostrarAviso("El audio es muy largo. Probá con uno más corto.", "error");
+  try {
+    const ruta = `${usuarioActual.id}/${Date.now()}.${ext}`;
+    const { error: e1 } = await supabase.storage.from(CONFIG.BUCKET_COMPROBANTES).upload(ruta, blob, { contentType: tipo, upsert: false });
+    if (e1) throw e1;
+    const nuevo = { [MSG.userCol]: usuarioActual.id, [MSG.senderCol]: usuarioActual.id, [MSG.textoCol]: "", [MSG.archivoCol]: ruta, [MSG.leidoCol]: false };
+    const { error } = await supabase.from(MSG.tabla).insert(nuevo);
+    if (error) throw error;
+    await cargarHistorialCliente(true);
+    irAlFinal($("chat-messages-container"));
+    notificarChatN8n("🎤 Mensaje de voz", ruta, "audio." + ext).catch(() => {});
+  } catch (err) {
+    console.error("Audio:", err);
+    mostrarAviso(/mime|not supported|invalid/i.test(String(err.message || "")) ? "Falta habilitar los audios: ejecutá novedades_clientes_v7.sql." : "No se pudo enviar el audio. Reintentá.", "error");
+  }
+}
+document.addEventListener("DOMContentLoaded", () => {
+  const inp = $("chat-user-input"); if (!inp) return;
+  const fila = inp.parentElement;
+  const mic = document.createElement("button"); mic.type = "button"; mic.className = "btn-attach btn-mic"; mic.title = "Enviar un audio"; mic.setAttribute("aria-label", "Grabar y enviar un audio");
+  mic.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+  mic.addEventListener("click", () => {
+    if (!usuarioActual) { mostrarAviso("Iniciá sesión con Google para enviar audios.", "error"); if (!$("sidebar-menu")?.classList.contains("open")) toggleMenu(); return; }
+    grabarAudio(fila, enviarAudioCliente);
+  });
+  const enviar = fila.querySelector(".btn-send"); fila.insertBefore(mic, enviar);
+});
+
+// Administrador: audio y dictado en la caja de respuesta
+async function enviarAudioAdmin(blob, ext, tipo, sel) {
+  try {
+    const ruta = `${sel.id}/adm_${Date.now()}.${ext}`;
+    const { error: e1 } = await supabase.storage.from(CONFIG.BUCKET_COMPROBANTES).upload(ruta, blob, { contentType: tipo, upsert: false });
+    if (e1) throw e1;
+    const fila = { [MSG.userCol]: sel.id, [MSG.senderCol]: usuarioActual.id, [MSG.textoCol]: "", [MSG.archivoCol]: ruta, [MSG.leidoCol]: false };
+    const { error } = await supabase.from(MSG.tabla).insert(fila);
+    if (error) throw error;
+    tocarActividad(sel.id);
+    await refrescarMensajes(true);
+  } catch (err) {
+    console.error("Audio admin:", err);
+    mostrarAviso("No se pudo enviar el audio. ¿Ejecutaste novedades_clientes_v7.sql?", "error");
+  }
+}
+function dictadoAdmin(btn, inp) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return mostrarAviso("El dictado funciona en Google Chrome o Edge.", "error");
+  if (btn._rec) { btn._rec.stop(); return; }
+  const rec = new SR(); rec.lang = "es-AR"; rec.continuous = true; rec.interimResults = true;
+  const base = inp.value ? inp.value.replace(/\s*$/, " ") : "";
+  let fijo = "";
+  rec.onresult = (e) => {
+    let prov = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const tx = e.results[i][0].transcript;
+      if (e.results[i].isFinal) fijo += tx; else prov += tx;
+    }
+    inp.value = (base + fijo + prov).slice(0, 1000);
+  };
+  rec.onend = () => { btn._rec = null; btn.classList.remove("escuchando"); btn.textContent = "🗣️ Dictar"; inp.focus(); };
+  rec.onerror = (e) => { if (e.error === "not-allowed") mostrarAviso("Permití el micrófono para dictar.", "error"); };
+  btn._rec = rec; btn.classList.add("escuchando"); btn.textContent = "⏹ Parar";
+  rec.start();
+}
+const _construirVista = construirVistaCliente;
+construirVistaCliente = function () {
+  _construirVista();
+  const resp = document.querySelector("#admin-chat-view .adm-resp"); if (!resp) return;
+  const inp = $("admin-respuesta"), sel = clienteSel;
+  const aud = creaBoton("🎙️", "background:#1d2740;color:#7dd3fc;border:1px solid #3f557f;");
+  aud.classList.add("adm-mic"); aud.title = "Grabar y enviar un audio";
+  aud.addEventListener("click", () => grabarAudio(resp, (b, ext, tipo) => enviarAudioAdmin(b, ext, tipo, sel)));
+  const dic = creaBoton("🗣️ Dictar", "background:#1d2740;color:#7dd3fc;border:1px solid #3f557f;");
+  dic.classList.add("adm-mic"); dic.title = "Hablá y se escribe";
+  dic.addEventListener("click", () => dictadoAdmin(dic, inp));
+  resp.insertBefore(dic, resp.firstChild); resp.insertBefore(aud, resp.firstChild);
+};
