@@ -1128,10 +1128,14 @@
   
   <audio id="musica-fondo" loop preload="none" data-src="musica.mp3"></audio>
   
+  <div id="reproductor" class="reproductor">
+  <button type="button" class="mus-lado" onclick="cambiarTema(-1)" aria-label="Tema anterior"><i class="fa-solid fa-backward-step"></i></button>
   <button id="btn-musica" class="btn-musica-flotante" onclick="toggleMusica()" aria-label="Reproducir Música">
   <img data-src="disco.jpg" id="imagen-disco" alt="Disco de Música" onerror="this.style.opacity='0';">
   <i id="icono-musica" class="fa-solid fa-play"></i>
   </button>
+  <button type="button" class="mus-lado" onclick="cambiarTema(1)" aria-label="Tema siguiente"><i class="fa-solid fa-forward-step"></i></button>
+  </div>
 <script>
 function alternarChat(forzar){
   var w=document.getElementById('chat-widget'); if(!w) return;

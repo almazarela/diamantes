@@ -1019,9 +1019,8 @@ footer {
 }
 
 .btn-musica-flotante {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
+  position: relative;
+  flex: none;
   width: 60px;
   height: 60px;
   background-color: rgba(26, 28, 36, 0.6);
@@ -1030,7 +1029,7 @@ footer {
   padding: 0;
   cursor: pointer;
   box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.6);
-  z-index: 900;
+  z-index: 1;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -1168,9 +1167,9 @@ body::after {
 /* Botones flotantes (música y chat): no tapan lo que se está escribiendo */
 @media (max-width: 800px) {
   body { padding-bottom: 170px; }
-  body:has(input:focus, textarea:focus) .btn-musica-flotante,
+  body:has(input:focus, textarea:focus) .reproductor,
   body:has(input:focus, textarea:focus) .chat-fab { display: none; }
-  body.chat-abierto .btn-musica-flotante { display: none; }
+  body.chat-abierto .reproductor { display: none; }
 }
 
 /* ===== Chat v2 + cuenta arriba ===== */
@@ -1284,7 +1283,7 @@ body::after {
   .adm-chat-abierto .adm-resp { padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); background: #161822; border-top: 1px solid #2b3544; }
   .adm-chat-abierto .adm-resp input { font-size: 16px; padding: 12px; }
   body.adm-chat-on { overflow: hidden; }
-  body.adm-chat-on .btn-musica-flotante, body.adm-chat-on .chat-fab, body.adm-chat-on .chat-widget-card { display: none !important; }
+  body.adm-chat-on .reproductor, body.adm-chat-on .chat-fab, body.adm-chat-on .chat-widget-card { display: none !important; }
 }
 
 /* La administradora atiende desde su panel: en celular no se muestra el chat de clientes */
@@ -1403,3 +1402,10 @@ body::after {
  .zt-estado i{width:6px;height:6px}
 }
 .zi-chip button:first-child{max-width:60vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* reproductor: el botón queda en el medio y aparecen anterior / siguiente a los costados */
+.reproductor{position:fixed;bottom:20px;right:20px;z-index:900;display:flex;align-items:center;gap:8px}
+.mus-lado{width:0;height:40px;opacity:0;overflow:hidden;border:0;padding:0;border-radius:50%;background:rgba(26,28,36,.9);color:#fff;font-size:15px;cursor:pointer;transition:width .25s,opacity .25s,border .25s;box-shadow:0 4px 12px rgba(0,0,0,.5);flex:none}
+.reproductor.abierto .mus-lado{width:40px;opacity:1;border:2px solid rgba(255,255,255,.7)}
+.mus-lado:hover{border-color:#1af106!important;color:#1af106}
+.reproductor.abierto{background:rgba(14,16,24,.55);padding:6px;margin:-6px;border-radius:999px;backdrop-filter:blur(4px)}

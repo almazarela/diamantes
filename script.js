@@ -405,31 +405,55 @@ function actualizarEnlaceWhatsApp(el, paquete, precio) {
 }
 
 // ------------------------- MÚSICA ------------------------------------
-function toggleMusica() {
-  const audio = $("musica-fondo");
-  const btn = $("btn-musica");
-  const icono = $("icono-musica");
-  const disco = $("imagen-disco");
-  if (!audio) return;
-
-  // Carga diferida: evita 404 en consola si los archivos todavía no están subidos
-  if (!audio.getAttribute("src") && audio.dataset.src) audio.src = audio.dataset.src;
-  if (disco && !disco.getAttribute("src") && disco.dataset.src) disco.src = disco.dataset.src;
-
-  if (audio.paused) {
-    audio.play().then(() => {
-      btn.classList.add("reproduciendo");
-      icono.className = "fa-solid fa-pause";
-    }).catch((err) => {
-      console.warn("No se pudo reproducir la música:", err);
-      mostrarAviso("No se encontró el archivo de música.", "error");
-    });
-  } else {
-    audio.pause();
-    btn.classList.remove("reproduciendo");
-    icono.className = "fa-solid fa-play";
+// Lista de temas: musica.mp3, musica2.mp3, musica3.mp3… (hasta musica12.mp3). Solo hay que subir los archivos
+// a la carpeta de la página con esos nombres: el reproductor los encuentra solo.
+let listaMusica = null, temaActual = 0, ocultarMusicaT = null;
+async function armarListaMusica() {
+  if (listaMusica) return listaMusica;
+  const candidatos = ["musica.mp3", ...Array.from({ length: 11 }, (_, i) => `musica${i + 2}.mp3`)];
+  const ok = await Promise.all(candidatos.map((f) => fetch(f, { method: "HEAD" }).then((r) => r.ok, () => false)));
+  listaMusica = candidatos.filter((_, i) => ok[i]);
+  if (!listaMusica.length) listaMusica = ["musica.mp3"];
+  return listaMusica;
+}
+function marcarReproduccion(sonando) {
+  $("btn-musica")?.classList.toggle("reproduciendo", sonando);
+  const i = $("icono-musica"); if (i) i.className = "fa-solid " + (sonando ? "fa-pause" : "fa-play");
+}
+function mostrarControlesMusica() {
+  $("reproductor")?.classList.add("abierto");
+  clearTimeout(ocultarMusicaT);
+  ocultarMusicaT = setTimeout(() => $("reproductor")?.classList.remove("abierto"), 5000);
+}
+async function ponerTema(n, reproducir = true) {
+  const audio = $("musica-fondo"); if (!audio) return;
+  const lista = await armarListaMusica();
+  temaActual = (n + lista.length) % lista.length;
+  audio.src = lista[temaActual];
+  audio.loop = lista.length === 1;
+  if (reproducir) {
+    try { await audio.play(); marcarReproduccion(true); }
+    catch (err) { console.warn("No se pudo reproducir la música:", err); marcarReproduccion(false); mostrarAviso("No se encontró el archivo de música.", "error"); }
   }
 }
+async function toggleMusica() {
+  const audio = $("musica-fondo"); if (!audio) return;
+  const disco = $("imagen-disco");
+  if (disco && !disco.getAttribute("src") && disco.dataset.src) disco.src = disco.dataset.src;
+  const abierto = $("reproductor")?.classList.contains("abierto");
+  mostrarControlesMusica();
+  if (!audio.getAttribute("src")) return ponerTema(0);
+  if (audio.paused) { try { await audio.play(); marcarReproduccion(true); } catch (_) { marcarReproduccion(false); } }
+  else if (abierto) { audio.pause(); marcarReproduccion(false); }   // 1.er toque con la música sonando: solo muestra los controles
+}
+async function cambiarTema(d) {
+  mostrarControlesMusica();
+  const disco = $("imagen-disco");
+  if (disco && !disco.getAttribute("src") && disco.dataset.src) disco.src = disco.dataset.src;
+  await ponerTema(temaActual + d);
+}
+$("musica-fondo")?.addEventListener("ended", () => ponerTema(temaActual + 1));
+Object.assign(window, { cambiarTema });
 
 // ------------------------- CHAT / WEBHOOK ----------------------------
 // ------------------------- SCROLL ESTILO WHATSAPP ----------------------
@@ -1370,6 +1394,8 @@ const ESTADOS_COMPRA = {
 };
 const PASO_HISTORIAL = 30;
 let comprasUsuario = [];
+let comprasNumero = new Map();   // id de orden -> número de compra del propio cliente (1, 2, 3…)
+const numCompra = (o) => comprasNumero.get(o.id) ?? o.id;
 let comprasLimite = PASO_HISTORIAL;
 let comprasHayMas = false;
 let comprasColsMoneda = true;
@@ -1434,6 +1460,14 @@ async function cargarHistorialCompras(silencioso = false) {
     if (btn) btn.disabled = false;
     if (mas) mas.disabled = false;
   }
+  try {
+    let total = comprasUsuario.length;
+    if (comprasHayMas) {
+      const r = await conTimeout(supabase.from("ordenes_recarga").select("id", { count: "exact", head: true }).eq("user_id", uid), 8000);
+      if (!r.error && Number.isFinite(r.count)) total = r.count;
+    }
+    comprasNumero = new Map(comprasUsuario.map((o, i) => [o.id, total - i]));
+  } catch (_) { comprasNumero = new Map(); }
   actualizarContadorCompras();
   renderHistorialCompras();
   if (comprasRepetir) { comprasRepetir = false; cargarHistorialCompras(true); }
@@ -1500,8 +1534,8 @@ function renderHistorialCompras() {
     );
     // Una sola fila para Orden y PIN (más compacto). Se indica si el PIN quedó asignado, nunca su código.
     item.appendChild(o.estado === "fallida"
-      ? filaCompra("Orden", "#" + o.id)
-      : filaCompra("Orden · PIN", `#${o.id} · ${o.pin_id ? "PIN asignado ✔" : "PIN sin asignar"}`));
+      ? filaCompra("Compra", "#" + numCompra(o))
+      : filaCompra("Compra · PIN", `#${numCompra(o)} · ${o.pin_id ? "PIN asignado ✔" : "PIN sin asignar"}`));
     if (est.nota) {
       const n = document.createElement("div");
       n.className = "hist-nota";
@@ -3290,10 +3324,11 @@ async function comprarPaquete(ev, paqueteId, moneda = "USD") {
     }
 
     if (estado === "completada") {
+      const numCliente = await numeroDeCompra(orden.orden_id);
       mostrarDialogo({
         tono: "ok", icono: "✅", titulo: "¡Compra exitosa!",
-        texto: `Tus ${nombrePaquete} 💎 fueron acreditados a tu ID de Free Fire ${id}.`,
-        filas: [["Orden", "#" + orden.orden_id], ["Saldo " + monedaOrden, formatoMoneda(monedaOrden, saldos[monedaOrden])]],
+        texto: `Tus ${nombrePaquete} 💎 fueron acreditados a tu ID de Free Fire ${id}. Reiniciá el juego para verlos.`,
+        filas: [...(numCliente ? [["Compra", "#" + numCliente]] : []), ["Saldo " + monedaOrden, formatoMoneda(monedaOrden, saldos[monedaOrden])]],
         botones: [{ texto: "Genial", primario: true, verde: true }],
       });
     } else if (estado === "fallida") {
@@ -3308,8 +3343,8 @@ async function comprarPaquete(ev, paqueteId, moneda = "USD") {
       mostrarDialogo({
         tono: "info", icono: "⏳", titulo: "Compra registrada",
         texto: pedidoDemorado
-          ? `Tu pedido #${orden.orden_id} quedó en pendiente. Tus diamantes se acreditan apenas retomemos las recargas. No hace falta que hagas nada más: podés seguirlo en "Mi historial de compras".`
-          : `Tu pedido #${orden.orden_id} está en proceso. Tus diamantes se acreditan en unos minutos. Si tarda, escribinos por el chat.`,
+          ? `Tu pedido quedó en pendiente. Tus diamantes se acreditan apenas retomemos las recargas. No hace falta que hagas nada más: podés seguirlo en "Mi historial de compras".`
+          : `Tu pedido está en proceso. Tus diamantes se acreditan en unos minutos. Si tarda, escribinos por el chat.`,
         botones: [{ texto: "Entendido", primario: true }],
       });
     }
@@ -3544,7 +3579,7 @@ async function cargarTopMes() {
     if (error) ({ data, error } = await conTimeout(supabase.rpc("top_compradores_mes"), 8000));
     if (error || !Array.isArray(data) || !data.length) { sec.hidden = true; return; }
     const medallas = ["🥇", "🥈", "🥉", "4", "5"];
-    ol.replaceChildren(...data.map((r, i) => {
+    ol.replaceChildren(...data.slice(0, 5).map((r, i) => {
       const li = document.createElement("li");
       const p = document.createElement("span"); p.className = "pos"; p.textContent = medallas[i] || String(i + 1);
       const n = document.createElement("span"); n.className = "nom"; n.textContent = r.nombre || "Cliente";
@@ -3633,11 +3668,19 @@ async function borrarIdGuardado(x) {
   pintarIdsGuardados();
 }
 
+// Número de compra del propio cliente (su 1.ª, 2.ª, 3.ª recarga), no el número general de la tienda
+async function numeroDeCompra(ordenId) {
+  if (!usuarioActual) return null;
+  try {
+    const r = await conTimeout(supabase.from("ordenes_recarga").select("id", { count: "exact", head: true }).eq("user_id", usuarioActual.id).lte("id", ordenId), 8000);
+    return !r.error && Number.isFinite(r.count) && r.count > 0 ? r.count : null;
+  } catch (_) { return null; }
+}
 // ---- Seguimiento del pedido + aviso de acreditación
 let seg = null, segTimer = null;
 const claveCerrada = () => "zarela_seg_cerrado";
 function textoPaso(estado) {
-  if (estado === "completada") return ["¡Listo! Tus diamantes ya están en tu cuenta.", 4];
+  if (estado === "completada") return ["¡Listo! Tus diamantes ya están en tu cuenta. Reiniciá el juego para verlos.", 4];
   if (estado === "fallida") return ["No se pudo acreditar. Tu saldo fue devuelto.", -1];
   if (estado === "error_envio") return ["En espera: se acredita apenas retomemos las recargas.", 2];
   return ["Cargando tus diamantes… suele tardar menos de un minuto.", 2];
@@ -3645,7 +3688,7 @@ function textoPaso(estado) {
 function pintarSeguimiento() {
   const caja = $("seguimiento");
   if (!caja || !seg) { if (caja) caja.hidden = true; return; }
-  $("seg-num").textContent = "#" + seg.id;
+  $("seg-num").textContent = seg.num ? "#" + seg.num : "";
   $("seg-paq").textContent = seg.paquete || "";
   const [txt, activo] = textoPaso(seg.estado);
   $("seg-txt").textContent = txt;
@@ -3684,7 +3727,9 @@ async function consultarSeguimiento() {
 }
 function iniciarSeguimiento(id, paquete, estado = "pendiente", visto = true) {
   if (!id) return;
-  seg = { id, paquete, estado, visto };
+  seg = { id, paquete, estado, visto, num: null };
+  const miSeg = seg;
+  numeroDeCompra(id).then((n) => { if (seg === miSeg) { seg.num = n; pintarSeguimiento(); } });
   pintarSeguimiento();
   clearInterval(segTimer); segTimer = null;
   if (estado !== "completada" && estado !== "fallida") segTimer = setInterval(consultarSeguimiento, 5000);
