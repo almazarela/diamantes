@@ -3388,11 +3388,17 @@ Object.assign(window, {
     const g = o.getContext("2d");
     semilla = 7;
     const flores = [];
+    const aura = g.createRadialGradient(w * .3, h * .4, 0, w * .3, h * .4, h * .36);
+    aura.addColorStop(0, "rgba(255,140,200,.30)"); aura.addColorStop(.5, "rgba(150,90,230,.14)"); aura.addColorStop(1, "rgba(120,70,200,0)");
+    g.fillStyle = aura; g.fillRect(0, 0, w, h);
     function rama(x, y, ang, largo, grosor, nivel) {
       const x2 = x + Math.cos(ang) * largo, y2 = y + Math.sin(ang) * largo;
       const cx = (x + x2) / 2 + (rnd() - 0.5) * largo * 0.35, cy = (y + y2) / 2 + (rnd() - 0.5) * largo * 0.35;
-      g.strokeStyle = nivel < 2 ? "#3a2230" : "#52303f"; g.lineWidth = grosor; g.lineCap = "round";
+      g.lineCap = "round";
+      g.strokeStyle = "#241226"; g.lineWidth = grosor;
       g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(cx, cy, x2, y2); g.stroke();
+      g.strokeStyle = "rgba(255,170,215,.35)"; g.lineWidth = Math.max(.8, grosor * 0.22);   // luz de luna en el borde
+      g.beginPath(); g.moveTo(x - grosor * .25, y - grosor * .25); g.quadraticCurveTo(cx - grosor * .25, cy - grosor * .25, x2 - grosor * .25, y2 - grosor * .25); g.stroke();
       if (nivel >= 3) for (let i = 0; i < 2; i++) flores.push([Math.min(w - 14, Math.max(8, x2 + (rnd() - 0.5) * 22)), Math.min(h - 14, Math.max(8, y2 + (rnd() - 0.5) * 22)), 4.5 + rnd() * 4.5]);
       if (nivel >= 4) return;
       const n = nivel < 2 ? 2 : 2 + (rnd() > 0.5 ? 1 : 0);
@@ -3407,14 +3413,18 @@ Object.assign(window, {
         const px = x + Math.cos(a) * r * 0.62, py = y + Math.sin(a) * r * 0.62;
         const gr = g.createRadialGradient(px, py, 0, px, py, r * 0.8);
         gr.addColorStop(0, "#fff7fa"); gr.addColorStop(1, t > 0.5 ? "#ffb3cd" : "#ff93b8");
-        g.fillStyle = gr; g.globalAlpha = 0.93;
-        g.beginPath(); g.arc(px, py, r * 0.55, 0, 7); g.fill();
+        g.fillStyle = gr; g.globalAlpha = 0.93; g.shadowColor = "rgba(255,120,190,.95)"; g.shadowBlur = 14;
+        g.beginPath(); g.arc(px, py, r * 0.55, 0, 7); g.fill(); g.shadowBlur = 0;
       }
       g.globalAlpha = 1; g.fillStyle = "#ffd36b"; g.beginPath(); g.arc(x, y, r * 0.18, 0, 7); g.fill();
     });
     return o;
   }
   let rama = null;
+  const motas = Array.from({ length: 16 }, (_, i) => ({
+    x: 10 + Math.random() * 230, y: 10 + Math.random() * 290, r: 1.4 + Math.random() * 2.2, v: 0.6 + Math.random() * 1.2, o: Math.random() * 6.28,
+    c: i % 3 === 0 ? "rgba(255,225,150,A)" : i % 3 === 1 ? "rgba(255,150,210,A)" : "rgba(190,160,255,A)",
+  }));
 
   const petalos = [];
   function nuevoPetalo(arriba) {
@@ -3432,7 +3442,7 @@ Object.assign(window, {
     W = innerWidth; H = innerHeight;
     cv.width = W * dpr; cv.height = H * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    rama = dibujarRama(200, 260);
+    rama = dibujarRama(230, 300);
     const n = Math.round(Math.min(46, Math.max(24, W / 32)));
     while (petalos.length < n) petalos.push(nuevoPetalo(false));
     petalos.length = n;
@@ -3458,6 +3468,22 @@ Object.assign(window, {
       ctx.translate(0, 150 + desp); ctx.rotate(bal); ctx.drawImage(rama, 0, 0); ctx.restore();
       ctx.save(); ctx.globalAlpha = 0.9;
       ctx.translate(W, 150 + desp); ctx.scale(-1, 1); ctx.rotate(-bal); ctx.drawImage(rama, 0, 0); ctx.restore();
+    }
+
+    if (W > 1180) {   // luciérnagas místicas alrededor de las ramas
+      const desp2 = Math.max(-260, -scrollY * 0.12);
+      ctx.save(); ctx.globalCompositeOperation = "lighter";
+      for (const m of motas) {
+        const a = 0.35 + 0.65 * Math.abs(Math.sin(t / 900 * m.v + m.o));
+        const mx = m.x + Math.sin(t / 1700 * m.v + m.o) * 14, my = 150 + desp2 + m.y + Math.cos(t / 2100 * m.v + m.o) * 12;
+        for (const lado of [0, 1]) {
+          const px = lado ? W - mx : mx;
+          const gr = ctx.createRadialGradient(px, my, 0, px, my, m.r * 5);
+          gr.addColorStop(0, m.c.replace("A", a)); gr.addColorStop(1, m.c.replace("A", 0));
+          ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(px, my, m.r * 5, 0, 7); ctx.fill();
+        }
+      }
+      ctx.restore();
     }
 
     for (const p of petalos) {
