@@ -1513,6 +1513,12 @@ function renderHistorialCompras() {
 }
 
 // Abre/cierra el panel; al abrir consulta y, mientras está abierto, se actualiza solo si hay recargas en proceso
+function alternarComo() {
+  const b = $("como-toggle"), p = $("como-panel");
+  const abrir = p.hidden;
+  p.hidden = !abrir; b.setAttribute("aria-expanded", String(abrir));
+}
+window.alternarComo = alternarComo;
 function alternarHistorial(forzar) {
   const panel = $("hist-panel"), toggle = $("hist-toggle");
   if (!panel || !toggle) return;
@@ -3534,7 +3540,8 @@ async function cargarTopMes() {
   const sec = $("top-mes"), ol = $("top-lista");
   if (!sec || !ol) return;
   try {
-    const { data, error } = await conTimeout(supabase.rpc("top_compradores_mes"), 8000);
+    let { data, error } = await conTimeout(supabase.rpc("top_compradores"), 8000);
+    if (error) ({ data, error } = await conTimeout(supabase.rpc("top_compradores_mes"), 8000));
     if (error || !Array.isArray(data) || !data.length) { sec.hidden = true; return; }
     const medallas = ["🥇", "🥈", "🥉", "4", "5"];
     ol.replaceChildren(...data.map((r, i) => {
@@ -3577,6 +3584,15 @@ async function cargarIdsGuardados() {
       idsGuardados = data || []; idsEnTabla = true;
     } catch (_) { idsEnTabla = false; idsGuardados = leerIdsLocal(); }
   }
+  pintarIdsGuardados();
+}
+async function completarApodo() {
+  const v = jugadorVerificado;
+  if (!usuarioActual || !v || !v.validado || !v.nombre) return;
+  const x = idsGuardados.find((y) => y.id_jugador === v.id);
+  if (!x || x.apodo === v.nombre.slice(0, 30)) return;
+  x.apodo = v.nombre.slice(0, 30);
+  if (idsEnTabla) { try { await supabase.from("ids_guardados").update({ apodo: x.apodo }).eq("id", x.id); } catch (_) {} } else guardarIdsLocal();
   pintarIdsGuardados();
 }
 function pintarIdsGuardados() {
@@ -3722,7 +3738,7 @@ function montarAyudaPagos() {
     $("zi-guardar")?.addEventListener("click", guardarIdActual);
     $("seg-x")?.addEventListener("click", () => { try { sessionStorage.setItem(claveCerrada(), String(seg?.id)); } catch (_) {} seg = null; clearInterval(segTimer); pintarSeguimiento(); });
     $("seg-aviso")?.addEventListener("click", async () => { try { await Notification.requestPermission(); } catch (_) {} pintarSeguimiento(); });
-    const alCambioJugador = new MutationObserver(pintarIdsGuardados);
+    const alCambioJugador = new MutationObserver(() => { completarApodo(); pintarIdsGuardados(); });
     const pc = $("player-card"); if (pc) alCambioJugador.observe(pc, { attributes: true, attributeFilter: ["hidden"] });
     let ultimoUid = null;
     supabase.auth.onAuthStateChange((_e, session) => {

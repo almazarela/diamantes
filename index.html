@@ -926,6 +926,19 @@
   </div>
   </div>
   </div>
+  <div id="como-box" class="hist-box como-box">
+  <button type="button" id="como-toggle" class="hist-toggle" aria-expanded="false" aria-controls="como-panel" onclick="alternarComo()">
+  <span class="hist-toggle-txt"><i class="fa-solid fa-circle-question"></i> ¿Cómo funciona?</span>
+  <i class="fa-solid fa-chevron-down hist-flecha"></i>
+  </button>
+  <div id="como-panel" class="hist-panel" hidden>
+  <div class="como-funciona">
+  <div class="cf-item"><i class="fa-solid fa-id-card"></i><b>Ponés tu ID</b><span>Verificamos tu nombre</span></div>
+  <div class="cf-item"><i class="fa-solid fa-gem"></i><b>Elegís el paquete</b><span>Pagás con tu saldo</span></div>
+  <div class="cf-item"><i class="fa-solid fa-bolt"></i><b>Recibís al toque</b><span>Se acredita automático</span></div>
+  </div>
+  </div>
+  </div>
   </div>
   
   <!-- COLUMNA DERECHA: CHAT EN VIVO -->
@@ -965,19 +978,14 @@
   
   </div>
   
-  <section class="card">
-  <div class="step-title">
-  <span class="badge">3</span>
-  <h3>Así de fácil funciona</h3>
-  </div>
-  <div class="como-funciona">
-  <div class="cf-item"><i class="fa-solid fa-id-card"></i><b>Ponés tu ID</b><span>Verificamos tu nombre</span></div>
-  <div class="cf-item"><i class="fa-solid fa-gem"></i><b>Elegís el paquete</b><span>Pagás con tu saldo</span></div>
-  <div class="cf-item"><i class="fa-solid fa-bolt"></i><b>Recibís al toque</b><span>Se acredita automático</span></div>
-  </div>
+  
+  
+  
+  <section class="card top-mes" id="top-mes" hidden>
+  <div class="step-title"><span class="badge"><i class="fa-solid fa-trophy"></i></span><h3>Top de recargas</h3></div>
+  <ol class="top-lista" id="top-lista"></ol>
   </section>
-  
-  
+
   <section class="card auth-card" id="auth-section">
   <div class="step-title">
   <span class="badge"><i class="fa-solid fa-user-gear"></i></span>
@@ -1081,10 +1089,7 @@
   </div>
   </section>
   
-  <section class="card top-mes" id="top-mes" hidden>
-  <div class="step-title"><span class="badge"><i class="fa-solid fa-trophy"></i></span><h3>Top compradores del mes</h3></div>
-  <ol class="top-lista" id="top-lista"></ol>
-  </section>
+  
 
   <section class="card comments-section" id="opiniones">
   <div class="step-title">
