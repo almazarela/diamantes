@@ -1529,7 +1529,7 @@ body::after {
 body.modo-admin .adm-modo{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;padding:8px 12px;background:rgba(243,186,47,.12);border:1px solid #f3ba2f;border-radius:10px;font-weight:800;color:#f3ba2f;font-size:14px}
 .adm-modo button{background:#232944;border:1px solid #7fd6ff;color:#fff;border-radius:9px;padding:7px 12px;font-weight:700;font-size:13px;cursor:pointer}
 body.modo-admin .zt, body.modo-admin .hero-banner-section, body.modo-admin .main-layout-grid, body.modo-admin #top-mes, body.modo-admin #auth-section,
-body.modo-admin #opiniones, body.modo-admin footer, body.modo-admin #reproductor, body.modo-admin #chat-fab, body.modo-admin #sakura-fx{display:none!important}
+body.modo-admin footer, body.modo-admin #reproductor, body.modo-admin #chat-fab, body.modo-admin #sakura-fx{display:none!important}
 body.modo-admin #admin-panel-section{margin-top:14px}
 #sb-logo{cursor:default;-webkit-tap-highlight-color:transparent;user-select:none}
 /* Pausa del carrusel + controles de la guía */
@@ -1563,3 +1563,91 @@ body.modo-admin #admin-panel-section{margin-top:14px}
 .btn-mic:hover{color:#2ee27a}
 .adm-mic{padding:6px 10px!important}
 .adm-mic.escuchando{background:#c0262d!important;color:#fff!important;animation:rec-p 1s infinite}
+
+
+/* ===== v8: panel admin (desplegables + guardar siempre a la vista) ===== */
+#admin-panel-section{display:none!important}
+body.modo-admin #admin-panel-section{display:block!important;width:min(1100px,100%);margin-left:auto;margin-right:auto}
+.cobro-barra{position:sticky;top:8px;z-index:6;display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px;padding:10px 12px;background:rgba(20,22,32,.96);border:1px solid #2c3350;border-radius:12px;backdrop-filter:blur(6px);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.cobro-barra p{margin:0;font-size:13px;color:#aab3cc;flex:1;min-width:0}
+.cobro-guardar{flex:none;border:0;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:800;cursor:pointer;background:linear-gradient(135deg,#ffd23f,#f3a712);color:#1a1100;box-shadow:0 4px 14px rgba(243,167,18,.35);transition:transform .15s,filter .15s}
+.cobro-guardar:hover{transform:translateY(-1px);filter:brightness(1.07)}
+.cobro-guardar:disabled{opacity:.6;cursor:wait}
+.cobro-acordeon{display:grid;gap:10px}
+.cobro-sec{background:#0e0f16;border:1px solid #2c3350;border-radius:12px;overflow:hidden}
+.cobro-sec[open]{border-color:#f3ba2f}
+.cobro-sec summary{list-style:none;display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;user-select:none}
+.cobro-sec summary::-webkit-details-marker{display:none}
+.cobro-sec summary:hover{background:rgba(255,255,255,.04)}
+.cs-ico{font-size:20px;flex:none}
+.cs-t{flex:1;min-width:0;display:flex;flex-direction:column;font-weight:800;font-size:15px;color:#fff}
+.cs-t small{font-weight:500;font-size:12px;color:#8f9ab8;margin-top:2px}
+.cobro-sec summary>i{color:#f3ba2f;transition:transform .2s}
+.cobro-sec[open] summary>i{transform:rotate(180deg)}
+.cobro-sec .cobro-form input{width:100%;box-sizing:border-box}
+.cobro-sec .cobro-form{max-width:none;padding:4px 14px 14px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+@media(max-width:600px){.cobro-barra{flex-direction:column;align-items:stretch}.cobro-guardar{width:100%}}
+
+/* ===== v8: chip de Mercado Pago con texto oscuro (mejor contraste sobre el celeste) ===== */
+.cu-mp{background:linear-gradient(135deg,#33c3f5,#009ee3);color:#04202e;box-shadow:0 4px 16px rgba(0,158,227,.3)}
+.sb-mp{color:#04202e}
+.sb-mp .sb-saldo-ico{background:#04202e;color:#7fe0ff}
+
+/* ===== v8: precios Binance bloqueados ===== */
+.bn-lock{display:flex;gap:12px;align-items:center;margin:0 0 12px;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,rgba(243,186,47,.16),rgba(255,120,0,.1));border:1.5px solid #f3ba2f;color:#ffe9b0}
+.bn-lock-ico{font-size:28px;flex:none;filter:drop-shadow(0 0 8px rgba(243,186,47,.6));animation:lockBalanceo 3s ease-in-out infinite}
+.bn-lock-t{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1;font-size:13px;line-height:1.4}
+.bn-lock-t b{color:#ffd23f;font-size:15px}
+.bn-lock-bar{height:7px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:5px}
+.bn-lock-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#f3ba2f,#ffef9a);transition:width .6s}
+.bn-lock.ok{background:rgba(46,226,122,.12);border-color:#2ee27a;color:#c9ffe0}
+.bn-lock.ok b{color:#2ee27a}.bn-lock.ok .bn-lock-ico{animation:none}.bn-lock.ok .bn-lock-bar{display:none}
+@keyframes lockBalanceo{0%,100%{transform:rotate(0)}10%{transform:rotate(-9deg)}20%{transform:rotate(8deg)}30%{transform:rotate(0)}}
+.grid-diamonds.bloqueada{position:relative;opacity:.62;filter:grayscale(.55);user-select:none;-webkit-user-select:none;pointer-events:none;cursor:not-allowed}
+.grid-diamonds.bloqueada .btn-buy{font-size:0!important;background:#3a3f52!important;border-color:#4a5068!important;box-shadow:none!important}
+.grid-diamonds.bloqueada .btn-buy::after{content:"🔒 Bloqueado";font-size:13px;font-weight:800;color:#c8cee0}
+
+/* ===== v8: insignia de nivel al lado del nombre ===== */
+.niv-ins{display:inline-flex;align-items:center;gap:3px;font-size:.64rem;font-weight:800;line-height:1;padding:3px 8px;border-radius:99px;white-space:nowrap;flex:none;letter-spacing:.2px;position:relative;overflow:hidden}
+.niv-ins.n0{background:linear-gradient(135deg,#a85d2a,#e8a064);color:#2a1202}
+.niv-ins.n1{background:linear-gradient(135deg,#8e9aab,#f1f5fb);color:#1d2430}
+.niv-ins.n2{background:linear-gradient(135deg,#d49a06,#ffe27a);color:#3a2700}
+.niv-ins.n3{background:linear-gradient(135deg,#00b4ff,#7df9ff);color:#00253a}
+.niv-ins.n4{background:linear-gradient(120deg,#ff2d55,#ff9a1f,#ffe14a,#34e89e,#2fc4ff,#b266ff);background-size:250% 100%;color:#1a0020;animation:bannerMov 5s linear infinite}
+.niv-ins.n2::after,.niv-ins.n3::after,.niv-ins.n4::after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-60%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.75),transparent);animation:brilloPasa 3.2s ease-in-out infinite}
+@keyframes brilloPasa{0%,55%{left:-60%}100%{left:130%}}
+@keyframes bannerMov{0%{background-position:0 0}100%{background-position:250% 0}}
+
+/* ===== v8: marcos animados alrededor del avatar ===== */
+@property --ang{syntax:"<angle>";initial-value:0deg;inherits:false}
+.marco{position:relative;display:inline-flex;flex:none;border-radius:50%;padding:3px;margin:-3px;vertical-align:middle;--r:3px}
+.marco::before{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;background:var(--anillo,transparent);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - var(--r)),#000 calc(100% - var(--r) + .5px));mask:radial-gradient(farthest-side,transparent calc(100% - var(--r)),#000 calc(100% - var(--r) + .5px))}
+.marco-0{--anillo:conic-gradient(from var(--ang),#8a4a1c,#e8a064,#8a4a1c,#c9763a,#8a4a1c)}
+.marco-1{--anillo:conic-gradient(from var(--ang),#8e9aab,#fff,#8e9aab,#d7dfea,#8e9aab);box-shadow:0 0 8px rgba(220,230,245,.35)}
+.marco-2{--anillo:conic-gradient(from var(--ang),#b8860b,#ffe27a,#fff6c2,#d4a017,#b8860b);box-shadow:0 0 12px rgba(255,200,60,.5)}
+.marco-3{--anillo:conic-gradient(from var(--ang),#00c6ff,#e8fdff,#4d7cff,#7df9ff,#00c6ff);box-shadow:0 0 14px rgba(0,198,255,.6);--r:3.5px}
+.marco-4{--anillo:conic-gradient(from var(--ang),#ff2d55,#ff9a1f,#ffe14a,#34e89e,#2fc4ff,#b266ff,#ff2d55);box-shadow:0 0 18px rgba(255,170,60,.65),0 0 30px rgba(178,102,255,.35);--r:4px;padding:4px;margin:-4px}
+.marco-1::before{animation:giraAnillo 7s linear infinite}
+.marco-2::before{animation:giraAnillo 4.5s linear infinite}
+.marco-3::before{animation:giraAnillo 3s linear infinite}
+.marco-4::before{animation:giraAnillo 2.2s linear infinite}
+.marco-3,.marco-4{animation:latidoMarco 2.4s ease-in-out infinite}
+@keyframes giraAnillo{to{--ang:360deg}}
+@keyframes latidoMarco{0%,100%{filter:brightness(1)}50%{filter:brightness(1.25)}}
+.marco-4::after{content:"👑";position:absolute;top:-11px;left:50%;transform:translateX(-50%) rotate(-8deg);font-size:12px;line-height:1;filter:drop-shadow(0 0 4px rgba(255,200,60,.9));z-index:2;pointer-events:none}
+.marco .sp{position:absolute;width:8px;height:8px;background:#fff;pointer-events:none;z-index:2;clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);filter:drop-shadow(0 0 3px #fff);animation:chispa 2s ease-in-out infinite;opacity:0}
+.marco .sp0{top:-3px;right:-1px}.marco .sp1{bottom:2px;left:-4px;animation-delay:.7s;width:6px;height:6px}.marco .sp2{bottom:-3px;right:2px;animation-delay:1.3s;width:7px;height:7px}.marco .sp3{top:30%;left:-5px;animation-delay:1.7s;width:5px;height:5px}
+.marco-4 .sp{background:#fff8c9}
+@keyframes chispa{0%,100%{opacity:0;transform:scale(.3) rotate(0)}45%{opacity:1;transform:scale(1.15) rotate(70deg)}70%{opacity:0;transform:scale(.4) rotate(120deg)}}
+.op-card .marco,.op-resp .marco{align-self:flex-start}
+
+/* ===== v8: banner de la tarjeta de perfil según nivel ===== */
+.cu-perfil{position:relative}
+.cu-perfil.nv-0{background:linear-gradient(110deg,rgba(214,128,60,.28),rgba(255,255,255,.04));border-color:rgba(232,160,100,.6)}
+.cu-perfil.nv-1{background:linear-gradient(110deg,rgba(200,212,230,.28),rgba(255,255,255,.05));border-color:rgba(220,230,245,.7)}
+.cu-perfil.nv-2{background:linear-gradient(110deg,rgba(255,200,60,.3),rgba(255,255,255,.04));border-color:#ffd23f;box-shadow:0 0 18px rgba(255,200,60,.25)}
+.cu-perfil.nv-3{background:linear-gradient(110deg,rgba(0,198,255,.3),rgba(77,124,255,.12),rgba(0,198,255,.3));background-size:200% 100%;animation:bannerMov 8s linear infinite;border-color:#7df9ff;box-shadow:0 0 20px rgba(0,198,255,.3)}
+.cu-perfil.nv-4{background:linear-gradient(110deg,rgba(255,45,85,.3),rgba(255,154,31,.3),rgba(255,225,74,.3),rgba(52,232,158,.3),rgba(47,196,255,.3),rgba(178,102,255,.3),rgba(255,45,85,.3));background-size:300% 100%;animation:bannerMov 6s linear infinite;border-color:#ffd23f;box-shadow:0 0 26px rgba(255,170,60,.35)}
+.marco .cu-av,.marco .sb-avatar{border-color:transparent}
+.sb-perfil.nv-2,.sb-perfil.nv-3,.sb-perfil.nv-4{border-radius:14px}
+@media (prefers-reduced-motion:reduce){.marco::before,.marco,.niv-ins,.niv-ins::after,.cu-perfil,.marco .sp,.bn-lock-ico{animation:none!important}.marco .sp{opacity:.9}}

@@ -84,7 +84,7 @@ async function postWebhook(payload, timeoutMs = CONFIG.TIMEOUT_MS, url = CONFIG.
 }
 
 const formatoUSD = (n) => "$" + (Number(n) || 0).toFixed(2);
-const formatoARS = (n) => "$" + (Number(n) || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const formatoARS = (n) => "$" + Math.floor(Number(n) || 0).toLocaleString("es-AR", { maximumFractionDigits: 0 });   // pesos sin centavos
 const formatoMoneda = (m, n) => (m === "ARS" ? formatoARS(n) : formatoUSD(n));
 const conCodigo = (m, n) => `${m} ${formatoMoneda(m, n)}`;
 
@@ -734,7 +734,7 @@ function fotoDe(user) {
   const u = m.avatar_url || m.picture || "";
   return /^https:\/\//.test(u) ? u : null;
 }
-function nodoAvatar(nombre, url, clase) {
+function nodoAvatar(nombre, url, clase, uid) {
   const d = document.createElement("div");
   d.className = "op-avatar " + (clase || "");
   const ini = (nombre || "?")[0].toUpperCase();
@@ -744,7 +744,8 @@ function nodoAvatar(nombre, url, clase) {
     img.addEventListener("error", () => { img.remove(); d.textContent = ini; });
     d.appendChild(img);
   } else d.textContent = ini;
-  return d;
+  const nv = uid ? nivelDeUsuario(uid) : -1;
+  return nv >= 0 ? enmarcar(d, nv) : d;
 }
 function avatarDe(userId, url) {
   return perfilSoporte && perfilSoporte.user_id && userId === perfilSoporte.user_id && perfilSoporte.avatar_url ? perfilSoporte.avatar_url : url;
@@ -773,6 +774,7 @@ async function cargarOpiniones() {
   ]);
   respuestas = r1.error ? [] : (r1.data || []);
   reacciones = r2.error ? [] : (r2.data || []);
+  try { await cargarNivelesUsuarios(); } catch (_) {}
   opCargadas = true;
   renderOpiniones();
 }
@@ -827,7 +829,7 @@ function tarjetaOpinion(o) {
   const cab = document.createElement("div"); cab.className = "op-cab";
   const nom = document.createElement("b"); nom.textContent = o.nombre;
   const t = document.createElement("time"); t.textContent = hace(o.created_at);
-  cab.append(nom, nodoEstrellas(o.estrellas), t);
+  cab.append(nom, ...[insigniaNivel(o.user_id)].filter(Boolean), nodoEstrellas(o.estrellas), t);
   const tx = document.createElement("p"); tx.textContent = o.texto;
   cu.append(cab, tx);
 
@@ -852,12 +854,12 @@ function tarjetaOpinion(o) {
     const ed = document.createElement("button"); ed.type = "button"; ed.className = "op-link"; ed.textContent = "✏️ Editar";
     ed.addEventListener("click", () => editarOpinion(o)); rx.appendChild(ed);
   }
-  if (esAdminActual() && !propia) {
+  if (adminVisible() && !propia) {
     const bl = document.createElement("button"); bl.type = "button"; bl.className = "op-link";
     bl.textContent = bloqueados.has(o.user_id) ? "✅ Desbloquear" : "🚫 Bloquear";
     bl.addEventListener("click", async () => { await alternarBloqueo(o.user_id, o.nombre); renderOpiniones(); }); rx.appendChild(bl);
   }
-  if (propia || esAdminActual()) {
+  if (propia || adminVisible()) {
     const del = document.createElement("button"); del.type = "button"; del.className = "op-link"; del.textContent = "🗑️ Eliminar";
     del.addEventListener("click", () => eliminarOpinion(o)); rx.appendChild(del);
   }
@@ -871,15 +873,16 @@ function tarjetaOpinion(o) {
       const c2 = document.createElement("div"); c2.className = "op-resp-c";
       const h = document.createElement("div"); h.className = "op-cab";
       const n2 = document.createElement("b"); n2.textContent = r.nombre; h.appendChild(n2);
+      { const ins2 = insigniaNivel(r.user_id); if (ins2) h.appendChild(ins2); }
       if (r.es_admin) { const ins = document.createElement("span"); ins.className = "op-badge"; ins.textContent = "Soporte Zarela"; h.appendChild(ins); }
       const t2 = document.createElement("time"); t2.textContent = hace(r.created_at); h.appendChild(t2);
       const p2 = document.createElement("p"); p2.textContent = r.texto;
       c2.append(h, p2);
-      if (usuarioActual && (r.user_id === usuarioActual.id || esAdminActual())) {
+      if (usuarioActual && (r.user_id === usuarioActual.id || adminVisible())) {
         const d2 = document.createElement("button"); d2.type = "button"; d2.className = "op-link"; d2.textContent = "🗑️ Eliminar";
         d2.addEventListener("click", () => eliminarRespuesta(r)); c2.appendChild(d2);
       }
-      it.append(nodoAvatar(r.nombre, avatarDe(r.user_id, r.avatar_url), "chico"), c2);
+      it.append(nodoAvatar(r.nombre, avatarDe(r.user_id, r.avatar_url), "chico", r.user_id), c2);
       hilo.appendChild(it);
     });
     const f = document.createElement("div"); f.className = "op-resp-form";
@@ -898,7 +901,7 @@ function tarjetaOpinion(o) {
     hilo.appendChild(f);
     cu.appendChild(hilo);
   }
-  card.append(nodoAvatar(o.nombre, avatarDe(o.user_id, o.avatar_url)), cu);
+  card.append(nodoAvatar(o.nombre, avatarDe(o.user_id, o.avatar_url), "", o.user_id), cu);
   return card;
 }
 
@@ -3255,6 +3258,7 @@ function mostrarErrorCompra(error, { moneda, saldo, precio, nombre, id }) {
       ],
     });
   }
+  if (msg.includes("BINANCE_BLOQUEADO")) { pintarBloqueoBinance(); return caso({ tono: "info", icono: "🔒", titulo: "Precios Binance bloqueados", texto: `Estos precios se desbloquean al recargar ${fmtNum(binMin())} 💎 en total. Mientras tanto podés comprar con los paquetes de Mercado Pago.` }); }
   if (msg.includes("PRECIO_CAMBIO")) return caso({ tono: "info", icono: "🏷️", titulo: "El precio cambió", texto: "El precio de este paquete se actualizó. Recargá la página para ver el valor vigente.", chip: intactoChip });
   if (msg.includes("ID_INVALIDO")) return caso({ tono: "error", icono: "🆔", titulo: "ID inválido", texto: "Revisá tu ID de jugador de Free Fire (solo números)." });
   if (msg.includes("NO_AUTENTICADO")) return caso({ tono: "info", icono: "🔒", titulo: "Sesión vencida", texto: "Volvé a iniciar sesión con Google para comprar." });
@@ -3273,6 +3277,7 @@ async function comprarPaquete(ev, paqueteId, moneda = "USD") {
   if (comprando) return;
   const btn = ev && ev.currentTarget;
   moneda = moneda === "ARS" ? "ARS" : "USD";
+  if (moneda === "USD" && binanceBloqueado()) { pintarBloqueoBinance(); document.getElementById("bn-lock")?.scrollIntoView({ behavior: "smooth", block: "center" }); return mostrarAviso("Los precios Binance se desbloquean al recargar " + fmtNum(binMin()) + " 💎 en total.", "info"); }
 
   if (!usuarioActual) {
     mostrarAviso("Iniciá sesión con Google para comprar con tu saldo.", "error");
@@ -3631,7 +3636,8 @@ function pintarTopLista(data) {
       const nv = nivelDe(r.diamantes); if (nv >= 0) { const ni = document.createElement("span"); ni.className = "niv"; ni.title = NIVELES[nv].n; ni.textContent = NIVELES[nv].ico; n.appendChild(ni); }
       if (r.es_soporte) { const b = document.createElement("span"); b.className = "op-badge"; b.textContent = "Soporte"; n.appendChild(b); }
       const d = document.createElement("span"); d.className = "dia"; d.textContent = fmtNum(r.diamantes) + " 💎";
-      li.append(p, av, n, d); return li;
+      const nvT = nivelDe(r.diamantes);
+      li.append(p, nvT >= 0 ? enmarcar(av, nvT) : av, n, d); return li;
     }));
 }
 
@@ -3858,7 +3864,7 @@ function montarAyudaPagos() {
 // =====================================================================
 // v3: datos de cobro editables, conversión ARS -> USD, chip "Mis compras"
 // =====================================================================
-const COBRO_DEF = { alias_mp: "almazarela.com", cvu_mp: "0000003100098290851840", titular_mp: "Julian Pereyra", binance_id: "1252553144", tasa_ars_usd: "1700", nivel_1: "110", nivel_2: "1000", nivel_3: "3000", nivel_4: "7000", nivel_5: "15000" };
+const COBRO_DEF = { alias_mp: "almazarela.com", cvu_mp: "0000003100098290851840", titular_mp: "Julian Pereyra", binance_id: "1252553144", tasa_ars_usd: "1700", nivel_1: "110", nivel_2: "1000", nivel_3: "3000", nivel_4: "7000", nivel_5: "15000", binance_min: "1000" };
 let cobro = { ...COBRO_DEF };
 function aplicarCobro() {
   const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
@@ -3871,6 +3877,7 @@ function aplicarCobro() {
   document.querySelectorAll(".js-bn").forEach((e) => { e.textContent = cobro.binance_id; });
   pintarNivel(); if (typeof topPrevio !== "undefined" && topPrevio) pintarTopLista(topPrevio);
   set("conv-tasa", "1 USD = " + formatoARS(Number(cobro.tasa_ars_usd)).replace(/,00$/, ""));
+  try { pintarBloqueoBinance(); } catch (_) {}
 }
 async function cargarCobro() {
   try {
@@ -3886,13 +3893,14 @@ async function guardarCobro() {
   const btn = $("cobro-guardar"); btn.disabled = true;
   try {
     const nv = [1, 2, 3, 4, 5].map((i) => Number($("cobro-nivel_" + i)?.value));
+    if (!(Number($("cobro-binance_min")?.value) > 0)) { mostrarAviso("Poné cuántos diamantes hay que cargar para desbloquear Binance (un número mayor a 0).", "error"); return; }
     if (nv.some((x, i) => !(x > 0) || (i && x <= nv[i - 1]))) { mostrarAviso("Los niveles tienen que ser números que van subiendo (cada uno mayor al anterior).", "error"); return; }
     let n = 0;
     for (const k of Object.keys(COBRO_DEF)) {
       const v = ($("cobro-" + k)?.value || "").trim();
       if (!v || v === cobro[k]) continue;
       const { error } = await supabase.rpc("admin_guardar_config_pago", { p_clave: k, p_valor: v });
-      if (error) { mostrarAviso(/TASA/.test(error.message) ? "La tasa tiene que ser un número mayor a 0." : /NO_AUTORIZADO/.test(error.message) ? "Falta ejecutar novedades_clientes_v4.sql en Supabase." : "No se pudo guardar. ¿Ejecutaste novedades_clientes_v3.sql y v4?", "error"); return; }
+      if (error) { mostrarAviso(/TASA/.test(error.message) ? "La tasa tiene que ser un número mayor a 0." : /NO_AUTORIZADO/.test(error.message) ? "Falta ejecutar novedades_clientes_v4.sql en Supabase." : /CLAVE_INVALIDA/.test(error.message) ? "Falta ejecutar novedades_clientes_v8.sql en Supabase." : "No se pudo guardar. ¿Ejecutaste novedades_clientes_v3.sql y v4?", "error"); return; }
       cobro[k] = v; n++;
     }
     aplicarCobro();
@@ -4054,6 +4062,7 @@ async function cargarNivel() {
 }
 function pintarNivel() {
   const caja = $("cu-nivel"), chip = $("sb-niv");
+  try { pintarBloqueoBinance(); pintarMarcosPropios(); } catch (_) {}
   if (!usuarioActual || misDiamantes === null) { if (caja) caja.hidden = true; if (chip) chip.hidden = true; return; }
   const t = misDiamantes, i = nivelDe(t);
   const sig = i + 1 < NIVELES.length ? i + 1 : -1;
@@ -4115,12 +4124,14 @@ function entrarModoAdmin() {
   if (!esAdminActual()) return;
   document.body.classList.add("modo-admin");
   try { sessionStorage.setItem(CLAVE_MODO_ADMIN, "1"); } catch (_) {}
+  if (opCargadas) renderOpiniones();
   if ($("sidebar-menu")?.classList.contains("open")) toggleMenu();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 function salirModoAdmin() {
   document.body.classList.remove("modo-admin");
   try { sessionStorage.removeItem(CLAVE_MODO_ADMIN); } catch (_) {}
+  if (opCargadas) renderOpiniones();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 Object.assign(window, { salirModoAdmin });
@@ -4132,6 +4143,7 @@ supabase.auth.onAuthStateChange((_e, session) => {
     const admin = !!session && (session.user.email || "").toLowerCase() === CONFIG.ADMIN_EMAIL.toLowerCase();
     if (!admin) { document.body.classList.remove("modo-admin"); return; }
     try { if (sessionStorage.getItem(CLAVE_MODO_ADMIN) === "1") document.body.classList.add("modo-admin"); } catch (_) {}
+    if (opCargadas) renderOpiniones();
   }, 100);
 });
 
@@ -4263,3 +4275,82 @@ construirVistaCliente = function () {
   dic.addEventListener("click", () => dictadoAdmin(dic, inp));
   resp.insertBefore(dic, resp.firstChild); resp.insertBefore(aud, resp.firstChild);
 };
+
+
+// =====================================================================
+// v8: insignias y marcos por nivel, bloqueo de precios Binance, opciones de admin solo en modo admin
+// =====================================================================
+const adminVisible = () => esAdminActual() && document.body.classList.contains("modo-admin");
+
+// ---- Nivel de cada cliente (para insignias y marcos en comentarios)
+let nivelesUsr = {};
+async function cargarNivelesUsuarios() {
+  const ids = [...new Set([...opiniones.map((o) => o.user_id), ...respuestas.map((r) => r.user_id)].filter(Boolean))].slice(0, 400);
+  if (!ids.length) return;
+  try {
+    const { data, error } = await conTimeout(supabase.rpc("niveles_de_usuarios", { p_ids: ids }), 8000);
+    if (!error && Array.isArray(data)) { nivelesUsr = {}; data.forEach((r) => { nivelesUsr[r.user_id] = Number(r.diamantes) || 0; }); }
+  } catch (_) { /* sin insignias hasta que se ejecute novedades_clientes_v8.sql */ }
+}
+function nivelDeUsuario(uid) {
+  try {
+    if (usuarioActual && uid === usuarioActual.id && misDiamantes !== null) return nivelDe(misDiamantes);
+    return uid in nivelesUsr ? nivelDe(nivelesUsr[uid]) : -1;
+  } catch (_) { return -1; }
+}
+function insigniaNivel(uid) {
+  const i = nivelDeUsuario(uid);
+  if (i < 0) return null;
+  const b = document.createElement("span");
+  b.className = "niv-ins n" + i; b.title = "Nivel " + NIVELES[i].n + " · cliente que recargó " + fmtNum(Math.max(minNivel(i), 0)) + "+ 💎";
+  b.textContent = NIVELES[i].ico + " " + NIVELES[i].n;
+  return b;
+}
+
+// ---- Marco animado alrededor de un avatar (más brillante cuanto más alto el nivel)
+const CHISPAS = [0, 0, 2, 3, 4];
+function enmarcar(el, nivel) {
+  let w = el.parentNode && el.parentNode.classList && el.parentNode.classList.contains("marco") ? el.parentNode : null;
+  if (nivel < 0) { if (w) { w.className = "marco"; w.querySelectorAll(".sp").forEach((x) => x.remove()); } return w || el; }
+  if (!w) { w = document.createElement("span"); if (el.parentNode) el.replaceWith(w); w.appendChild(el); }
+  w.className = "marco marco-" + nivel;
+  w.querySelectorAll(".sp").forEach((x) => x.remove());
+  for (let k = 0; k < CHISPAS[nivel]; k++) { const c = document.createElement("i"); c.className = "sp sp" + k; w.appendChild(c); }
+  w.title = "Nivel " + NIVELES[nivel].n;
+  return w;
+}
+// mi perfil (tarjeta de cuenta y menú lateral): marco + banner según mi nivel
+function pintarMarcosPropios() {
+  const i = usuarioActual && misDiamantes !== null ? nivelDe(misDiamantes) : -1;
+  ["cu-av", "sb-avatar"].forEach((id) => { const e = $(id); if (e) enmarcar(e, i); });
+  const per = document.querySelector(".cu-perfil");
+  if (per) per.className = "cu-perfil" + (i >= 0 ? " nv-" + i : "");
+  const sbp = $("sb-perfil");
+  if (sbp) { sbp.classList.remove("nv-0", "nv-1", "nv-2", "nv-3", "nv-4"); if (i >= 0) sbp.classList.add("nv-" + i); }
+}
+
+// ---- Precios Binance bloqueados hasta recargar el mínimo
+const binMin = () => Number(cobro.binance_min) || Number(COBRO_DEF.binance_min);
+function binanceBloqueado() {
+  if (esAdminActual()) return false;
+  return (misDiamantes === null ? 0 : misDiamantes) < binMin();
+}
+function pintarBloqueoBinance() {
+  const aviso = $("bn-lock"), cajas = $("grid-binance-cajas");
+  if (!aviso || !cajas) return;
+  const bloq = binanceBloqueado(), t = misDiamantes === null ? 0 : misDiamantes, min = binMin();
+  cajas.classList.toggle("bloqueada", bloq);
+  if (bloq) cajas.setAttribute("inert", ""); else cajas.removeAttribute("inert");
+  cajas.setAttribute("aria-disabled", String(bloq));
+  aviso.hidden = false; aviso.classList.toggle("ok", !bloq);
+  $("bn-lock-ico").textContent = bloq ? "🔒" : "✅";
+  $("bn-lock-tit").textContent = bloq ? "Mejores precios bloqueados" : (esAdminActual() ? "Precios desbloqueados (administradora)" : "¡Mejores precios desbloqueados!");
+  $("bn-lock-txt").textContent = bloq
+    ? (usuarioActual
+        ? `Se desbloquean al recargar ${fmtNum(min)} 💎 en total. Llevás ${fmtNum(t)} 💎: te faltan ${fmtNum(Math.max(0, min - t))}. Mientras tanto podés comprar en Mercado Pago.`
+        : `Se desbloquean al recargar ${fmtNum(min)} 💎 en total. Iniciá sesión para ver cuánto llevás. Mientras tanto podés comprar en Mercado Pago.`)
+    : "Ya podés comprar con los precios Binance.";
+  $("bn-lock-fill").style.width = (bloq ? Math.max(2, Math.min(100, (t / min) * 100)) : 100) + "%";
+}
+document.addEventListener("DOMContentLoaded", () => { pintarBloqueoBinance(); });
+supabase.auth.onAuthStateChange(() => { setTimeout(() => { try { pintarBloqueoBinance(); pintarMarcosPropios(); } catch (_) {} }, 400); });
