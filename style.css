@@ -1286,3 +1286,8 @@ body::after {
   body.adm-chat-on { overflow: hidden; }
   body.adm-chat-on .btn-musica-flotante, body.adm-chat-on .chat-fab, body.adm-chat-on .chat-widget-card { display: none !important; }
 }
+
+/* La administradora atiende desde su panel: en celular no se muestra el chat de clientes */
+@media (max-width: 800px) {
+  body.es-admin #chat-fab, body.es-admin #chat-widget { display: none !important; }
+}
