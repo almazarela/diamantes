@@ -4047,24 +4047,32 @@ async function agregarMovimientos(vista, userId) {
 // ---- Top de recargas dentro del carrusel
 function pintarTopCarrusel(data) {
   const cont = $("st-lista"); if (!cont || !data?.length) return;
-  const colores = [["#ff7a18", "#ffd23f"], ["#2979ff", "#00e5ff"], ["#b266ff", "#ff4fd8"], ["#19e68c", "#9dff6a"], ["#ff2d55", "#ff8a5c"]];
+  const colores = [["#19e68c", "#7fd6ff"], ["#2979ff", "#00e5ff"], ["#5b8cff", "#9ad8ff"], ["#0b5d3f", "#19e68c"], ["#1c3f8f", "#7fd6ff"]];
   const medallas = ["🥇", "🥈", "🥉", "4°", "5°"];
-  cont.replaceChildren(...data.map((r, i) => {
+  const crear = (r, i) => {
     const c = document.createElement("div"); c.className = "st-item st" + i;
-    const m = document.createElement("span"); m.className = "st-med"; m.textContent = medallas[i];
     const nombre = r.nombre || "Cliente";
     let av;
     const letra = () => { const e = document.createElement("span"); e.className = "st-av"; e.style.background = `linear-gradient(135deg,${colores[i][0]},${colores[i][1]})`; e.textContent = (nombre[0] || "C").toUpperCase(); return e; };
     if (/^https:\/\//.test(r.avatar || "")) { av = document.createElement("img"); av.className = "st-av"; av.alt = ""; av.referrerPolicy = "no-referrer"; av.src = r.avatar; av.addEventListener("error", () => av.replaceWith(letra())); }
     else av = letra();
+    const m = document.createElement("span"); m.className = "st-med"; m.textContent = medallas[i];
     const n = document.createElement("b"); n.className = "st-nom"; n.textContent = nombre.split(" ")[0];
     const d = document.createElement("span"); d.className = "st-dia"; d.textContent = fmtNum(r.diamantes) + " 💎";
-    c.append(m, av, n);
-    { const nvC = nivelDe(r.diamantes); if (nvC >= 0) { const ins = document.createElement("span"); ins.className = "st-niv n" + nvC; ins.textContent = NIVELES[nvC].ico + " " + NIVELES[nvC].n; c.appendChild(ins); } }
-    c.appendChild(d);
-    if (r.es_soporte) { const t = document.createElement("i"); t.className = "st-sop"; t.textContent = "Soporte"; c.appendChild(t); }
+    const nvC = nivelDe(r.diamantes);
+    let ins = null;
+    if (nvC >= 0) { ins = document.createElement("span"); ins.className = "st-niv n" + nvC; ins.textContent = NIVELES[nvC].ico; ins.title = "Nivel " + NIVELES[nvC].n; }
+    if (i < 3) { const fn = document.createElement("div"); fn.className = "st-fn"; fn.append(n); if (ins) fn.appendChild(ins); c.append(av, m, fn, d); }
+    else { const tx = document.createElement("div"); tx.className = "st-tx"; tx.append(n); if (ins) tx.appendChild(ins); c.append(m, av, tx, d); }
+    if (r.es_soporte) { const t = document.createElement("i"); t.className = "st-sop"; t.textContent = "Soporte"; (i < 3 ? c : c.querySelector(".st-tx")).appendChild(t); }
     return c;
-  }));
+  };
+  const items = data.slice(0, 5).map(crear);
+  const pod = document.createElement("div"); pod.className = "st-podio";
+  [1, 0, 2].forEach((k) => items[k] && pod.appendChild(items[k]));   // el 1.º va al centro
+  const resto = document.createElement("div"); resto.className = "st-resto";
+  items.slice(3).forEach((e) => resto.appendChild(e));
+  cont.replaceChildren(pod, ...(items.length > 3 ? [resto] : []));
 }
 Object.assign(window, { alternarBloqueo });
 
