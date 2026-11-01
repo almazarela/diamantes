@@ -4579,7 +4579,9 @@ async function alternarAvisos() {
   const on = !avisosOn();
   try { localStorage.setItem("zarela_avisos", on ? "1" : "0"); } catch (_) {}
   pintarBotonAvisos();
+  if (!on) desuscribirPush();
   if (on) {
+    setTimeout(() => registrarPush(true), 300);
     sonidoZarela(true);
     try { if ("Notification" in window && Notification.permission === "default") await Notification.requestPermission(); } catch (_) {}
     mostrarAviso("Avisos activados. Así suena. 🔔", "ok");
@@ -4801,7 +4803,7 @@ function pintarListaSalas(pref, modo) {
     lista.appendChild(r);
   });
   const btn = $(pref + "-enviar"); if (btn) { btn.disabled = !vis.length; btn.querySelector("span").textContent = vis.length ? `Avisar a ${vis.length} ${vis.length === 1 ? "persona" : "personas"}` : "Avisar"; btn._ids = vis.map((x) => x.f[CONFIG.COL_ID]); }
-  const ta = $(pref + "-texto"); if (ta && !ta.dataset.tocado) ta.value = "Hoy " + new Date().toLocaleDateString("es-AR", { weekday: "long" }) + " hay sala con Alma Zarela 🎮 ¡No pierdas tu lugar!";
+  const ta = $(pref + "-texto"); if (ta && !ta.dataset.tocado && document.activeElement !== ta) ta.value = "Hoy " + new Date().toLocaleDateString("es-AR", { weekday: "long" }) + " hay sala con Alma Zarela 🎮 ¡No pierdas tu lugar!";
 }
 async function enviarAvisoSalas(pref) {
   const btn = $(pref + "-enviar"), ta = $(pref + "-texto"); if (!btn || !ta) return;
@@ -4827,11 +4829,38 @@ async function enviarAvisoSalas(pref) {
 async function enviarMailAviso(ids, texto) {
   try { await supabase.rpc("admin_enviar_aviso_mail", { p_ids: ids, p_asunto: "Zarela · Sala de hoy 🎮", p_mensaje: texto }); } catch (_) {}
 }
-document.addEventListener("DOMContentLoaded", () => {
-  ["sl", "jg"].forEach((pref) => {
-    $(pref + "-enviar")?.addEventListener("click", () => enviarAvisoSalas(pref));
-    $(pref + "-texto")?.addEventListener("input", (e) => { e.target.dataset.tocado = "1"; });
-  });
+["sl", "jg"].forEach((pref) => {
+  document.addEventListener("click", (e) => { if (e.target.closest("#" + pref + "-enviar")) enviarAvisoSalas(pref); });
+  document.addEventListener("input", (e) => { if (e.target.id === pref + "-texto") e.target.dataset.tocado = "1"; });
 });
 supabase.auth.onAuthStateChange((_e, session) => { setTimeout(() => { if (session && (session.user.email || "").toLowerCase() === CONFIG.ADMIN_EMAIL.toLowerCase()) cargarChatMeta(); }, 700); });
 Object.assign(window, { cerrarChatActual });
+
+
+// =====================================================================
+// v15: notificaciones push (llegan con la página cerrada y la pantalla apagada)
+// =====================================================================
+const VAPID_PUBLIC = "BAZouF4EmjLrwYXEKy83ffbn6vHL13yrA5o1t_pcgydUvog35xK6MeLLxaCW0EweDzBW-hQirIavZTP0HjfojSg";
+const urlB64 = (b) => { const p = "=".repeat((4 - (b.length % 4)) % 4); const r = atob((b + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from([...r].map((c) => c.charCodeAt(0))); };
+async function registrarPush(pedir) {
+  try {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window) || !usuarioActual) return false;
+    if (Notification.permission === "default" && pedir) await Notification.requestPermission();
+    if (Notification.permission !== "granted") return false;
+    const reg = await navigator.serviceWorker.register("sw.js");
+    await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64(VAPID_PUBLIC) });
+    const j = sub.toJSON();
+    const { error } = await supabase.rpc("guardar_push", { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth });
+    if (error) { console.warn("Push: falta ejecutar novedades_clientes_v14.sql", error.message); return false; }
+    return true;
+  } catch (err) { console.warn("Push no disponible:", err); return false; }
+}
+async function desuscribirPush() {
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration("sw.js"); const sub = await reg?.pushManager.getSubscription(); if (!sub) return;
+    const ep = sub.endpoint; await sub.unsubscribe(); await supabase.rpc("borrar_push", { p_endpoint: ep });
+  } catch (_) {}
+}
+supabase.auth.onAuthStateChange((_e, session) => { if (session) setTimeout(() => { if (avisosOn() && "Notification" in window && Notification.permission === "granted") registrarPush(false); }, 1500); });
