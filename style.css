@@ -1691,9 +1691,9 @@ body.modo-admin #admin-panel-section{display:block!important;width:min(1100px,10
 .adm-ayuda{margin:0 0 8px;font-size:12.5px;color:#9aa3bd}
 @media(max-width:800px){
  body.modo-admin #admin-panel-section{padding:10px;border-radius:14px}
- .adm-layout{grid-template-columns:54px minmax(0,1fr);gap:8px}
+ .adm-layout{grid-template-columns:60px minmax(0,1fr);gap:8px}
  .adm-rail{padding:4px;gap:3px;top:6px}
- .adm-rail .admin-tab{flex-direction:column;justify-content:center;gap:2px;padding:7px 2px;font-size:9.5px;text-align:center;line-height:1.1}
+ .adm-rail .admin-tab{flex-direction:column;justify-content:center;gap:2px;padding:7px 0;font-size:9px;text-align:center;line-height:1.1;letter-spacing:-.1px}
  .adm-rail .admin-tab .rt-i{font-size:18px}
  .adm-salir span{display:none}.adm-salir{padding:7px 10px}
  .adm-tit{font-size:14px}
@@ -1768,3 +1768,95 @@ body.modo-admin #admin-panel-section{display:block!important;width:min(1100px,10
 .status-indicator{font-size:.75rem}
 .sidebar-footer{padding:8px 12px calc(8px + env(safe-area-inset-bottom));gap:6px}
 .sb-logout{padding:8px;font-size:.82rem}
+
+/* ===== v11: menú ⋮ del chat (estilo WhatsApp) ===== */
+.adm-ex{display:none!important}
+.adm-cab.adm-cab-v2{position:relative;display:flex!important;align-items:center;gap:8px;flex-wrap:nowrap!important;margin:0 0 8px!important;padding:2px 2px 6px!important;background:transparent;border-bottom:1px solid #2b3544;word-break:normal!important}
+.adm-cab-v2 .adm-cab-t{flex:1 1 auto!important;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.adm-cab-v2 .adm-cab-t strong{font-size:14px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none}
+.adm-cab-v2 .adm-cab-t div{font-size:11px!important;color:#8b93a7!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none!important}
+.adm-puntos{flex:none!important;width:34px;height:34px;border-radius:50%;border:1px solid #2b3544;background:#161822;color:#dfe5f3;cursor:pointer;display:grid;place-items:center;margin:0!important}
+.adm-puntos:hover{background:#1f2433;border-color:#f3ba2f;color:#f3ba2f}
+.adm-menu{position:absolute!important;top:42px;right:0;z-index:30;min-width:220px;flex:none!important;display:flex;flex-direction:column;padding:6px;background:#1a1d2b;border:1px solid #3a4160;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.55)}
+.adm-menu[hidden]{display:none!important}
+.adm-mi{display:flex!important;align-items:center;gap:10px;width:100%!important;margin:0!important;padding:9px 10px!important;border:0!important;border-radius:8px;background:transparent!important;color:#e6ebf7;font-size:13px;font-weight:600;text-align:left;cursor:pointer}
+.adm-mi:hover{background:rgba(255,255,255,.08)!important}
+.adm-mi span{font-size:16px;width:20px;text-align:center}
+.adm-mi b{font-weight:600}
+.adm-cab-v2 ~ details,.adm-cab-v2 ~ #admin-caja-saldo,.adm-cab-v2 ~ label.adm-buscar{margin:0 0 8px!important}
+@media(max-width:800px){
+ .adm-chat-abierto .adm-cab.adm-cab-v2{padding:8px 10px!important;background:#161822;margin:0!important}
+ .adm-chat-abierto .adm-cab-v2 .adm-atras{flex:none}
+ .adm-chat-abierto .adm-menu{right:10px;top:50px}
+}
+
+/* ===== v11: panel de clientes a la altura de la pantalla (PC) ===== */
+@media(min-width:801px){
+ body.modo-admin #admin-vista-clientes > div{align-items:stretch}
+ body.modo-admin #admin-chat-view{height:calc(100dvh - 190px);min-height:440px;max-height:780px;overflow:hidden}
+ body.modo-admin #admin-chat-view .adm-msgs{flex:1 1 auto!important;height:auto!important;min-height:0!important}
+ body.modo-admin #admin-chat-view > *{flex:none}
+ body.modo-admin #admin-chat-view > .adm-msgs{flex:1 1 auto}
+ body.modo-admin #admin-users-list{min-height:0!important}
+}
+.sb-avisos{background:#1b1f33;color:#e6ebf7;border-color:#3a4160}
+.sb-avisos .sb-ico{background:rgba(127,214,255,.15);font-size:1.1rem}
+.sb-avisos.off .sb-ico{background:rgba(255,255,255,.07);filter:grayscale(1)}
+.sb-avisos .sb-txt small{color:#9aa3bd}
+
+/* ===== v11: cinta "En vivo" rotativa ===== */
+.zt-mov.zt-rot{animation:none;display:block}
+.zt-pista{display:flex;align-items:center}
+.zt-item.zt-in{animation:ztEntra .5s ease both;padding-right:0;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.zt-item small{color:#8b93a7;font-size:11.5px}
+.zt-chip{margin-left:4px;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:2px 7px;border-radius:99px;background:rgba(46,226,122,.16);color:#37e98a;border:1px solid rgba(46,226,122,.4)}
+.zt-nuevo .zt-chip{background:linear-gradient(135deg,#ffb300,#ff6d00);color:#1a0d00;border-color:transparent;animation:ztPulso 1.2s ease-in-out 3}
+@keyframes ztEntra{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+@keyframes ztPulso{50%{transform:scale(1.12)}}
+.zt-pista{-webkit-mask-image:none;mask-image:none}
+
+/* ===== v11: celular más compacto (Cuenta revendedor y Opiniones) ===== */
+@media(max-width:800px){
+ #auth-section.auth-card{padding:12px}
+ .cu-head{gap:9px;margin-bottom:9px}
+ .cu-ico{width:32px;height:32px;font-size:14px;border-radius:9px}
+ .cu-ttl h3{font-size:16px}
+ .cu-ttl small{font-size:10.5px}
+ .cu-perfil{padding:7px 9px;gap:9px;border-radius:12px}
+ .cu-av{width:36px;height:36px;font-size:15px}
+ .cu-quien small{font-size:9.5px}
+ .cu-quien b{font-size:14px}
+ .cu-quien span{font-size:10.5px}
+ .cu-salir{padding:7px 9px;font-size:12px}
+ .cu-nivel{padding:7px 9px!important;gap:8px!important;margin-top:8px!important;border-radius:12px!important}
+ .cu-niv-ico{font-size:24px!important}
+ .cu-saldos{gap:7px;margin-top:8px}
+ .cu-saldo{padding:8px 10px;border-radius:12px;gap:1px}
+ .cu-saldo span{font-size:11px}
+ .cu-saldo b{font-size:15px}
+ .cu-acciones{gap:7px;margin-top:8px}
+ .cu-btn{padding:9px 6px;font-size:12.5px;border-radius:10px}
+ .cu-nota{font-size:10.5px;margin-top:7px;line-height:1.3}
+
+ .op-resumen{flex-wrap:nowrap!important;gap:12px!important;padding:9px 11px!important;margin-bottom:10px!important;border-radius:12px!important}
+ .op-prom{min-width:78px!important}
+ .op-prom b{font-size:1.55rem!important}
+ .op-prom .op-estrellas{font-size:.72rem!important;letter-spacing:1px!important}
+ .op-prom small{font-size:.66rem!important}
+ .op-barras{min-width:0!important;gap:2px!important}
+ .op-barra{font-size:.64rem!important;gap:6px!important}
+ .op-barra span{height:5px!important}
+ .op-card{gap:9px!important;padding:9px!important;border-radius:10px!important}
+ .op-avatar{flex-basis:34px!important;width:34px!important;height:34px!important;font-size:.85rem}
+ .op-cab{gap:6px!important;margin-bottom:2px!important}
+ .op-cab b{font-size:.8rem!important}
+ .op-cab .op-estrellas{font-size:.7rem!important}
+ .op-cab time{font-size:.66rem!important}
+ .op-cuerpo p{font-size:.82rem!important;line-height:1.35!important}
+ .op-reacs{gap:4px!important;margin-top:5px!important}
+ .op-reac{padding:2px 8px!important;font-size:.72rem!important}
+ .op-link{font-size:.7rem!important}
+ .nvb{padding:2px 8px 2px 7px}
+ .nvb-t{font-size:.54rem}
+}
+@media(max-width:800px){.cu-niv-fila b{font-size:13px}.cu-niv-fila small,.cu-niv-t>small{font-size:10.5px}.cu-niv-bar{height:6px}}

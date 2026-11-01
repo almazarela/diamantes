@@ -559,6 +559,7 @@ function revisarMensajesNuevos(filas) {
   if (chatVisible() && !document.hidden) { marcarChatVisto(); return; }
   const nuevos = admin.filter((f) => new Date(f[MSG.fechaCol]) > new Date(visto)).length;
   actualizarPuntoChat(nuevos);
+  try { avisoMensajeNuevo(nuevos, admin[admin.length - 1]); } catch (_) {}
 }
 window.marcarChatVisto = marcarChatVisto;
 
@@ -3594,23 +3595,37 @@ function haceTexto(seg) {
 }
 
 // ---- Cinta de compras recientes
+let cintaDatos = [], cintaI = 0, cintaTimer = null, cintaFirma = null, cintaPausa = false;
+function pintarCintaItem(nuevo) {
+  const mov = $("zt-mov"); if (!mov || !cintaDatos.length) return;
+  const c = cintaDatos[cintaI % cintaDatos.length];
+  const it = document.createElement("span"); it.className = "zt-item zt-in" + (nuevo ? " zt-nuevo" : "");
+  const b = document.createElement("b"); b.textContent = c.nombre || "Cliente";
+  const em = document.createElement("em"); em.textContent = fmtNum(c.diamantes) + " 💎";
+  it.append(b, " compró ", em, " ", Object.assign(document.createElement("small"), { textContent: haceTexto(Number(c.hace_seg) || 0) }));
+  if (nuevo || Number(c.hace_seg) < 600) { const t = document.createElement("span"); t.className = "zt-chip"; t.textContent = nuevo ? "¡Nueva!" : "Recién"; it.appendChild(t); }
+  mov.replaceChildren(it);
+}
+function rotarCinta() {
+  clearInterval(cintaTimer); cintaTimer = null;
+  if (cintaDatos.length < 2) return;
+  cintaTimer = setInterval(() => { if (cintaPausa || document.hidden) return; cintaI = (cintaI + 1) % cintaDatos.length; pintarCintaItem(false); }, 4200);
+}
 async function cargarCinta() {
   const mov = $("zt-mov");
   if (!mov) return;
   try {
     const { data, error } = await conTimeout(supabase.rpc("compras_recientes"), 8000);
     if (error || !Array.isArray(data) || !data.length) return;
-    const frag = document.createDocumentFragment();
-    const hacer = () => data.forEach((c) => {
-      const it = document.createElement("span"); it.className = "zt-item";
-      const b = document.createElement("b"); b.textContent = c.nombre || "Cliente";
-      const em = document.createElement("em"); em.textContent = fmtNum(c.diamantes) + " 💎";
-      it.append(b, " compró ", em, " " + haceTexto(Number(c.hace_seg) || 0));
-      frag.appendChild(it);
-    });
-    hacer(); hacer();   // duplicado: el recorrido queda continuo
-    mov.replaceChildren(frag);
-    mov.style.setProperty("--zt-dur", Math.max(20, data.length * 7) + "s");
+    cintaDatos = data;   // la más nueva primero: las anteriores quedan "detrás"
+    const f = data[0], firma = (f.nombre || "") + "|" + f.diamantes + "|" + Math.round((Date.now() - (Number(f.hace_seg) || 0) * 1000) / 60000);
+    const hayNueva = cintaFirma !== null && firma !== cintaFirma;
+    cintaFirma = firma;
+    mov.classList.add("zt-rot"); mov.style.removeProperty("--zt-dur");
+    if (hayNueva || !mov.querySelector(".zt-item.zt-in")) { cintaI = 0; pintarCintaItem(hayNueva); }
+    rotarCinta();
+    const pista = mov.parentElement;
+    if (pista && !pista.dataset.hover) { pista.dataset.hover = "1"; pista.addEventListener("mouseenter", () => { cintaPausa = true; }); pista.addEventListener("mouseleave", () => { cintaPausa = false; }); }
   } catch (_) { /* queda el texto fijo */ }
 }
 
@@ -3846,7 +3861,7 @@ function montarAyudaPagos() {
     cargarCinta(); cargarTopMes(); montarAyudaPagos();
     actualizarEstadoServicio();
     setInterval(actualizarEstadoServicio, 180000);
-    setInterval(cargarCinta, 120000);
+    setInterval(cargarCinta, 45000);
     $("player-id")?.addEventListener("input", pintarIdsGuardados);
     $("zi-guardar")?.addEventListener("click", guardarIdActual);
     $("seg-x")?.addEventListener("click", () => { try { sessionStorage.setItem(claveCerrada(), String(seg?.id)); } catch (_) {} seg = null; clearInterval(segTimer); pintarSeguimiento(); });
@@ -4480,3 +4495,151 @@ async function guardarPrecios() {
   return n;
 }
 document.addEventListener("DOMContentLoaded", () => { pintarPrecios(); cargarPrecios(); });
+
+
+// =====================================================================
+// v10: avisos con sonido propio (chime Zarela), lista de 8 chats y menú ⋮ del chat
+// =====================================================================
+// ---- Sonido: se genera en el momento (no hace falta ningún archivo)
+const avisosOn = () => { try { return localStorage.getItem("zarela_avisos") !== "0"; } catch (_) { return true; } };
+let ctxAudio = null;
+const abrirCtxAudio = () => { try { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; ctxAudio = ctxAudio || new C(); if (ctxAudio.state === "suspended") ctxAudio.resume(); return ctxAudio; } catch (_) { return null; } };
+["pointerdown", "keydown", "touchstart"].forEach((ev) => document.addEventListener(ev, () => abrirCtxAudio(), { once: true, passive: true }));
+function sonidoZarela(forzar) {
+  if (!forzar && !avisosOn()) return;
+  const c = abrirCtxAudio(); if (!c) return;
+  const t0 = c.currentTime + 0.03;
+  // campanita en 3 notas que suben (mi – sol# – si – mi agudo), suave y breve
+  [[659.25, 0, 0.55], [830.61, 0.10, 0.55], [987.77, 0.20, 0.6], [1318.51, 0.31, 1.1]].forEach(([f, dt, dur]) => {
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t0 + dt);
+    g.gain.exponentialRampToValueAtTime(0.22, t0 + dt + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + dur);
+    const o1 = c.createOscillator(); o1.type = "sine"; o1.frequency.value = f;
+    const o2 = c.createOscillator(); o2.type = "triangle"; o2.frequency.value = f * 2; const g2 = c.createGain(); g2.gain.value = 0.18;
+    o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(c.destination);
+    o1.start(t0 + dt); o2.start(t0 + dt); o1.stop(t0 + dt + dur + 0.05); o2.stop(t0 + dt + dur + 0.05);
+  });
+}
+function avisar(titulo, texto, { toast = true, tipo = "ok" } = {}) {
+  sonidoZarela();
+  if (toast && !document.hidden) mostrarAviso(titulo + (texto ? " " + texto : ""), tipo);
+  if (document.hidden && avisosOn()) {
+    try { if ("Notification" in window && Notification.permission === "granted") new Notification(titulo, { body: texto || "", tag: "zarela-aviso" }); } catch (_) {}
+  }
+}
+// botón del menú lateral
+function pintarBotonAvisos() {
+  const b = $("sb-avisos"); if (!b) return;
+  const on = avisosOn();
+  b.classList.toggle("off", !on);
+  b.querySelector("b").textContent = on ? "Avisos con sonido: activados" : "Avisos con sonido: apagados";
+  b.querySelector("small").textContent = on ? "Te avisamos cuando se acredite tu recarga, tu saldo o te escriba soporte." : "Tocá para volver a activarlos.";
+  b.querySelector(".sb-ico").textContent = on ? "🔔" : "🔕";
+}
+async function alternarAvisos() {
+  const on = !avisosOn();
+  try { localStorage.setItem("zarela_avisos", on ? "1" : "0"); } catch (_) {}
+  pintarBotonAvisos();
+  if (on) {
+    sonidoZarela(true);
+    try { if ("Notification" in window && Notification.permission === "default") await Notification.requestPermission(); } catch (_) {}
+    mostrarAviso("Avisos activados. Así suena. 🔔", "ok");
+  }
+}
+Object.assign(window, { alternarAvisos });
+document.addEventListener("DOMContentLoaded", () => { pintarBotonAvisos(); $("sb-avisos")?.addEventListener("click", alternarAvisos); });
+
+// acreditación de recarga
+{
+  const prev = avisarAcreditada;
+  avisarAcreditada = function (x) { prev(x); sonidoZarela(); };
+}
+// mensaje nuevo de soporte
+let ultimoAvisoMsg = null;
+function avisoMensajeNuevo(nuevos, ultimo) {
+  const ts = ultimo ? String(ultimo[MSG.fechaCol] || "") : "";
+  if (ultimoAvisoMsg === null) { ultimoAvisoMsg = ts; return; }   // la primera lectura no suena
+  if (!nuevos || ts === ultimoAvisoMsg) return;
+  ultimoAvisoMsg = ts;
+  const t = ultimo && ultimo[MSG.textoCol] ? String(ultimo[MSG.textoCol]).slice(0, 80) : "Te mandó un mensaje";
+  avisar("💬 Soporte Zarela:", t, { tipo: "info" });
+}
+// saldo acreditado (por la administradora, devolución, etc.)
+let saldoBase = null, saldoBaseUid = null;
+{
+  const orig = cargarSaldo;
+  cargarSaldo = async function (user) {
+    await orig(user);
+    try {
+      if (!user || esAdminActual()) return;
+      if (saldoBaseUid !== user.id) { saldoBaseUid = user.id; saldoBase = { ...saldos }; return; }
+      const sube = (saldos.USD - saldoBase.USD) > 0.005, subeARS = (saldos.ARS - saldoBase.ARS) >= 1;
+      const bajaUno = (saldos.USD < saldoBase.USD - 0.005) || (saldos.ARS < saldoBase.ARS - 0.5);   // conversión o compra: no es un "regalo"
+      if ((sube || subeARS) && !bajaUno) {
+        const partes = [];
+        if (subeARS) partes.push("+" + formatoARS(saldos.ARS - saldoBase.ARS) + " ARS");
+        if (sube) partes.push("+" + formatoUSD(saldos.USD - saldoBase.USD) + " USD");
+        avisar("💰 ¡Te acreditamos saldo!", partes.join(" · "));
+      }
+      saldoBase = { ...saldos };
+    } catch (_) {}
+  };
+  setInterval(() => { if (usuarioActual && !esAdminActual()) cargarSaldo(usuarioActual); }, 30000);
+}
+
+// ---- Lista de chats del panel: se ven 8 y el resto con scroll
+function ajustarListaClientes() {
+  const l = $("admin-users-list"); if (!l) return;
+  const it = [...l.children].filter((e) => e.tagName === "BUTTON");
+  if (it.length > 8) l.style.maxHeight = (it[8].offsetTop - it[0].offsetTop + 10) + "px"; else l.style.maxHeight = "";
+}
+{
+  const prev = renderListaClientes;
+  renderListaClientes = function () { prev(); try { ajustarListaClientes(); } catch (_) {} };
+}
+window.addEventListener("resize", () => { try { ajustarListaClientes(); } catch (_) {} });
+
+// ---- Menú ⋮ del chat del cliente (estilo WhatsApp): todo lo extra queda escondido hasta que lo elegís
+function armarMenuChat() {
+  const vista = $("admin-chat-view"); const cab = vista?.querySelector(".adm-cab"); if (!cab || cab.dataset.menu) return;
+  cab.dataset.menu = "1";
+  const atras = cab.querySelector(".adm-atras"), nombre = cab.querySelector("strong"), sub = cab.querySelector("div");
+  const botones = [...cab.querySelectorAll(":scope > button")].filter((b) => b !== atras);
+  const verOrdenes = botones[0], btnBloq = botones[1];
+  if (sub) sub.textContent = clienteSel?.email && clienteSel.email !== "-" ? clienteSel.email : "";
+  const det = [...vista.children].find((e) => e.tagName === "DETAILS");
+  const tog = vista.querySelector('button[aria-controls="admin-caja-saldo"]'), caja = $("admin-caja-saldo");
+  const buscar = [...vista.children].find((e) => e.matches && e.matches("label.adm-buscar"));
+  const paneles = [];
+  const ocultar = (e) => { if (e) e.classList.add("adm-ex"); };
+  [det, tog, caja, buscar].forEach(ocultar);
+  if (tog) tog.style.display = "none";
+
+  const titulo = document.createElement("div"); titulo.className = "adm-cab-t"; titulo.append(nombre, sub);
+  const puntos = document.createElement("button"); puntos.type = "button"; puntos.className = "adm-puntos"; puntos.setAttribute("aria-label", "Más opciones"); puntos.innerHTML = '<i class="fa-solid fa-ellipsis-vertical"></i>';
+  const menu = document.createElement("div"); menu.className = "adm-menu"; menu.hidden = true;
+  const item = (ico, txt, fn, nodo) => { const b = nodo || document.createElement("button"); b.type = "button"; b.className = "adm-mi"; b.removeAttribute("style"); if (!nodo) b.innerHTML = `<span>${ico}</span><b>${txt}</b>`; b.addEventListener("click", () => { menu.hidden = true; fn(); }); menu.appendChild(b); return b; };
+  const verPanel = (nodos, enfocar) => {
+    const abrirYa = nodos.some((n) => n.classList.contains("adm-ex"));
+    [det, caja, buscar].forEach(ocultar);
+    if (abrirYa) nodos.forEach((n) => n.classList.remove("adm-ex"));
+    if (nodos.includes(det)) det.open = abrirYa;
+    if (abrirYa && enfocar) setTimeout(() => enfocar.focus(), 50);
+  };
+  if (verOrdenes) { verOrdenes.innerHTML = "<span>🧾</span><b>Ver sus órdenes</b>"; item("", "", () => {}, verOrdenes); }
+  if (btnBloq) {
+    const fn = btnBloq.textContent; item("", "", () => {}, btnBloq);
+    const pint = () => { const [ico, ...r] = btnBloq.textContent.trim().split(" "); btnBloq.innerHTML = `<span>${ico}</span><b>${r.join(" ")}</b>`; };
+    pint(); new MutationObserver((m) => { if (btnBloq.firstElementChild?.tagName !== "SPAN") pint(); }).observe(btnBloq, { childList: true, characterData: true, subtree: false });
+  }
+  if (det) item("📒", "Movimientos de saldo", () => verPanel([det]));
+  if (caja) item("💰", "Saldos y acreditar", () => verPanel([caja]));
+  if (buscar) item("🔍", "Buscar en la conversación", () => verPanel([buscar], buscar.querySelector("input")));
+  puntos.addEventListener("click", (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; });
+  document.addEventListener("click", (e) => { if (!menu.hidden && !menu.contains(e.target)) menu.hidden = true; });
+  cab.replaceChildren(...[atras, titulo, puntos, menu].filter(Boolean));
+  cab.classList.add("adm-cab-v2");
+}
+{
+  const prev = construirVistaCliente;
+  construirVistaCliente = function () { prev(); try { armarMenuChat(); } catch (e) { console.warn("menú del chat:", e); } };
+}
