@@ -1344,7 +1344,7 @@ function renderListaClientes() {
     const b = document.createElement("button");
     b.type = "button";
     b.setAttribute("aria-label", noLeidos ? `${etiqueta}, ${noLeidos} mensajes sin leer` : etiqueta);
-    const borde = seleccionado ? "#f3ba2f" : noLeidos ? "#3b82f6" : "#2b3544";
+    const borde = seleccionado ? "#ff5c8a" : noLeidos ? "#3b82f6" : "#2b3544";
     const fondo = noLeidos ? "#10264a" : "#161822";
     b.style.cssText =
       `display:block;width:100%;text-align:left;margin-bottom:6px;padding:8px;background:${fondo};color:#fff;` +
@@ -2321,7 +2321,7 @@ function construirVistaCliente() {
       monto.placeholder = "Monto " + m;
       ["USD", "ARS"].forEach((x) => {
         const t = $("admin-tile-" + x);
-        if (t) t.style.borderColor = x === m ? "#f3ba2f" : "#2b3544";
+        if (t) t.style.borderColor = x === m ? "#ff5c8a" : "#2b3544";
       });
     };
     moneda.addEventListener("change", resaltar);
@@ -2349,7 +2349,7 @@ function construirVistaCliente() {
       caja.hidden = !abrir;
       tog.setAttribute("aria-expanded", String(abrir));
       flecha.style.transform = abrir ? "rotate(180deg)" : "";
-      tog.style.borderColor = abrir ? "#f3ba2f" : "#2b3544";
+      tog.style.borderColor = abrir ? "#ff5c8a" : "#2b3544";
     });
     vista.append(tog, caja);
     resaltar();
@@ -2376,7 +2376,7 @@ function construirVistaCliente() {
   const inp = document.createElement("input");
   inp.id = "admin-respuesta"; inp.type = "text"; inp.placeholder = "Responder al cliente…"; inp.maxLength = 1000;
   inp.style.cssText = ESTILO_INPUT + "flex:1;";
-  const env = creaBoton("Enviar", "background:#f3ba2f;color:#000;");
+  const env = creaBoton("Enviar", "background:linear-gradient(135deg,#ff2d55,#ff6fa3);color:#fff;border:1px solid rgba(255,190,210,.6);");
   env.id = "admin-btn-responder";
   const enviar = () => responderCliente();
   env.addEventListener("click", enviar);
@@ -2452,7 +2452,7 @@ async function refrescarMensajes(forzar) {
     const burbuja = document.createElement("div");
     burbuja.style.cssText =
       "max-width:80%;padding:7px 10px;border-radius:10px;font-size:13px;word-break:break-word;color:#fff;" +
-      (mio ? "align-self:flex-end;background:#7a5a00;" : "align-self:flex-start;background:#1f2937;");
+      (mio ? "align-self:flex-end;background:linear-gradient(135deg,rgba(255,45,85,.82),rgba(214,51,132,.78));border:1px solid rgba(255,170,200,.5);box-shadow:0 2px 10px rgba(255,45,85,.25);" : "align-self:flex-start;background:#1f2937;");
 
     const texto = f[MSG.textoCol];
     if (texto) {
@@ -2665,21 +2665,21 @@ function inyectarEstilosMensajes() {
   st.textContent = `
     .msg-ctx{position:relative;cursor:pointer}
     .msg-chev{position:absolute;top:-8px;right:-6px;width:18px;height:18px;padding:0;border:none;border-radius:50%;
-      background:rgba(13,14,21,.88);color:#f3ba2f;font-size:11px;line-height:18px;cursor:pointer;opacity:0;box-shadow:0 0 0 1px #3a3f58;transition:opacity .15s;z-index:1}
+      background:rgba(13,14,21,.88);color:var(--zacc,#f3ba2f);font-size:11px;line-height:18px;cursor:pointer;opacity:0;box-shadow:0 0 0 1px #3a3f58;transition:opacity .15s;z-index:1}
     .msg-ctx:hover .msg-chev,.msg-chev:focus-visible,.msg-ctx.msg-abierto .msg-chev{opacity:1}
     @media (hover:none){.msg-chev{display:none}}
-    .msg-ctx.msg-abierto{outline:1px solid #f3ba2f}
-    .msg-pin{font-size:10px;color:#f3ba2f;margin-bottom:2px;font-weight:700}
-    .msg-quote{border-left:3px solid #f3ba2f;background:rgba(0,0,0,.28);border-radius:4px;padding:3px 7px;margin-bottom:4px;
+    .msg-ctx.msg-abierto{outline:1px solid var(--zacc,#f3ba2f)}
+    .msg-pin{font-size:10px;color:var(--zacc,#f3ba2f);margin-bottom:2px;font-weight:700}
+    .msg-quote{border-left:3px solid var(--zacc,#f3ba2f);background:rgba(0,0,0,.28);border-radius:4px;padding:3px 7px;margin-bottom:4px;
       font-size:11px;color:#cbd5e1;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .msg-quote b{display:block;color:#f3ba2f;font-size:10px}
+    .msg-quote b{display:block;color:var(--zacc,#f3ba2f);font-size:10px}
     .msg-reacts{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
     .msg-react{background:rgba(0,0,0,.35);border:1px solid #2b3544;border-radius:10px;padding:0 6px;font-size:11px;color:#fff;cursor:pointer}
-    .msg-react.mia{border-color:#f3ba2f;background:rgba(243,186,47,.2)}
+    .msg-react.mia{border-color:var(--zacc,#f3ba2f);background:var(--zacc-bg,rgba(243,186,47,.2))}
     .msg-flash{animation:msgflash 1.4s ease}
-    @keyframes msgflash{0%,60%{box-shadow:0 0 0 2px #f3ba2f}100%{box-shadow:0 0 0 0 transparent}}
+    @keyframes msgflash{0%,60%{box-shadow:0 0 0 2px var(--zacc,#f3ba2f)}100%{box-shadow:0 0 0 0 transparent}}
     #menu-mensaje{position:fixed;z-index:10001;width:max-content;min-width:236px;max-width:calc(100vw - 16px);background:#161822;
-      border:1px solid #f3ba2f;border-radius:14px;box-shadow:0 10px 32px rgba(0,0,0,.75);padding:8px;font-size:13px;color:#fff}
+      border:1px solid var(--zacc,#f3ba2f);border-radius:14px;box-shadow:0 10px 32px rgba(0,0,0,.75);padding:8px;font-size:13px;color:#fff}
     #menu-mensaje .mm-emojis{display:flex;justify-content:space-between;gap:2px;padding:2px 0 8px;margin-bottom:6px;border-bottom:1px solid #2b3544}
     #menu-mensaje .mm-emoji{background:none;border:none;font-size:22px;line-height:1;cursor:pointer;border-radius:8px;padding:5px 6px}
     #menu-mensaje .mm-acciones{display:flex;gap:4px}
@@ -2687,21 +2687,21 @@ function inyectarEstilosMensajes() {
       background:rgba(255,255,255,.04);border:none;color:#fff;padding:8px 6px;border-radius:9px;cursor:pointer;font-size:11.5px;font-weight:600}
     #menu-mensaje .mm-ico{font-size:18px;line-height:1}
     #menu-mensaje .mm-item:hover,#menu-mensaje .mm-item:focus-visible,#menu-mensaje .mm-emoji:hover,#menu-mensaje .mm-emoji:focus-visible{
-      background:rgba(243,186,47,.22);color:#f3ba2f;outline:none}
+      background:var(--zacc-bg,rgba(243,186,47,.22));color:var(--zacc,#f3ba2f);outline:none}
     #menu-mensaje .mm-nota{font-size:11px;color:#888;padding:6px 9px 2px}
     #menu-mensaje.mm-hoja{width:auto;min-width:0;max-width:none;border-radius:16px 16px 12px 12px;padding:10px}
     #menu-mensaje.mm-hoja .mm-emoji{font-size:26px;padding:6px 8px}
     #menu-mensaje.mm-hoja .mm-item{padding:11px 6px;font-size:12px}
-    .barra-msg{display:none;align-items:center;gap:8px;background:#161822;border:1px solid #2b3544;border-left:3px solid #f3ba2f;
+    .barra-msg{display:none;align-items:center;gap:8px;background:#161822;border:1px solid #2b3544;border-left:3px solid var(--zacc,#f3ba2f);
       border-radius:6px;padding:4px 8px;margin-bottom:6px;font-size:11px;color:#cbd5e1}
     .barra-msg .bm-texto{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .barra-msg b{color:#f3ba2f}
-    .barra-msg button{background:none;border:none;color:#f3ba2f;cursor:pointer;font-size:14px;padding:0 2px}
+    .barra-msg b{color:var(--zacc,#f3ba2f)}
+    .barra-msg button{background:none;border:none;color:var(--zacc,#f3ba2f);cursor:pointer;font-size:14px;padding:0 2px}
     .barra-fijados{flex-direction:column;align-items:stretch;gap:3px}
     .barra-fijados .fijado{cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    #admin-users-list,#admin-msgs,.chat-messages-area{scrollbar-width:thin;scrollbar-color:#f3ba2f #0e0f16}
+    #admin-users-list,#admin-msgs,.chat-messages-area{scrollbar-width:thin;scrollbar-color:var(--zacc,#f3ba2f) #0e0f16}
     #admin-users-list::-webkit-scrollbar,#admin-msgs::-webkit-scrollbar{width:8px}
-    #admin-users-list::-webkit-scrollbar-thumb,#admin-msgs::-webkit-scrollbar-thumb{background:#f3ba2f;border-radius:4px}
+    #admin-users-list::-webkit-scrollbar-thumb,#admin-msgs::-webkit-scrollbar-thumb{background:var(--zacc,#f3ba2f);border-radius:4px}
     #admin-users-list::-webkit-scrollbar-track,#admin-msgs::-webkit-scrollbar-track{background:#0e0f16}
   `;
   document.head.appendChild(st);
@@ -3819,7 +3819,7 @@ function avisarAcreditada(seguimiento) {
   if (document.hidden) {
     const tit = document.title; let n = 0;
     const t = setInterval(() => { document.title = n++ % 2 ? tit : "💎 ¡Carga acreditada!"; if (!document.hidden || n > 40) { clearInterval(t); document.title = tit; } }, 1000);
-    try { if ("Notification" in window && Notification.permission === "granted") new Notification("Zarela", { body: texto }); } catch (_) {}
+    try { if (!pushActivo && "Notification" in window && Notification.permission === "granted") new Notification("Zarela", { body: texto }); } catch (_) {}
   }
 }
 async function consultarSeguimiento() {
@@ -4541,6 +4541,7 @@ document.addEventListener("DOMContentLoaded", () => { pintarPrecios(); cargarPre
 // v10: avisos con sonido propio (chime Zarela), lista de 8 chats y menú ⋮ del chat
 // =====================================================================
 // ---- Sonido: se genera en el momento (no hace falta ningún archivo)
+let pushActivo = false;   // true si este dispositivo ya recibe push (entonces no duplicamos con avisos locales)
 const avisosOn = () => { try { return localStorage.getItem("zarela_avisos") !== "0"; } catch (_) { return true; } };
 let ctxAudio = null;
 const abrirCtxAudio = () => { try { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; ctxAudio = ctxAudio || new C(); if (ctxAudio.state === "suspended") ctxAudio.resume(); return ctxAudio; } catch (_) { return null; } };
@@ -4563,32 +4564,42 @@ function avisar(titulo, texto, { toast = true, tipo = "ok" } = {}) {
   sonidoZarela();
   if (toast && !document.hidden) mostrarAviso(titulo + (texto ? " " + texto : ""), tipo);
   if (document.hidden && avisosOn()) {
-    try { if ("Notification" in window && Notification.permission === "granted") new Notification(titulo, { body: texto || "", tag: "zarela-aviso" }); } catch (_) {}
+    try { if (!pushActivo && "Notification" in window && Notification.permission === "granted") new Notification(titulo, { body: texto || "", tag: "zarela-aviso" }); } catch (_) {}
   }
 }
 // botón del menú lateral
+const permisoAvisos = () => ("Notification" in window ? Notification.permission : "unsupported");
+const avisosActivos = () => avisosOn() && permisoAvisos() === "granted";
 function pintarBotonAvisos() {
-  const b = $("sb-avisos"); if (!b) return;
-  const on = avisosOn();
-  b.classList.toggle("off", !on);
-  b.querySelector("b").textContent = on ? "Avisos con sonido: activados" : "Avisos con sonido: apagados";
-  b.querySelector("small").textContent = on ? "Te avisamos cuando se acredite tu recarga, tu saldo o te escriba soporte." : "Tocá para volver a activarlos.";
-  b.querySelector(".sb-ico").textContent = on ? "🔔" : "🔕";
+  const perm = permisoAvisos(), act = avisosActivos();
+  const titulo = act ? "Avisos activados" : perm === "denied" ? "Avisos bloqueados" : perm === "unsupported" ? "Avisos no disponibles" : "Activar avisos";
+  const sub = act ? "Te avisamos cuando se acredite tu recarga o te escriba soporte, aunque la página esté cerrada."
+    : perm === "denied" ? "Tu navegador los bloqueó: tocá el candado de la barra de direcciones y permití las notificaciones."
+    : perm === "unsupported" ? "Este navegador no permite notificaciones. Probá con Chrome." : "Tocá para recibir un aviso cuando se acredite tu recarga o te escriba soporte.";
+  const b = $("sb-avisos");
+  if (b) { b.classList.toggle("off", !act); b.querySelector("b").textContent = titulo; b.querySelector("small").textContent = sub; b.querySelector(".sb-ico").textContent = act ? "🔔" : perm === "denied" ? "🚫" : "🔕"; }
+  const t = $("camp-top");
+  if (t) { t.classList.toggle("off", !act); t.classList.toggle("bloq", perm === "denied"); t.title = titulo; t.setAttribute("aria-label", titulo); t.querySelector("i").className = "fa-solid " + (act ? "fa-bell" : perm === "denied" ? "fa-bell-slash" : "fa-bell-slash"); t.querySelector("span").textContent = act ? "Avisos" : perm === "denied" ? "Bloqueados" : "Activar"; }
 }
 async function alternarAvisos() {
-  const on = !avisosOn();
-  try { localStorage.setItem("zarela_avisos", on ? "1" : "0"); } catch (_) {}
-  pintarBotonAvisos();
-  if (!on) desuscribirPush();
-  if (on) {
-    setTimeout(() => registrarPush(true), 300);
-    sonidoZarela(true);
-    try { if ("Notification" in window && Notification.permission === "default") await Notification.requestPermission(); } catch (_) {}
-    mostrarAviso("Avisos activados. Así suena. 🔔", "ok");
+  const perm = permisoAvisos();
+  if (perm === "unsupported" || perm === "denied") { mostrarAviso(perm === "denied" ? "Tenés los avisos bloqueados en el navegador. Tocá el candado junto a la dirección y permití las notificaciones." : "Este navegador no permite notificaciones.", "error"); pintarBotonAvisos(); return; }
+  if (avisosActivos()) {   // estaba activo → apagar
+    try { localStorage.setItem("zarela_avisos", "0"); } catch (_) {}
+    desuscribirPush(); pintarBotonAvisos(); mostrarAviso("Avisos apagados.", "ok"); return;
   }
+  try { localStorage.setItem("zarela_avisos", "1"); } catch (_) {}
+  sonidoZarela(true);
+  try { if (Notification.permission === "default") await Notification.requestPermission(); } catch (_) {}
+  pintarBotonAvisos();
+  if (Notification.permission === "granted") {
+    const ok = await registrarPush(true); pintarBotonAvisos();
+    mostrarAviso(ok ? "Avisos activados. Así suena. 🔔" : "Avisos activados en esta página.", "ok");
+  } else mostrarAviso("No diste permiso: los avisos siguen apagados.", "error");
 }
 Object.assign(window, { alternarAvisos });
-document.addEventListener("DOMContentLoaded", () => { pintarBotonAvisos(); $("sb-avisos")?.addEventListener("click", alternarAvisos); });
+document.addEventListener("DOMContentLoaded", () => { pintarBotonAvisos(); $("sb-avisos")?.addEventListener("click", alternarAvisos); $("camp-top")?.addEventListener("click", alternarAvisos); });
+try { navigator.permissions?.query({ name: "notifications" }).then((r) => { r.onchange = () => pintarBotonAvisos(); }); } catch (_) {}
 
 // acreditación de recarga
 {
@@ -4854,6 +4865,7 @@ async function registrarPush(pedir) {
     const j = sub.toJSON();
     const { error } = await supabase.rpc("guardar_push", { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth });
     if (error) { console.warn("Push: falta ejecutar novedades_clientes_v14.sql", error.message); return false; }
+    pushActivo = true;
     return true;
   } catch (err) { console.warn("Push no disponible:", err); return false; }
 }
@@ -4863,4 +4875,72 @@ async function desuscribirPush() {
     const ep = sub.endpoint; await sub.unsubscribe(); await supabase.rpc("borrar_push", { p_endpoint: ep });
   } catch (_) {}
 }
-supabase.auth.onAuthStateChange((_e, session) => { if (session) setTimeout(() => { if (avisosOn() && "Notification" in window && Notification.permission === "granted") registrarPush(false); }, 1500); });
+supabase.auth.onAuthStateChange((_e, session) => { if (session) setTimeout(async () => { if (avisosOn() && "Notification" in window && Notification.permission === "granted") await registrarPush(false); pintarBotonAvisos(); }, 1500); else { pushActivo = false; pintarBotonAvisos(); } });
+
+
+// =====================================================================
+// v16: "entregado" apenas la administradora tiene la página abierta + fondo de pantalla del chat
+// =====================================================================
+setInterval(() => {
+  if (!entregaDisponible || !esAdminActual() || document.hidden) return;
+  try { supabase.rpc("admin_marcar_entregados").then(() => {}, () => {}); } catch (_) {}
+}, 15000);
+supabase.auth.onAuthStateChange((_e, session) => { if (session && (session.user.email || "").toLowerCase() === CONFIG.ADMIN_EMAIL.toLowerCase()) setTimeout(() => { try { supabase.rpc("admin_marcar_entregados").then(() => {}, () => {}); } catch (_) {} }, 1200); });
+
+const FONDOS_CHAT = [
+  { id: "ninguno", n: "Liso", css: "" },
+  { id: "cristal", n: "Cristal azul", css: "radial-gradient(circle at 20% 0%,rgba(127,214,255,.3),transparent 55%),linear-gradient(160deg,#10294f,#070c1c)" },
+  { id: "orion", n: "Verde Orión", css: "radial-gradient(ellipse at 50% -10%,rgba(25,230,140,.45),transparent 60%),linear-gradient(180deg,#0d4a34,#04140d)" },
+  { id: "rosa", n: "Rosa cristal", css: "radial-gradient(circle at 80% 0%,rgba(255,92,138,.4),transparent 55%),linear-gradient(160deg,#3a0b24,#10060f)" },
+  { id: "noche", n: "Noche", css: "linear-gradient(160deg,#171a2e,#05060c)" },
+  { id: "ff", n: "Free Fire", css: "linear-gradient(rgba(5,8,20,.6),rgba(5,8,20,.6)),url('fondo-difuminado.jpg') center/cover" },
+];
+const claveFondo = "zarela_chat_fondo";
+function fondoGuardado() { try { return JSON.parse(localStorage.getItem(claveFondo) || "null"); } catch (_) { return null; } }
+function aplicarFondoChat() {
+  const f = fondoGuardado(); let css = "";
+  if (f?.tipo === "preset") css = (FONDOS_CHAT.find((x) => x.id === f.id) || {}).css || "";
+  else if (f?.tipo === "foto" && f.data) css = `linear-gradient(rgba(5,8,20,.45),rgba(5,8,20,.45)),url(${f.data}) center/cover`;
+  document.documentElement.style.setProperty("--chat-fondo", css || "none");
+  document.body.classList.toggle("chat-con-fondo", !!css);
+}
+function elegirFondo(v) { try { localStorage.setItem(claveFondo, JSON.stringify(v)); } catch (_) { mostrarAviso("No se pudo guardar el fondo en este dispositivo.", "error"); } aplicarFondoChat(); pintarSelectorFondo(); }
+function pintarSelectorFondo() {
+  const cont = $("fch-grid"); if (!cont) return; const f = fondoGuardado();
+  cont.replaceChildren(...FONDOS_CHAT.map((x) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "fch-op" + ((f?.tipo === "preset" && f.id === x.id) || (!f && x.id === "ninguno") ? " on" : "");
+    b.innerHTML = `<i style="background:${x.css || "#0d0e15"}"></i><span>${x.n}</span>`;
+    b.addEventListener("click", () => elegirFondo({ tipo: "preset", id: x.id })); return b;
+  }));
+}
+function abrirSelectorFondo() {
+  let m = $("fch-modal");
+  if (!m) {
+    m = document.createElement("div"); m.id = "fch-modal"; m.className = "fch-modal";
+    m.innerHTML = `<div class="fch-box" role="dialog" aria-label="Fondo del chat"><div class="fch-top"><b>🖼️ Fondo del chat</b><button type="button" class="fch-x" aria-label="Cerrar">✕</button></div><div id="fch-grid" class="fch-grid"></div><label class="fch-foto"><input type="file" accept="image/*" hidden> <span>📷 Usar mi propia foto</span></label><small>El fondo se guarda solo en este dispositivo.</small></div>`;
+    document.body.appendChild(m);
+    m.addEventListener("click", (e) => { if (e.target === m || e.target.closest(".fch-x")) m.classList.remove("abierto"); });
+    m.querySelector("input").addEventListener("change", (e) => {
+      const file = e.target.files?.[0]; e.target.value = ""; if (!file) return;
+      const img = new Image(); const u = URL.createObjectURL(file);
+      img.onload = () => { const k = Math.min(1, 900 / Math.max(img.width, img.height)); const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u); elegirFondo({ tipo: "foto", data: c.toDataURL("image/jpeg", 0.72) }); };
+      img.onerror = () => mostrarAviso("No se pudo leer esa imagen.", "error"); img.src = u;
+    });
+  }
+  pintarSelectorFondo(); m.classList.add("abierto");
+}
+Object.assign(window, { abrirSelectorFondo });
+aplicarFondoChat();
+// entrada en el menú ⋮ del chat de la administradora
+{
+  const prev = armarMenuChat;
+  armarMenuChat = function () {
+    const ya = $("admin-chat-view")?.querySelector(".adm-cab")?.dataset.menu;
+    prev();
+    if (ya) return;
+    const menu = $("admin-chat-view")?.querySelector(".adm-menu"); if (!menu || menu.querySelector(".adm-fondo")) return;
+    const b = document.createElement("button"); b.type = "button"; b.className = "adm-mi adm-fondo"; b.innerHTML = "<span>🖼️</span><b>Fondo del chat</b>";
+    b.addEventListener("click", () => { menu.hidden = true; abrirSelectorFondo(); });
+    menu.insertBefore(b, menu.querySelector(".adm-sep") || null);
+  };
+}

@@ -8,7 +8,7 @@ self.addEventListener("push", (e) => {
     const ws = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     if (ws.some((w) => w.visibilityState === "visible")) return;
     await self.registration.showNotification(d.titulo || "Zarela", {
-      body: d.cuerpo || "", icon: "icon-192.png", badge: "icon-192.png",
+      body: d.cuerpo || "", icon: "icon-192.png", badge: "badge-96.png", vibrate: [120, 60, 120],
       tag: d.tag || "zarela", renotify: true, data: { url: d.url || "./" },
     });
   })());

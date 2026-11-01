@@ -1978,3 +1978,49 @@ body.modo-admin #admin-panel-section{display:block!important;width:min(1100px,10
 .msg-tk.en-hora{display:inline-block}
 .msg-tk-w{text-align:right;line-height:1;margin-top:2px}
 .msg-tk-w .msg-tk{margin-left:0}
+
+.sl-aviso textarea{border-color:#7fd6ff88;min-height:64px}
+.sl-aviso textarea:focus{outline:none;border-color:#7fd6ff;box-shadow:0 0 0 3px rgba(127,214,255,.2)}
+
+/* v16: campanita principal */
+.camp-top{position:absolute;right:16px;bottom:8px;z-index:25;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;font:700 12px/1 inherit;cursor:pointer;color:#04210f;border:1px solid rgba(25,230,140,.8);background:linear-gradient(135deg,#9dffc9,#19e68c);box-shadow:0 0 12px rgba(25,230,140,.45)}
+.camp-top.off{color:#cfd6e6;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.25);box-shadow:none;backdrop-filter:blur(6px)}
+.camp-top.off:hover{background:rgba(25,230,140,.16);border-color:rgba(25,230,140,.7);color:#fff}
+.camp-top.bloq{color:#ffb3b3;border-color:rgba(255,120,120,.5)}
+.camp-top i{font-size:12px}
+@media (max-width:600px){.camp-top{right:10px;bottom:6px;padding:4px 9px;font-size:11px}}
+
+/* Palomitas tipo WhatsApp: visto = verde Orión brillante */
+.msg-tk{font-size:12px;color:rgba(255,255,255,.6)}
+.msg-tk.visto{color:#19ff9c;text-shadow:0 0 6px rgba(25,230,140,.9);font-size:13px}
+.chat-v2 .user-msg .msg-tk,.msg-tk-w{filter:none}
+
+/* Fondo de pantalla del chat */
+body.chat-con-fondo .chat-v2 .chat-messages-area,body.chat-con-fondo #admin-msgs{background:var(--chat-fondo)!important;background-attachment:local}
+.chat-fondo-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:50%;width:30px;height:30px;cursor:pointer;margin-left:auto;margin-right:6px;display:inline-grid;place-items:center;font-size:13px}
+.chat-widget-header{display:flex;align-items:center}
+.fch-modal{position:fixed;inset:0;z-index:100000;background:rgba(0,0,10,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px}
+.fch-modal.abierto{display:flex}
+.fch-box{width:min(420px,100%);background:rgba(18,22,40,.95);border:1px solid rgba(127,214,255,.4);border-radius:20px;padding:14px;color:#fff;display:grid;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.fch-top{display:flex;justify-content:space-between;align-items:center}
+.fch-x{background:none;border:0;color:#fff;font-size:18px;cursor:pointer}
+.fch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.fch-op{background:none;border:2px solid transparent;border-radius:14px;padding:4px;color:#dfe5f3;font-size:11px;cursor:pointer;display:grid;gap:5px;justify-items:center}
+.fch-op i{display:block;width:100%;aspect-ratio:3/4;border-radius:10px;border:1px solid rgba(255,255,255,.2)}
+.fch-op.on{border-color:#19e68c}
+.fch-foto{display:flex;justify-content:center;padding:10px;border-radius:12px;border:1px dashed rgba(127,214,255,.6);cursor:pointer;font-weight:700;font-size:13px}
+.fch-box small{color:#9aa6c0;text-align:center}
+
+/* Panel de administradora: rojo y rosado cristal */
+body.modo-admin{--zacc:#ff5c8a;--zacc-bg:rgba(255,92,138,.22)}
+body.modo-admin #admin-panel-section{background:linear-gradient(160deg,rgba(255,45,85,.16),rgba(255,92,138,.07) 45%,rgba(18,6,16,.92))!important;border:1px solid rgba(255,110,160,.55)!important;box-shadow:0 10px 40px rgba(255,45,85,.18),inset 0 1px 0 rgba(255,255,255,.14);backdrop-filter:blur(10px)}
+body.modo-admin .adm-modo{background:rgba(255,92,138,.14)!important;border-color:#ff5c8a!important}
+.adm-rail{background:rgba(255,255,255,.04)!important;border-color:rgba(255,110,160,.35)!important}
+.adm-rail .admin-tab.activa{background:rgba(255,92,138,.2)!important;border-color:#ff5c8a!important;color:#ffd1e0!important}
+.adm-rail .rt-n{background:#ff2d55!important}
+#admin-users-list{scrollbar-color:#ff5c8a #0e0f16}
+#admin-users-list::-webkit-scrollbar-thumb,#admin-msgs::-webkit-scrollbar-thumb{background:#ff5c8a!important}
+#admin-chat-view{background:linear-gradient(170deg,rgba(255,45,85,.10),rgba(14,15,22,.92))!important;border:1px solid rgba(255,110,160,.3)}
+.adm-puntos:hover{border-color:#ff5c8a!important;color:#ff5c8a!important}
+.adm-chat-abierto .adm-atras{border-color:#ff5c8a!important;background:rgba(255,92,138,.14)!important}
+.msg-ctx.msg-abierto{outline-color:#ff5c8a}
