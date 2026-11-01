@@ -2154,3 +2154,44 @@ body.chat-con-fondo .chat-v2>*,body.chat-con-fondo #admin-chat-view>*{position:r
 .slide-ayuda .sa-puntos{gap:max(5px,1.2cqw)}
 .slide-ayuda .sa-puntos i{width:max(7px,2.5cqh);height:max(7px,2.5cqh)}
 .slide-ayuda .sa-puntos i.on{width:max(18px,6.4cqh)}
+.slide-ayuda .sa-pausa.on{background:#2ee27a;color:#031a0d;border-color:#2ee27a}
+.slide-ayuda .sa-pausa{color:#eafff4}
+
+/* ===== v20: esquina superior (Online arriba, Recargas activas abajo), EN VIVO eléctrico, Top 4º/5º con más presencia, Últimas compras compacto en celular ===== */
+.live-counter-badge{top:10px!important}
+.hero-estado{top:31px!important}
+.car-pausa{top:56px!important}
+.hero-envivo{color:#27c4ff;font-size:13px;font-weight:900;text-shadow:0 0 6px rgba(39,196,255,.9),0 0 14px rgba(0,140,255,.6);animation:enVivoElec 4.2s linear infinite}
+.hero-envivo i{color:#6fe0ff;filter:drop-shadow(0 0 4px #27c4ff);animation:enVivoRayo 4.2s linear infinite;display:inline-block}
+@keyframes enVivoElec{0%,100%{opacity:1}7%{opacity:1}8%{opacity:.45}9%{opacity:1;text-shadow:0 0 9px #fff,0 0 20px #27c4ff,0 0 32px #0a8cff}11%{opacity:.7}12%{opacity:1}52%{opacity:1}53%{opacity:.5;text-shadow:0 0 3px rgba(39,196,255,.6)}54%{opacity:1;text-shadow:0 0 10px #fff,0 0 22px #27c4ff,0 0 34px #0a8cff}56%{opacity:.85}57%{opacity:1}}
+@keyframes enVivoRayo{0%,6%,13%,51%,55%,100%{transform:none;filter:drop-shadow(0 0 4px #27c4ff)}8%{transform:scale(1.35) rotate(-10deg);filter:drop-shadow(0 0 8px #fff) drop-shadow(0 0 12px #27c4ff)}54%{transform:scale(1.35) rotate(8deg);filter:drop-shadow(0 0 8px #fff) drop-shadow(0 0 12px #27c4ff)}}
+@media (prefers-reduced-motion:reduce){.hero-envivo,.hero-envivo i{animation:none}}
+@media(max-width:800px){.hero-envivo{font-size:12px}.live-counter-badge{top:7px!important}.hero-estado{top:25px!important}.car-pausa{top:44px!important}.hero-banner-section{padding-top:36px}}
+/* Top: 4º y 5º como tarjetas con presencia */
+.st-lista{gap:2.2cqh}
+.st-podio .st-item{padding:1.5cqh 1cqw}
+.st-resto{gap:2.4cqw}
+.st-resto .st-item{border-radius:min(6cqh,3cqw);padding:1.6cqh 2.2cqw;gap:2cqw;background:linear-gradient(135deg,rgba(25,230,140,.2),rgba(127,214,255,.1));border:1px solid rgba(25,230,140,.7);box-shadow:0 0 12px rgba(25,230,140,.28),inset 0 1px 0 rgba(255,255,255,.18)}
+.st-resto .st-av{width:21cqh;height:21cqh;font-size:9cqh;border:2px solid #19e68c}
+.st-resto .st-nom{font-size:9.6cqh;font-weight:800}
+.st-sub{font-size:7.6cqh;gap:1.6cqw}
+.st-sub .st-med{font-size:7.6cqh;color:#04210f;background:linear-gradient(135deg,#9dffc9,#19e68c);border-radius:99px;padding:.2cqh 1.4cqw;position:static;width:auto;height:auto;box-shadow:0 0 6px rgba(25,230,140,.55)}
+.st-resto .st-dia{font-size:7.6cqh;font-weight:800;color:#fff}
+.st-resto .st-niv{font-size:7.6cqh}
+/* Últimas compras: columnas que rellenan el alto; celular = 3 columnas x 5, solo nombre de pila */
+@container (min-width:471px){.ul-pista{height:100%}.ul-row{flex:1 1 7.6cqh;height:auto;min-height:7.6cqh;max-height:11.5cqh}}
+.ul-col,.ul-col .ul-pista{min-height:0}
+@container (max-width:470px){
+ .ul-cols{gap:1.8cqw}
+ .ul-col{height:100%}.ul-pista{height:100%;gap:1.4cqh}
+ .ul-row{flex:1 1 0;height:auto;min-height:0;padding:0 1cqw 0 .8cqw;gap:1.2cqw;border-radius:min(2.4cqh,10px)}
+ .ul-av,.carousel-slide img.ul-av{width:12cqh;height:12cqh;font-size:6.4cqh}
+ .ul-tx{flex-direction:column;align-items:flex-start;justify-content:center;gap:0;min-width:0}
+ .ul-nom{font-size:7.4cqh;line-height:1.1;max-width:100%;flex:none}
+ .ul-meta{gap:1cqw;line-height:1.05;max-width:100%}
+ .ul-dia{font-size:6cqh}.ul-t{font-size:5.4cqh;min-width:0}
+ .ul-in{padding:2.2cqh 2cqw 2cqh}.ul-in h4{font-size:9cqh}
+}
+@media(max-width:600px){.carousel-track-container{height:176px!important}}
+@container (min-width:471px){.ul-pista{justify-content:center}.ul-row{max-height:12.5cqh}}
+@container (max-width:470px){.ul-dia{font-size:5.6cqh}.ul-t{font-size:5cqh}.ul-meta{gap:.8cqw}}

@@ -3661,7 +3661,7 @@ async function cargarCinta() {
 
 // ---- Últimas compras (slide del carrusel): 3 columnas x 10, con datos reales y en vivo
 const TEMA_ULTIMAS = 2;   // 1..20: cambiá este número para otro diseño del slide
-let ultimasDatos = [], ultimasFirma = null, ultimasT0 = 0;
+let ultimasDatos = [], ultimasFirma = null, ultimasT0 = 0, ultimasCompacto = false;
 function haceCorto(seg) {
   if (seg < 90) return "ahora";
   const m = Math.round(seg / 60); if (m < 60) return m + " min";
@@ -3672,15 +3672,21 @@ function pintarUltimas(nueva) {
   const cont = $("ul-cols"); if (!cont) return;
   const sl = $("slide-ult"); if (sl) sl.dataset.tema = String(TEMA_ULTIMAS);
   if (!ultimasDatos.length) return;
+  const compacto = !!sl && sl.clientWidth > 0 && sl.clientWidth < 470;   // celular: 3 columnas x 5, solo el nombre de pila
+  ultimasCompacto = compacto;
+  const lista = ultimasDatos.slice(0, compacto ? 15 : 30);
+  const por = Math.min(compacto ? 5 : 10, Math.ceil(lista.length / 3));   // columnas parejas aunque haya pocas compras
+  cont.classList.toggle("ul-compacto", compacto);
   const extra = Math.round((Date.now() - ultimasT0) / 1000);
   const colores = [["#ff7a18", "#ffd23f"], ["#2979ff", "#00e5ff"], ["#b266ff", "#ff4fd8"], ["#19e68c", "#9dff6a"], ["#ff2d55", "#ff8a5c"]];
   cont.replaceChildren();
   for (let c = 0; c < 3; c++) {
-    const trozo = ultimasDatos.slice(c * 10, c * 10 + 10);
+    const trozo = lista.slice(c * por, c * por + por);
+    if (!trozo.length) continue;
     const col = document.createElement("div"); col.className = "ul-col";
     const pista = document.createElement("div"); pista.className = "ul-pista";
     trozo.forEach((r, j) => {
-      const i = c * 10 + j, nombre = r.nombre || "Cliente";
+      const i = c * por + j, completo = r.nombre || "Cliente", nombre = compacto ? completo.split(" ")[0] : completo;
       const fila = document.createElement("div"); fila.className = "ul-row" + (nueva && i === 0 ? " ul-nueva" : "");
       const letra = () => { const e = document.createElement("span"); e.className = "ul-av"; e.style.background = `linear-gradient(135deg,${colores[i % 5][0]},${colores[i % 5][1]})`; e.textContent = (nombre[0] || "C").toUpperCase(); return e; };
       let av;
@@ -3709,7 +3715,7 @@ function ajustarUltimas() {   // si no entran las 10 filas (celular), la columna
     }
   });
 }
-window.addEventListener("resize", () => { try { clearTimeout(ajustarUltimas.t); ajustarUltimas.t = setTimeout(ajustarUltimas, 250); } catch (_) {} });
+window.addEventListener("resize", () => { try { clearTimeout(ajustarUltimas.t); ajustarUltimas.t = setTimeout(() => { const sl = $("slide-ult"); const c = !!sl && sl.clientWidth > 0 && sl.clientWidth < 470; if (c !== ultimasCompacto) pintarUltimas(false); else ajustarUltimas(); }, 250); } catch (_) {} });
 async function cargarUltimas() {
   if (!$("ul-cols")) return;
   try {
@@ -4252,7 +4258,7 @@ Object.assign(window, { alternarPausa, guiaPaso });
     guiaMostrar(guiaI + 1);
   }, 3500);
   // tocar la guía la frena (celular)
-  document.addEventListener("DOMContentLoaded", () => $("slide-ayuda")?.addEventListener("pointerdown", () => alternarPausa(true)));
+  document.addEventListener("DOMContentLoaded", () => $("slide-ayuda")?.addEventListener("pointerdown", (e) => { if (e.target.closest("button")) return; alternarPausa(true); }));   // los botones (Pausar/Seguir, flechas) hacen lo suyo sin pisarse
 })();
 
 // =====================================================================
