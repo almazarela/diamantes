@@ -1929,7 +1929,7 @@ body.modo-admin #admin-panel-section{display:block!important;width:min(1100px,10
 .slide-top::after{background:radial-gradient(circle at 87% 12%,#d6f5ff 0,#d6f5ff 1px,transparent 1.6px),radial-gradient(circle at 45% 91%,#9dffcb 0,#9dffcb 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 76% 61%,#eafff4 0,#eafff4 0.6px,transparent 1.2px),radial-gradient(circle at 36% 63%,#d6f5ff 0,#d6f5ff 0.6px,transparent 1.2px),radial-gradient(circle at 9% 96%,#d6f5ff 0,#d6f5ff 1px,transparent 1.6px),radial-gradient(circle at 84% 76%,#d6f5ff 0,#d6f5ff 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 38% 94%,#9dffcb 0,#9dffcb 1px,transparent 1.6px),radial-gradient(circle at 4% 62%,#9dffcb 0,#9dffcb 0.8px,transparent 1.4px),radial-gradient(circle at 80% 17%,#9dffcb 0,#9dffcb 0.6px,transparent 1.2px),radial-gradient(circle at 29% 39%,#eafff4 0,#eafff4 0.8px,transparent 1.4px),radial-gradient(circle at 52% 53%,#9dffcb 0,#9dffcb 0.6px,transparent 1.2px),radial-gradient(circle at 23% 60%,#9dffcb 0,#9dffcb 1px,transparent 1.6px),radial-gradient(circle at 19% 58%,#d6f5ff 0,#d6f5ff 1px,transparent 1.6px),radial-gradient(circle at 92% 56%,#9dffcb 0,#9dffcb 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 31% 22%,#eafff4 0,#eafff4 0.8px,transparent 1.4px),radial-gradient(circle at 21% 32%,#d6f5ff 0,#d6f5ff 0.8px,transparent 1.4px),radial-gradient(circle at 3% 65%,#d6f5ff 0,#d6f5ff 0.8px,transparent 1.4px),radial-gradient(circle at 35% 39%,#eafff4 0,#eafff4 0.8px,transparent 1.4px),radial-gradient(circle at 55% 71%,#9dffcb 0,#9dffcb 1px,transparent 1.6px),radial-gradient(circle at 18% 91%,#d6f5ff 0,#d6f5ff 0.6px,transparent 1.2px),radial-gradient(circle at 60% 90%,#d6f5ff 0,#d6f5ff 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 52% 54%,#9dffcb 0,#9dffcb 0.6px,transparent 1.2px);animation:stTit 3.6s ease-in-out -1.8s infinite}
 @keyframes stTit{0%,100%{opacity:.08}50%{opacity:1}}
 @media (prefers-reduced-motion:reduce){.slide-top::before,.slide-top::after{animation:none;opacity:.6}}
-.st-in{position:relative;z-index:1;padding:3cqh 3cqw;gap:2cqh;justify-content:space-between}
+.st-in{position:relative;z-index:1;padding:2cqh 3cqw 2.5cqh;gap:1.5cqh;justify-content:space-between}
 .st-in h4{font-size:8.5cqh;line-height:1;text-shadow:0 0 12px rgba(25,230,140,.6)}
 .st-lista{display:flex;flex-direction:column;gap:3cqh;align-items:stretch}
 .st-podio{display:flex;justify-content:center;align-items:flex-end;gap:2.4cqw}
@@ -1937,18 +1937,23 @@ body.modo-admin #admin-panel-section{display:block!important;width:min(1100px,10
 .st-podio .st-item.st0{flex-basis:29cqw;border-color:#19e68c;background:rgba(25,230,140,.14);box-shadow:0 0 14px rgba(25,230,140,.4),inset 0 1px 0 rgba(255,255,255,.2)}
 .st-podio .st-av{width:18cqh;height:18cqh;font-size:8cqh;border:2px solid #7fd6ff}
 .st-podio .st-item.st0 .st-av{width:23cqh;height:23cqh;font-size:10cqh;border-color:#19e68c}
-.st-podio .st-med{position:absolute;top:1cqh;left:1.2cqw;font-size:6.5cqh}
+.st-podio .st-med{position:absolute;top:1.2cqh;left:1.2cqw;width:10cqh;height:10cqh;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:6.6cqh;font-weight:800;line-height:1;color:#04210f;background:linear-gradient(135deg,#9dffc9,#19e68c);box-shadow:0 0 8px rgba(25,230,140,.6)}
+.st-podio .st-st1 .st-med,.st-podio .st-item.st1 .st-med{background:linear-gradient(135deg,#e9fbff,#7fd6ff);color:#06223a;box-shadow:0 0 8px rgba(127,214,255,.6)}
+.st-podio .st-item.st2 .st-med{background:linear-gradient(135deg,#cfe0ff,#5b8cff);color:#0a1a45;box-shadow:0 0 8px rgba(91,140,255,.6)}
 .st-fn{display:flex;align-items:center;gap:1cqw;max-width:100%;justify-content:center;min-width:0}
 .st-podio .st-nom{font-size:7.5cqh;line-height:1.1}
 .st-podio .st-dia{font-size:7cqh;line-height:1.1;color:#e9fbff}
 .st-niv{font-size:6.5cqh;padding:0;background:none;border:0;line-height:1}
 .st-resto{display:grid;grid-template-columns:1fr 1fr;gap:2cqw}
 .st-resto .st-item{flex-direction:row;gap:1.6cqw;padding:1.4cqh 2.2cqw;border-radius:99px;background:rgba(255,255,255,.08);border:1px solid rgba(25,230,140,.3);min-width:0}
-.st-resto .st-av{width:14cqh;height:14cqh;font-size:6.5cqh;flex:none;border:2px solid #7fd6ff}
-.st-resto .st-med{font-size:6.5cqh;flex:none}
-.st-resto .st-tx{display:flex;flex-direction:row;align-items:center;gap:1cqw;min-width:0;flex:1}
-.st-resto .st-nom{font-size:7cqh}
-.st-resto .st-dia{font-size:7cqh;color:#e9fbff;flex:none}
+.st-resto .st-item{padding:1cqh 2.4cqw}
+.st-resto .st-av{width:15cqh;height:15cqh;font-size:7cqh;flex:none;border:2px solid #7fd6ff}
+.st-resto .st-tx{display:flex;flex-direction:column;align-items:flex-start;gap:.4cqh;min-width:0;flex:1}
+.st-resto .st-nom{font-size:7.5cqh;line-height:1.1;max-width:100%}
+.st-sub{display:flex;align-items:center;gap:1.2cqw;font-size:6.3cqh;line-height:1.1;white-space:nowrap;max-width:100%}
+.st-sub .st-med{font-size:6.3cqh;color:#9dffc9;font-weight:800}
+.st-resto .st-dia{font-size:6.3cqh;color:#e9fbff}
+.st-resto .st-niv{font-size:6.3cqh}
 .st-sop{font-size:4.6cqh}
 
 /* Top de recargas de abajo: un poco más redondeado */
@@ -1957,3 +1962,19 @@ body.modo-admin #admin-panel-section{display:block!important;width:min(1100px,10
 .top-lista li{border-radius:18px;padding:9px 14px}
 .top-lista li .av{border-radius:50%}
 .top-lista .op-badge,.top-lista li .nvb{border-radius:99px}
+
+/* Top de abajo: puestos 6 al 10 en un menú chico */
+.top-lista li.top-extra{display:none}
+.top-lista.abierto li.top-extra{display:flex}
+.top-lista li.top-mas{background:none!important;border:0!important;padding:0!important;display:flex;justify-content:center}
+.top-mas-btn{background:rgba(127,214,255,.08);border:1px solid rgba(127,214,255,.3);color:#bfe9ff;border-radius:99px;font:600 12px/1 inherit;padding:6px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.top-mas-btn i{font-size:10px;transition:transform .2s}
+.top-mas-btn[aria-expanded="true"] i{transform:rotate(180deg)}
+.top-lista.abierto li.top-mas{order:0}
+
+/* Tildes tipo WhatsApp */
+.msg-tk{font-size:11px;font-weight:700;letter-spacing:-2px;margin-left:5px;color:#9aa;white-space:nowrap}
+.msg-tk.visto{color:#53bdeb}
+.msg-tk.en-hora{display:inline-block}
+.msg-tk-w{text-align:right;line-height:1;margin-top:2px}
+.msg-tk-w .msg-tk{margin-left:0}

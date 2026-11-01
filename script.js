@@ -540,6 +540,7 @@ function marcarChatVisto() {
   const k = claveVisto();
   if (k && ultimoAdminTs) { try { localStorage.setItem(k, ultimoAdminTs); } catch (e) { /* sin storage */ } }
   actualizarPuntoChat(0);
+  if (entregaDisponible && usuarioActual) { try { supabase.rpc("cliente_marcar_leidos").then(() => {}, () => {}); } catch (_) {} }
 }
 function actualizarPuntoChat(n) {
   const fab = $("chat-fab");
@@ -577,6 +578,7 @@ async function cargarHistorialCliente(forzar) {
 
   const filas = data || [];   // consultarMensajes ya los entrega del más viejo al más nuevo
   revisarMensajesNuevos(filas);
+  if (entregaDisponible && filas.some((f) => esDelAdmin(f) && f.entregado !== true)) { try { supabase.rpc("cliente_marcar_entregados").then(() => {}, () => {}); } catch (_) {} }
   const ultima = filas[filas.length - 1];
   const firma = firmaDe(filas);
   if (!forzar && firma === firmaChat) return;
@@ -1288,8 +1290,10 @@ function tiempoRelativo(ms) {
   return new Date(ms).toLocaleDateString("es-AR");
 }
 
+let ultimoEntregado = 0;
 async function cargarResumenActividad() {
   if (!resumenDisponible) return;
+  if (entregaDisponible && Date.now() - ultimoEntregado > 20000) { ultimoEntregado = Date.now(); try { supabase.rpc("admin_marcar_entregados").then(() => {}, () => {}); } catch (_) {} }
   const { data, error } = await supabase.rpc(RPC_RESUMEN);
   if (error) {
     if (error.code === "PGRST202") {
@@ -2609,20 +2613,22 @@ const RPC_REACCIONAR = "reaccionar_mensaje";
 const RPC_FIJAR = "fijar_mensaje";
 const COLS_EXTRA = ["reactions", "reply_to_id", "reply_preview", "pinned_at"];
 
+let entregaDisponible = true;   // false si falta ejecutar novedades_clientes_v12.sql (tildes de entregado)
 let extrasDisponibles = true;   // false si falta ejecutar mensajes_extras.sql
 const respuestaPendiente = { admin: null, cliente: null };
 let menuAbierto = null;
 
 async function consultarMensajes(userId) {
   const base = ["id", MSG.userCol, MSG.senderCol, MSG.textoCol, MSG.archivoCol, MSG.leidoCol, MSG.fechaCol];
-  for (let intento = 0; intento < 2; intento++) {
-    const cols = extrasDisponibles ? [...base, ...COLS_EXTRA] : base;
+  for (let intento = 0; intento < 3; intento++) {
+    const cols = [...(extrasDisponibles ? [...base, ...COLS_EXTRA] : base), ...(entregaDisponible ? ["entregado"] : [])];
     const r = await supabase
       .from(MSG.tabla)
       .select(cols.join(", "))
       .eq(MSG.userCol, userId)
       .order(MSG.fechaCol, { ascending: false })
       .limit(200);
+    if (r.error && entregaDisponible && columnaNoExiste(r.error) && /entregado/.test(String(r.error.message || r.error.details || ""))) { entregaDisponible = false; continue; }
     if (r.error && extrasDisponibles && columnaNoExiste(r.error)) {
       extrasDisponibles = false;   // los chats siguen funcionando, solo sin las opciones extra
       console.warn("Faltan columnas en messages: ejecutá mensajes_extras.sql para habilitar responder, reaccionar y fijar.");
@@ -2635,7 +2641,7 @@ async function consultarMensajes(userId) {
 
 // Cambia si llega un mensaje, una reacción o un fijado
 const firmaDe = (filas) =>
-  filas.map((f) => f.id + (f.pinned_at ? "p" : "") + (f.reactions ? JSON.stringify(f.reactions) : "")).join(",");
+  filas.map((f) => f.id + (f.is_read ? "r" : f.entregado ? "e" : "") + (f.pinned_at ? "p" : "") + (f.reactions ? JSON.stringify(f.reactions) : "")).join(",");
 
 const previewDe = (f) => String(f[MSG.textoCol] || (f[MSG.archivoCol] ? (esAudioRuta(f[MSG.archivoCol]) ? "🎤 Audio" : "📎 Comprobante") : "")).slice(0, 140);
 
@@ -2811,6 +2817,14 @@ function adornarMensaje(burbuja, f, ctx, filas) {
     });
     const hora = burbuja.querySelector("[data-hora]");
     if (hora) burbuja.insertBefore(fila, hora); else burbuja.appendChild(fila);
+  }
+
+  // Tildes estilo WhatsApp en los mensajes propios: ✓ enviado, ✓✓ entregado, ✓✓ azul visto
+  if (ctx === "admin" ? esDelAdmin(f) : !esDelAdmin(f)) {
+    const est = f[MSG.leidoCol] === true ? "visto" : (f.entregado === true ? "entregado" : "enviado");
+    const tk = document.createElement("span"); tk.className = "msg-tk " + est; tk.textContent = est === "enviado" ? "✓" : "✓✓"; tk.title = est[0].toUpperCase() + est.slice(1);
+    const hora = burbuja.querySelector("[data-hora]");
+    if (hora) { tk.classList.add("en-hora"); hora.appendChild(tk); } else { const w = document.createElement("div"); w.className = "msg-tk-w"; w.appendChild(tk); burbuja.appendChild(w); }
   }
 
   const chev = document.createElement("button");
@@ -3640,14 +3654,15 @@ let topPrevio = null;
 function pintarTopLista(data) {
   const ol = $("top-lista"); if (!ol) return;
     pintarTopCarrusel(data);
-    const medallas = ["🥇", "🥈", "🥉", "4", "5"];
+    const medallas = ["🥇", "🥈", "🥉", "4", "5", "6", "7", "8", "9", "10"];
     const colores = [["#ff7a18", "#ffd23f"], ["#2979ff", "#00e5ff"], ["#b266ff", "#ff4fd8"], ["#19e68c", "#9dff6a"], ["#ff2d55", "#ff8a5c"]];
-    ol.replaceChildren(...data.map((r, i) => {
+    const abierto = ol.classList.contains("abierto");
+    const filasLi = data.slice(0, 10).map((r, i) => {
       const nombre = r.nombre || "Cliente";
-      const li = document.createElement("li"); li.className = "u" + i + (i < 3 ? " pod" : "");
+      const li = document.createElement("li"); li.className = "u" + i + (i < 3 ? " pod" : "") + (i >= 5 ? " top-extra" : "");
       const p = document.createElement("span"); p.className = "pos"; p.textContent = medallas[i] || String(i + 1);
       let av;
-      const letra = () => { const s = document.createElement("span"); s.className = "av"; s.style.background = `linear-gradient(135deg,${colores[i][0]},${colores[i][1]})`; s.textContent = (nombre[0] || "C").toUpperCase(); return s; };
+      const letra = () => { const s = document.createElement("span"); s.className = "av"; s.style.background = `linear-gradient(135deg,${colores[i % 5][0]},${colores[i % 5][1]})`; s.textContent = (nombre[0] || "C").toUpperCase(); return s; };
       if (/^https:\/\//.test(r.avatar || "")) {
         av = document.createElement("img"); av.className = "av"; av.alt = ""; av.referrerPolicy = "no-referrer"; av.src = r.avatar;
         av.addEventListener("error", () => av.replaceWith(letra()));
@@ -3663,7 +3678,16 @@ function pintarTopLista(data) {
       const d = document.createElement("span"); d.className = "dia"; d.textContent = fmtNum(r.diamantes) + " 💎";
       const nvT = nivelDe(r.diamantes);
       li.append(p, av, n, d); return li;
-    }));
+    });
+    if (data.length > 5) {
+      const mas = document.createElement("li"); mas.className = "top-mas";
+      const b = document.createElement("button"); b.type = "button"; b.className = "top-mas-btn"; b.setAttribute("aria-expanded", abierto ? "true" : "false");
+      const txt = () => (ol.classList.contains("abierto") ? "Ocultar puestos 6 al " + Math.min(data.length, 10) : "Ver puestos 6 al " + Math.min(data.length, 10));
+      b.innerHTML = `<span></span><i class="fa-solid fa-chevron-down"></i>`; b.firstChild.textContent = txt();
+      b.addEventListener("click", () => { const o = ol.classList.toggle("abierto"); b.setAttribute("aria-expanded", String(o)); b.firstChild.textContent = txt(); });
+      mas.appendChild(b); filasLi.splice(5, 0, mas);
+    }
+    ol.replaceChildren(...filasLi);
 }
 
 async function cargarTopMes() {
@@ -4056,14 +4080,14 @@ function pintarTopCarrusel(data) {
     const letra = () => { const e = document.createElement("span"); e.className = "st-av"; e.style.background = `linear-gradient(135deg,${colores[i][0]},${colores[i][1]})`; e.textContent = (nombre[0] || "C").toUpperCase(); return e; };
     if (/^https:\/\//.test(r.avatar || "")) { av = document.createElement("img"); av.className = "st-av"; av.alt = ""; av.referrerPolicy = "no-referrer"; av.src = r.avatar; av.addEventListener("error", () => av.replaceWith(letra())); }
     else av = letra();
-    const m = document.createElement("span"); m.className = "st-med"; m.textContent = medallas[i];
+    const m = document.createElement("span"); m.className = "st-med"; m.textContent = i < 3 ? String(i + 1) : (i + 1) + "º";
     const n = document.createElement("b"); n.className = "st-nom"; n.textContent = nombre.split(" ")[0];
     const d = document.createElement("span"); d.className = "st-dia"; d.textContent = fmtNum(r.diamantes) + " 💎";
     const nvC = nivelDe(r.diamantes);
     let ins = null;
     if (nvC >= 0) { ins = document.createElement("span"); ins.className = "st-niv n" + nvC; ins.textContent = NIVELES[nvC].ico; ins.title = "Nivel " + NIVELES[nvC].n; }
-    if (i < 3) { const fn = document.createElement("div"); fn.className = "st-fn"; fn.append(n); if (ins) fn.appendChild(ins); c.append(av, m, fn, d); }
-    else { const tx = document.createElement("div"); tx.className = "st-tx"; tx.append(n); if (ins) tx.appendChild(ins); c.append(m, av, tx, d); }
+    if (i < 3) { c.append(av, m, n, d); }
+    else { const tx = document.createElement("div"); tx.className = "st-tx"; const sub = document.createElement("div"); sub.className = "st-sub"; sub.append(m); if (ins) sub.appendChild(ins); sub.appendChild(d); tx.append(n, sub); c.append(av, tx); }
     if (r.es_soporte) { const t = document.createElement("i"); t.className = "st-sop"; t.textContent = "Soporte"; (i < 3 ? c : c.querySelector(".st-tx")).appendChild(t); }
     return c;
   };
