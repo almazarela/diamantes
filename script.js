@@ -829,7 +829,7 @@ function tarjetaOpinion(o) {
   const cab = document.createElement("div"); cab.className = "op-cab";
   const nom = document.createElement("b"); nom.textContent = o.nombre;
   const t = document.createElement("time"); t.textContent = hace(o.created_at);
-  cab.append(nom, ...[insigniaNivel(o.user_id)].filter(Boolean), nodoEstrellas(o.estrellas), t);
+  cab.append(conBanner(nom, o.user_id), nodoEstrellas(o.estrellas), t);
   const tx = document.createElement("p"); tx.textContent = o.texto;
   cu.append(cab, tx);
 
@@ -872,8 +872,7 @@ function tarjetaOpinion(o) {
       const it = document.createElement("div"); it.className = "op-resp";
       const c2 = document.createElement("div"); c2.className = "op-resp-c";
       const h = document.createElement("div"); h.className = "op-cab";
-      const n2 = document.createElement("b"); n2.textContent = r.nombre; h.appendChild(n2);
-      { const ins2 = insigniaNivel(r.user_id); if (ins2) h.appendChild(ins2); }
+      const n2 = document.createElement("b"); n2.textContent = r.nombre; h.appendChild(conBanner(n2, r.user_id));
       if (r.es_admin) { const ins = document.createElement("span"); ins.className = "op-badge"; ins.textContent = "Soporte Zarela"; h.appendChild(ins); }
       const t2 = document.createElement("time"); t2.textContent = hace(r.created_at); h.appendChild(t2);
       const p2 = document.createElement("p"); p2.textContent = r.texto;
@@ -3632,12 +3631,16 @@ function pintarTopLista(data) {
         av.addEventListener("error", () => av.replaceWith(letra()));
       } else av = letra();
       const n = document.createElement("span"); n.className = "nom";
-      const t = document.createElement("span"); t.className = "t"; t.textContent = nombre; n.appendChild(t);
-      const nv = nivelDe(r.diamantes); if (nv >= 0) { const ni = document.createElement("span"); ni.className = "niv"; ni.title = NIVELES[nv].n; ni.textContent = NIVELES[nv].ico; n.appendChild(ni); }
+      const t = document.createElement("span"); t.className = "t"; t.textContent = nombre;
+      const nv = nivelDe(r.diamantes);
+      let cajaN = n;
+      if (nv >= 0) { cajaN = document.createElement("span"); cajaN.className = "nvb nvb-" + nv; cajaN.title = "Nivel " + NIVELES[nv].n; n.appendChild(cajaN); }
+      cajaN.appendChild(t);
+      if (nv >= 0) { const ic = document.createElement("span"); ic.className = "nvb-ico"; ic.textContent = NIVELES[nv].ico; cajaN.appendChild(ic); const tt = document.createElement("span"); tt.className = "nvb-t"; tt.textContent = NIVELES[nv].n; cajaN.appendChild(tt); }
       if (r.es_soporte) { const b = document.createElement("span"); b.className = "op-badge"; b.textContent = "Soporte"; n.appendChild(b); }
       const d = document.createElement("span"); d.className = "dia"; d.textContent = fmtNum(r.diamantes) + " 💎";
       const nvT = nivelDe(r.diamantes);
-      li.append(p, nvT >= 0 ? enmarcar(av, nvT) : av, n, d); return li;
+      li.append(p, av, n, d); return li;
     }));
 }
 
@@ -3877,7 +3880,7 @@ function aplicarCobro() {
   document.querySelectorAll(".js-bn").forEach((e) => { e.textContent = cobro.binance_id; });
   pintarNivel(); if (typeof topPrevio !== "undefined" && topPrevio) pintarTopLista(topPrevio);
   set("conv-tasa", "1 USD = " + formatoARS(Number(cobro.tasa_ars_usd)).replace(/,00$/, ""));
-  try { pintarBloqueoBinance(); } catch (_) {}
+  try { pintarBloqueoBinance(); pintarPrecios(); } catch (_) {}
 }
 async function cargarCobro() {
   try {
@@ -3888,6 +3891,7 @@ async function cargarCobro() {
 }
 function rellenarCobro() {
   Object.keys(COBRO_DEF).forEach((k) => { const i = $("cobro-" + k); if (i) i.value = cobro[k]; });
+  rellenarPreciosAdmin();
 }
 async function guardarCobro() {
   const btn = $("cobro-guardar"); btn.disabled = true;
@@ -3903,8 +3907,11 @@ async function guardarCobro() {
       if (error) { mostrarAviso(/TASA/.test(error.message) ? "La tasa tiene que ser un número mayor a 0." : /NO_AUTORIZADO/.test(error.message) ? "Falta ejecutar novedades_clientes_v4.sql en Supabase." : /CLAVE_INVALIDA/.test(error.message) ? "Falta ejecutar novedades_clientes_v8.sql en Supabase." : "No se pudo guardar. ¿Ejecutaste novedades_clientes_v3.sql y v4?", "error"); return; }
       cobro[k] = v; n++;
     }
+    const np = await guardarPrecios();
+    if (np === false) return;
     aplicarCobro();
-    mostrarAviso(n ? "Datos de cobro guardados. Ya los ven todos los clientes." : "No había cambios para guardar.", n ? "ok" : "info");
+    n += np;
+    mostrarAviso(n ? "Cambios guardados. Ya los ven todos los clientes." : "No había cambios para guardar.", n ? "ok" : "info");
   } finally { btn.disabled = false; }
 }
 
@@ -4189,10 +4196,54 @@ async function grabarAudio(host, alTerminar) {
   }, 250);
   mr.start();
 }
+let audioSonando = null;
+const mmss = (x) => { x = Math.max(0, Math.floor(Number(x) || 0)); return Math.floor(x / 60) + ":" + String(x % 60).padStart(2, "0"); };
 function nodoAudio(url, cont) {
-  const a = document.createElement("audio"); a.className = "chat-audio"; a.controls = true; a.preload = "metadata"; a.src = url;
-  a.addEventListener("loadedmetadata", () => seguirAbajo(cont));
-  return a;
+  const w = document.createElement("div"); w.className = "wa-aud";
+  const btn = document.createElement("button"); btn.type = "button"; btn.className = "wa-play"; btn.setAttribute("aria-label", "Reproducir audio");
+  btn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path class="ic-play" d="M8 5.5v13l11-6.5z" fill="currentColor"/><g class="ic-pause" fill="currentColor"><rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/></g></svg>';
+  const mid = document.createElement("div"); mid.className = "wa-mid";
+  const wave = document.createElement("div"); wave.className = "wa-wave"; wave.setAttribute("role", "slider"); wave.setAttribute("aria-label", "Avance del audio"); wave.tabIndex = 0;
+  let h = 7; for (const ch of url.slice(-24)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const N = 34, barras = [];
+  for (let k = 0; k < N; k++) { h = (h * 1103515245 + 12345) >>> 0; const v = 0.22 + ((h >>> 8) % 100) / 100 * 0.78; const b = document.createElement("i"); b.style.height = Math.round(v * 100) + "%"; wave.appendChild(b); barras.push(b); }
+  const meta = document.createElement("div"); meta.className = "wa-meta";
+  const tiempo = document.createElement("span"); tiempo.textContent = "0:00";
+  const vel = document.createElement("button"); vel.type = "button"; vel.className = "wa-vel"; vel.textContent = "1×"; vel.setAttribute("aria-label", "Cambiar velocidad");
+  meta.append(tiempo, vel); mid.append(wave, meta); w.append(btn, mid);
+
+  const a = new Audio(); a.preload = "metadata"; a.src = url;
+  const total = () => (Number.isFinite(a.duration) ? a.duration : 0);
+  const pintar = () => {
+    const d = total(), c = a.currentTime || 0, p = d ? c / d : 0;
+    const on = Math.round(p * N);
+    barras.forEach((b, k) => b.classList.toggle("on", k < on));
+    tiempo.textContent = w.classList.contains("on") || c > 0.1 ? mmss(c) : mmss(d);
+    wave.setAttribute("aria-valuenow", String(Math.round(p * 100)));
+  };
+  a.addEventListener("loadedmetadata", () => {
+    if (a.duration === Infinity) {   // los audios grabados en el navegador no traen la duración: se calcula una vez
+      const f = () => { a.removeEventListener("timeupdate", f); a.currentTime = 0; pintar(); seguirAbajo(cont); };
+      a.addEventListener("timeupdate", f); a.currentTime = 1e101;
+    } else { pintar(); seguirAbajo(cont); }
+  });
+  a.addEventListener("timeupdate", pintar);
+  a.addEventListener("play", () => { w.classList.add("on"); btn.setAttribute("aria-label", "Pausar audio"); });
+  a.addEventListener("pause", () => { w.classList.remove("on"); btn.setAttribute("aria-label", "Reproducir audio"); pintar(); });
+  a.addEventListener("ended", () => { w.classList.remove("on"); a.currentTime = 0; pintar(); });
+  a.addEventListener("error", () => { w.classList.add("roto"); tiempo.textContent = "No se pudo reproducir"; });
+  btn.addEventListener("click", () => {
+    if (a.paused) { if (audioSonando && audioSonando !== a) audioSonando.pause(); audioSonando = a; a.play().catch(() => {}); } else a.pause();
+  });
+  const velocidades = [1, 1.5, 2]; let vi = 0;
+  vel.addEventListener("click", () => { vi = (vi + 1) % velocidades.length; a.playbackRate = velocidades[vi]; vel.textContent = String(velocidades[vi]).replace(".", ",") + "×"; });
+  const buscar = (e) => { const r = wave.getBoundingClientRect(); const d = total(); if (!d) return; a.currentTime = Math.min(d, Math.max(0, ((e.clientX - r.left) / r.width) * d)); pintar(); };
+  let arrastra = false;
+  wave.addEventListener("pointerdown", (e) => { arrastra = true; wave.setPointerCapture(e.pointerId); buscar(e); });
+  wave.addEventListener("pointermove", (e) => { if (arrastra) buscar(e); });
+  wave.addEventListener("pointerup", () => { arrastra = false; });
+  wave.addEventListener("keydown", (e) => { if (e.key === "ArrowRight") a.currentTime = Math.min(total(), a.currentTime + 5); else if (e.key === "ArrowLeft") a.currentTime = Math.max(0, a.currentTime - 5); else return; e.preventDefault(); pintar(); });
+  return w;
 }
 
 // Cliente: botón de micrófono junto a enviar
@@ -4298,6 +4349,16 @@ function nivelDeUsuario(uid) {
     return uid in nivelesUsr ? nivelDe(nivelesUsr[uid]) : -1;
   } catch (_) { return -1; }
 }
+// banner sutil que va desde la foto hasta el final del nombre
+function conBanner(nodoNombre, uid, conEtiqueta = true) {
+  const i = nivelDeUsuario(uid);
+  if (i < 0) return nodoNombre;
+  const w = document.createElement("span"); w.className = "nvb nvb-" + i; w.title = "Nivel " + NIVELES[i].n;
+  w.appendChild(nodoNombre);
+  const ic = document.createElement("span"); ic.className = "nvb-ico"; ic.textContent = NIVELES[i].ico; w.appendChild(ic);
+  if (conEtiqueta) { const t = document.createElement("span"); t.className = "nvb-t"; t.textContent = NIVELES[i].n; w.appendChild(t); }
+  return w;
+}
 function insigniaNivel(uid) {
   const i = nivelDeUsuario(uid);
   if (i < 0) return null;
@@ -4309,20 +4370,10 @@ function insigniaNivel(uid) {
 
 // ---- Marco animado alrededor de un avatar (más brillante cuanto más alto el nivel)
 const CHISPAS = [0, 0, 2, 3, 4];
-function enmarcar(el, nivel) {
-  let w = el.parentNode && el.parentNode.classList && el.parentNode.classList.contains("marco") ? el.parentNode : null;
-  if (nivel < 0) { if (w) { w.className = "marco"; w.querySelectorAll(".sp").forEach((x) => x.remove()); } return w || el; }
-  if (!w) { w = document.createElement("span"); if (el.parentNode) el.replaceWith(w); w.appendChild(el); }
-  w.className = "marco marco-" + nivel;
-  w.querySelectorAll(".sp").forEach((x) => x.remove());
-  for (let k = 0; k < CHISPAS[nivel]; k++) { const c = document.createElement("i"); c.className = "sp sp" + k; w.appendChild(c); }
-  w.title = "Nivel " + NIVELES[nivel].n;
-  return w;
-}
+function enmarcar(el) { return el; }   // sin aro: el nivel se muestra con un banner junto al nombre
 // mi perfil (tarjeta de cuenta y menú lateral): marco + banner según mi nivel
 function pintarMarcosPropios() {
   const i = usuarioActual && misDiamantes !== null ? nivelDe(misDiamantes) : -1;
-  ["cu-av", "sb-avatar"].forEach((id) => { const e = $(id); if (e) enmarcar(e, i); });
   const per = document.querySelector(".cu-perfil");
   if (per) per.className = "cu-perfil" + (i >= 0 ? " nv-" + i : "");
   const sbp = $("sb-perfil");
@@ -4354,3 +4405,76 @@ function pintarBloqueoBinance() {
 }
 document.addEventListener("DOMContentLoaded", () => { pintarBloqueoBinance(); });
 supabase.auth.onAuthStateChange(() => { setTimeout(() => { try { pintarBloqueoBinance(); pintarMarcosPropios(); } catch (_) {} }, 400); });
+
+
+// =====================================================================
+// v9: precios de los paquetes editables, equivalente en pesos bajo los precios Binance
+// =====================================================================
+let precios = {};   // id -> { usd, ars, dia }
+const cajasPaquetes = () => [...document.querySelectorAll(".diamond-box")].map((c) => {
+  const m = /comprarPaquete\(event,\s*'([^']+)',\s*'(ARS|USD)'/.exec(c.querySelector(".btn-buy")?.getAttribute("onclick") || "");
+  return m ? { c, id: m[1], mon: m[2] } : null;
+}).filter(Boolean);
+const tasaArs = () => Number(cobro.tasa_ars_usd) || Number(COBRO_DEF.tasa_ars_usd);
+const fmtUsdPrecio = (n) => "USD " + Number(n).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const arsDeUsd = (usd) => Math.round(Number(usd) * tasaArs());
+function pintarPrecios() {
+  cajasPaquetes().forEach(({ c, id, mon }) => {
+    const p = precios[id], el = c.querySelector(".price");
+    if (!el) return;
+    if (mon === "ARS") { if (p && p.ars != null) el.textContent = "ARS " + formatoARS(p.ars); return; }
+    if (p && p.usd != null) el.textContent = fmtUsdPrecio(p.usd);
+    const usd = p && p.usd != null ? Number(p.usd) : precioDeCaja(c);
+    let eq = c.querySelector(".precio-ars");
+    if (!eq) { eq = document.createElement("p"); eq.className = "precio-ars"; el.insertAdjacentElement("afterend", eq); }
+    eq.textContent = usd ? "≈ " + formatoARS(arsDeUsd(usd)) + " ARS" : "";
+  });
+}
+async function cargarPrecios() {
+  try {
+    const { data, error } = await conTimeout(supabase.rpc("precios_paquetes"), 8000);
+    if (!error && Array.isArray(data) && data.length) {
+      precios = {}; data.forEach((r) => { precios[r.id] = { usd: Number(r.precio_usd), ars: r.precio_ars == null ? null : Number(r.precio_ars), dia: Number(r.diamantes) }; });
+    }
+  } catch (_) { /* quedan los precios escritos en la página */ }
+  pintarPrecios(); rellenarPreciosAdmin();
+}
+// editor del panel
+function rellenarPreciosAdmin() {
+  const host = $("precios-admin"); if (!host) return;
+  const ids = Object.keys(precios);
+  if (!ids.length) { host.innerHTML = '<p class="pa-vacio">Todavía no se pueden editar los precios: ejecutá <b>novedades_clientes_v9.sql</b> en Supabase.</p>'; return; }
+  const tasa = () => Number($("cobro-tasa_ars_usd")?.value) || tasaArs();
+  host.replaceChildren();
+  const cab = document.createElement("div"); cab.className = "pa-fila pa-cab";
+  cab.innerHTML = "<span>Paquete</span><span>Mercado Pago (ARS)</span><span>Binance (USD)</span><span>Binance en pesos</span>";
+  host.appendChild(cab);
+  ids.forEach((id) => {
+    const p = precios[id];
+    const f = document.createElement("div"); f.className = "pa-fila"; f.dataset.id = id;
+    const n = document.createElement("b"); n.textContent = fmtNum(p.dia) + " 💎";
+    const la = document.createElement("label"); la.dataset.t = "Mercado Pago (ARS)";
+    const ia = document.createElement("input"); ia.type = "number"; ia.min = "1"; ia.step = "1"; ia.inputMode = "numeric"; ia.className = "pa-ars"; ia.value = p.ars == null ? "" : String(Math.round(p.ars)); la.appendChild(ia);
+    const lu = document.createElement("label"); lu.dataset.t = "Binance (USD)";
+    const iu = document.createElement("input"); iu.type = "number"; iu.min = "0.01"; iu.step = "0.01"; iu.inputMode = "decimal"; iu.className = "pa-usd"; iu.value = String(p.usd); lu.appendChild(iu);
+    const eq = document.createElement("span"); eq.className = "pa-eq";
+    const act = () => { const u = Number(iu.value); eq.textContent = u > 0 ? "≈ " + formatoARS(Math.round(u * tasa())) + " ARS" : "—"; };
+    iu.addEventListener("input", act); $("cobro-tasa_ars_usd")?.addEventListener("input", act); act();
+    f.append(n, la, lu, eq); host.appendChild(f);
+  });
+}
+async function guardarPrecios() {
+  let n = 0;
+  for (const f of document.querySelectorAll("#precios-admin .pa-fila[data-id]")) {
+    const id = f.dataset.id, p = precios[id]; if (!p) continue;
+    const ars = Math.round(Number(f.querySelector(".pa-ars").value)), usd = Math.round(Number(f.querySelector(".pa-usd").value) * 100) / 100;
+    if (!(ars > 0) || !(usd > 0)) { mostrarAviso("Los precios de " + fmtNum(p.dia) + " 💎 tienen que ser números mayores a 0.", "error"); return false; }
+    if (ars === Math.round(p.ars || 0) && usd === p.usd) continue;
+    const { error } = await supabase.rpc("admin_guardar_precio", { p_id: id, p_usd: usd, p_ars: ars });
+    if (error) { mostrarAviso(/NO_AUTORIZADO/.test(error.message) ? "No tenés permiso para cambiar precios." : "No se pudo guardar el precio. ¿Ejecutaste novedades_clientes_v9.sql?", "error"); return false; }
+    precios[id] = { ...p, usd, ars }; n++;
+  }
+  if (n) pintarPrecios();
+  return n;
+}
+document.addEventListener("DOMContentLoaded", () => { pintarPrecios(); cargarPrecios(); });

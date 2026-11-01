@@ -1072,7 +1072,7 @@
   <button type="button" id="admin-tab-clientes" class="admin-tab activa" role="tab" aria-selected="true" aria-controls="admin-vista-clientes" onclick="mostrarVistaAdmin('clientes')">💬 Mensajes y saldos</button>
   <button type="button" id="admin-tab-ordenes" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-ordenes" onclick="mostrarVistaAdmin('ordenes')">🧾 Historial de órdenes <span id="admin-ordenes-alerta" class="admin-alerta" hidden>0</span></button>
   <button type="button" id="admin-tab-stock" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-stock" onclick="mostrarVistaAdmin('stock')">📦 Stock de PINs</button>
-  <button type="button" id="admin-tab-cobro" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-cobro" onclick="mostrarVistaAdmin('cobro')">💳 Cobro y niveles</button>
+  <button type="button" id="admin-tab-cobro" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-cobro" onclick="mostrarVistaAdmin('cobro')">💳 Cobro, precios y niveles</button>
   </div>
 
   <div id="admin-vista-clientes" role="tabpanel">
@@ -1124,6 +1124,13 @@
   <label>Titular<input type="text" id="cobro-titular_mp" maxlength="60" autocomplete="off"></label>
   <label>Binance Pay ID<input type="text" id="cobro-binance_id" maxlength="40" autocomplete="off"></label>
   <label>Tasa de conversión (pesos por 1 USD)<input type="number" id="cobro-tasa_ars_usd" inputmode="decimal" step="any" min="1"></label>
+  </div>
+  </details>
+  <details class="cobro-sec">
+  <summary><span class="cs-ico">🏷️</span><span class="cs-t">Precios de los paquetes<small>Mercado Pago (pesos) y Binance (dólares)</small></span><i class="fa-solid fa-chevron-down"></i></summary>
+  <div style="padding:4px 14px 14px">
+  <p class="pa-nota">Al guardar, los precios cambian en la página para todos. Debajo de cada precio Binance se muestra su equivalente en pesos con la tasa de "Datos de cobro".</p>
+  <div id="precios-admin"></div>
   </div>
   </details>
   <details class="cobro-sec">
