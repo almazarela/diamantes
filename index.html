@@ -734,13 +734,9 @@
   </div>
   </aside>
   
-  <div id="ticker" class="zt" aria-label="Compras recientes">
-  <span class="zt-tag"><i class="fa-solid fa-bolt"></i> <span>En vivo</span></span>
-  <div class="zt-pista"><div id="zt-mov" class="zt-mov"><span class="zt-item">Recargas con acreditación automática 💎</span></div></div>
-  <span id="zt-estado" class="zt-estado" title="Estado del servicio de recargas"><i></i><b>Recargas activas</b></span>
-  </div>
-
   <section class="hero-banner-section">
+  <span class="hero-envivo"><i class="fa-solid fa-bolt"></i> En vivo</span>
+  <span id="zt-estado" class="zt-estado hero-estado" title="Estado del servicio de recargas"><i></i><b>Recargas activas</b></span>
   <div class="live-counter-badge">
   <span class="live-green-dot"></span>
   <span class="live-counter-text"><strong id="online-count">148</strong> Clientes Online</span>
@@ -759,6 +755,9 @@
   </div>
   <div class="carousel-slide hidden slide-top" id="slide-top">
   <div class="st-in"><h4>🏆 Top de recargas</h4><div id="st-lista" class="st-lista"><span class="st-vacio">Los que más recargan van a aparecer acá</span></div></div>
+  </div>
+  <div class="carousel-slide hidden slide-ult" id="slide-ult" data-tema="2">
+  <div class="ul-in"><h4><span class="ul-live"></span>🛒 Últimas compras</h4><div id="ul-cols" class="ul-cols"><span class="ul-vacio">Las compras recientes van a aparecer acá</span></div></div>
   </div>
   <div class="carousel-slide hidden">
   <img src="banner6.jpg" alt="Promoción 6">
@@ -793,6 +792,7 @@
   <span class="dot" onclick="irASlide(2)"></span>
   <span class="dot" onclick="irASlide(3)"></span>
   <span class="dot" onclick="irASlide(4)"></span>
+  <span class="dot" onclick="irASlide(5)"></span>
   </div>
   </section>
   

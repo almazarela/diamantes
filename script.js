@@ -167,16 +167,21 @@ function procesarPagoMPSeguro() {
 }
 
 // ------------------------- CARRUSEL ----------------------------------
-let slideActual = 2;
+let slideActual = 3;
 let timerCarrusel = null;
 let esperaAyuda = false;
 let carruselPausado = false;
 
 function renderCarrusel() {
   const slides = document.querySelectorAll("#carousel-track .carousel-slide");
-  const dots = document.querySelectorAll("#carousel-dots .dot");
+  const caja = document.getElementById("carousel-dots");
   const n = slides.length;
   if (!n) return;
+  if (caja) {   // un puntito por cada slide, siempre
+    while (caja.children.length < n) { const d = document.createElement("span"); d.className = "dot"; const k = caja.children.length; d.addEventListener("click", () => irASlide(k)); caja.appendChild(d); }
+    while (caja.children.length > n) caja.lastElementChild.remove();
+  }
+  const dots = caja ? caja.querySelectorAll(".dot") : [];
   slides.forEach((s, i) => {
     const offset = (i - slideActual + n) % n;
     s.classList.remove("active", "prev", "next", "hidden");
@@ -3654,6 +3659,72 @@ async function cargarCinta() {
   } catch (_) { /* queda el texto fijo */ }
 }
 
+// ---- Últimas compras (slide del carrusel): 3 columnas x 10, con datos reales y en vivo
+const TEMA_ULTIMAS = 2;   // 1..20: cambiá este número para otro diseño del slide
+let ultimasDatos = [], ultimasFirma = null, ultimasT0 = 0;
+function haceCorto(seg) {
+  if (seg < 90) return "ahora";
+  const m = Math.round(seg / 60); if (m < 60) return m + " min";
+  const h = Math.round(m / 60); if (h < 24) return h + " h";
+  return Math.round(h / 24) + " d";
+}
+function pintarUltimas(nueva) {
+  const cont = $("ul-cols"); if (!cont) return;
+  const sl = $("slide-ult"); if (sl) sl.dataset.tema = String(TEMA_ULTIMAS);
+  if (!ultimasDatos.length) return;
+  const extra = Math.round((Date.now() - ultimasT0) / 1000);
+  const colores = [["#ff7a18", "#ffd23f"], ["#2979ff", "#00e5ff"], ["#b266ff", "#ff4fd8"], ["#19e68c", "#9dff6a"], ["#ff2d55", "#ff8a5c"]];
+  cont.replaceChildren();
+  for (let c = 0; c < 3; c++) {
+    const trozo = ultimasDatos.slice(c * 10, c * 10 + 10);
+    const col = document.createElement("div"); col.className = "ul-col";
+    const pista = document.createElement("div"); pista.className = "ul-pista";
+    trozo.forEach((r, j) => {
+      const i = c * 10 + j, nombre = r.nombre || "Cliente";
+      const fila = document.createElement("div"); fila.className = "ul-row" + (nueva && i === 0 ? " ul-nueva" : "");
+      const letra = () => { const e = document.createElement("span"); e.className = "ul-av"; e.style.background = `linear-gradient(135deg,${colores[i % 5][0]},${colores[i % 5][1]})`; e.textContent = (nombre[0] || "C").toUpperCase(); return e; };
+      let av;
+      if (/^https:\/\//.test(r.avatar || "")) { av = document.createElement("img"); av.className = "ul-av"; av.alt = ""; av.referrerPolicy = "no-referrer"; av.src = r.avatar; av.addEventListener("error", () => av.replaceWith(letra())); }
+      else av = letra();
+      const tx = document.createElement("span"); tx.className = "ul-tx";
+      const n = document.createElement("b"); n.className = "ul-nom"; n.textContent = nombre;
+      const meta = document.createElement("span"); meta.className = "ul-meta";
+      const d = document.createElement("em"); d.className = "ul-dia"; d.textContent = fmtNum(r.diamantes) + " 💎";
+      const t = document.createElement("small"); t.className = "ul-t"; t.textContent = haceCorto((Number(r.hace_seg) || 0) + extra);
+      meta.append(d, t); tx.append(n, meta); fila.append(av, tx); pista.appendChild(fila);
+    });
+    col.appendChild(pista); cont.appendChild(col);
+  }
+  requestAnimationFrame(ajustarUltimas);
+}
+function ajustarUltimas() {   // si no entran las 10 filas (celular), la columna se desplaza sola, sin cortes
+  document.querySelectorAll("#ul-cols .ul-col").forEach((col) => {
+    const pista = col.firstElementChild; if (!pista) return;
+    pista.classList.remove("ul-corre"); pista.querySelectorAll(".ul-clon").forEach((e) => e.remove());
+    if (pista.scrollHeight > col.clientHeight + 2) {
+      const filas = [...pista.children];
+      filas.forEach((f) => { const k = f.cloneNode(true); k.classList.add("ul-clon"); k.setAttribute("aria-hidden", "true"); pista.appendChild(k); });
+      pista.style.setProperty("--ul-dur", Math.max(12, filas.length * 2.6) + "s");
+      pista.classList.add("ul-corre");
+    }
+  });
+}
+window.addEventListener("resize", () => { try { clearTimeout(ajustarUltimas.t); ajustarUltimas.t = setTimeout(ajustarUltimas, 250); } catch (_) {} });
+async function cargarUltimas() {
+  if (!$("ul-cols")) return;
+  try {
+    let r = await conTimeout(supabase.rpc("compras_recientes_30"), 8000);
+    if (r.error) r = await conTimeout(supabase.rpc("compras_recientes"), 8000);   // sin el SQL nuevo: las 12 de siempre
+    const data = r.data;
+    if (r.error || !Array.isArray(data) || !data.length) return;
+    const f = data[0], firma = (f.nombre || "") + "|" + f.diamantes + "|" + Math.round((Date.now() - (Number(f.hace_seg) || 0) * 1000) / 60000);
+    const hayNueva = ultimasFirma !== null && firma !== ultimasFirma;
+    ultimasFirma = firma; ultimasDatos = data.slice(0, 30); ultimasT0 = Date.now();
+    pintarUltimas(hayNueva);
+  } catch (_) { /* queda el mensaje de espera */ }
+}
+document.addEventListener("DOMContentLoaded", () => { const sl = $("slide-ult"); if (sl) sl.dataset.tema = String(TEMA_ULTIMAS); });
+
 // ---- Top compradores del mes
 let topPrevio = null;
 function pintarTopLista(data) {
@@ -3893,10 +3964,10 @@ function montarAyudaPagos() {
 // ---- Arranque
 (function iniciarNovedades() {
   const arrancar = () => {
-    cargarCinta(); cargarTopMes(); montarAyudaPagos();
+    cargarUltimas(); cargarTopMes(); montarAyudaPagos();
     actualizarEstadoServicio();
     setInterval(actualizarEstadoServicio, 180000);
-    setInterval(cargarCinta, 45000);
+    setInterval(() => { if (!document.hidden) cargarUltimas(); }, 20000);
     $("player-id")?.addEventListener("input", pintarIdsGuardados);
     $("zi-guardar")?.addEventListener("click", guardarIdActual);
     $("seg-x")?.addEventListener("click", () => { try { sessionStorage.setItem(claveCerrada(), String(seg?.id)); } catch (_) {} seg = null; clearInterval(segTimer); pintarSeguimiento(); });
