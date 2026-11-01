@@ -1188,8 +1188,11 @@ function renderSaldos() {
   set("user-balance", formatoUSD(saldos.USD) + " USD");
   set("user-balance-ars", formatoARS(saldos.ARS) + " ARS");
 }
+let saldoLeidoOk = false;   // true solo si la última lectura del saldo salió bien (evita avisos falsos de "te acreditamos")
 function pintarSaldo(n, moneda = "USD") {
-  saldos[moneda === "ARS" ? "ARS" : "USD"] = Number(n) || 0;
+  const k = moneda === "ARS" ? "ARS" : "USD";
+  saldos[k] = Number(n) || 0;
+  try { if (typeof saldoBase !== "undefined" && saldoBase) saldoBase[k] = saldos[k]; } catch (_) {}   // cambios propios (compra, conversión) no cuentan como regalo
   renderSaldos();
 }
 function resetSaldos() { saldos.USD = 0; saldos.ARS = 0; renderSaldos(); }
@@ -1235,6 +1238,7 @@ async function cargarPerfilYSaldo(user, esAdminEmail) {
 let saldoArsDisponible = true;   // false si falta la columna saldo_ars: ejecutá doble_saldo.sql
 
 async function cargarSaldo(user) {
+  saldoLeidoOk = false;
   if (!perfilesDisponible || !saldoDisponible) return resetSaldos();
   const consulta = (cols) => supabase.from(CONFIG.TABLA_PERFILES).select(cols).eq(CONFIG.COL_ID, user.id).maybeSingle();
   try {
@@ -1249,6 +1253,7 @@ async function cargarSaldo(user) {
     saldos.USD = Number(d[CONFIG.COL_SALDO]) || 0;
     saldos.ARS = Number(d[CONFIG.COL_SALDO_ARS]) || 0;
     renderSaldos();
+    saldoLeidoOk = true;
   } catch (err) {
     if (columnaNoExiste(err)) {
       saldoDisponible = false;
@@ -4624,6 +4629,7 @@ let saldoBase = null, saldoBaseUid = null;
     await orig(user);
     try {
       if (!user || esAdminActual()) return;
+      if (!saldoLeidoOk) return;   // la lectura falló (red, sesión sin cargar): no se compara contra un 0 falso
       if (saldoBaseUid !== user.id) { saldoBaseUid = user.id; saldoBase = { ...saldos }; return; }
       const sube = (saldos.USD - saldoBase.USD) > 0.005, subeARS = (saldos.ARS - saldoBase.ARS) >= 1;
       const bajaUno = (saldos.USD < saldoBase.USD - 0.005) || (saldos.ARS < saldoBase.ARS - 0.5);   // conversión o compra: no es un "regalo"
@@ -4631,7 +4637,11 @@ let saldoBase = null, saldoBaseUid = null;
         const partes = [];
         if (subeARS) partes.push("+" + formatoARS(saldos.ARS - saldoBase.ARS) + " ARS");
         if (sube) partes.push("+" + formatoUSD(saldos.USD - saldoBase.USD) + " USD");
-        avisar("💰 ¡Te acreditamos saldo!", partes.join(" · "));
+        // no repetir el mismo aviso (recargas de página, varias pestañas)
+        const firma = "zarela_aviso_saldo_" + user.id, valor = saldos.ARS + "|" + saldos.USD;
+        let igual = false;
+        try { igual = localStorage.getItem(firma) === valor; localStorage.setItem(firma, valor); } catch (_) {}
+        if (!igual) avisar("💰 ¡Te acreditamos saldo!", partes.join(" · "));
       }
       saldoBase = { ...saldos };
     } catch (_) {}

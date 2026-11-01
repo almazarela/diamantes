@@ -2043,3 +2043,20 @@ body.chat-con-fondo .chat-v2>*,body.chat-con-fondo #admin-chat-view>*{position:r
 .msg-react{background:none!important;border:0!important;padding:1px 2px!important;font-size:13px!important;line-height:1.3}
 .msg-react.mia{background:rgba(127,214,255,.22)!important;border-radius:99px!important}
 .inst-pasos{margin:0;padding-left:22px;display:grid;gap:8px;font-size:14px;line-height:1.35}
+
+/* ===== v17: PC — menú lateral más ancho y carrusel más grande ===== */
+@media (min-width:801px){
+  .sidebar-menu{width:clamp(380px,32vw,540px);left:-120%}
+  .sidebar-menu.open{left:0}
+  .sidebar-content{gap:12px;padding:16px 22px}
+  .sidebar-menu .sb-perfil,.sidebar-menu .sidebar-card{padding:12px 14px}
+  .sidebar-header{padding:14px 22px}
+  .sidebar-footer{padding:12px 22px calc(12px + env(safe-area-inset-bottom))}
+  .carousel-wrapper{max-width:1180px;padding:4px 0 0}
+  .carousel-track-container{height:276px}
+  .carousel-slide{width:62%;max-width:700px}
+  .carousel-slide.prev{transform:translateX(-50%) scale(.82)}
+  .carousel-slide.next{transform:translateX(50%) scale(.82)}
+  .carousel-dots{margin-top:8px}
+  .carousel-wrapper+.carousel-dots,#carousel-dots{margin-bottom:-26px}
+}
