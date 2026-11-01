@@ -1673,3 +1673,98 @@ body.modo-admin #admin-panel-section{display:block!important;width:min(1100px,10
  .pa-fila label::before{content:attr(data-t);display:block;font-size:11px;color:#8f9ab8;margin-bottom:3px}
  .pa-eq{grid-column:1/-1}
 }
+
+
+/* ===== v10: panel administrador con barra lateral de secciones ===== */
+.adm-modo{display:none!important}
+.adm-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.adm-tit{font-weight:800;font-size:15px;color:#f3ba2f;display:inline-flex;align-items:center;gap:8px}
+.adm-salir{border:1px solid #7fd6ff;background:rgba(127,214,255,.08);color:#bfe9ff;border-radius:9px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.adm-salir:hover{background:rgba(127,214,255,.18)}
+.adm-layout{display:grid;grid-template-columns:130px minmax(0,1fr);gap:12px;align-items:start}
+.adm-rail{position:sticky;top:8px;display:flex;flex-direction:column;gap:6px;background:#0e0f16;border:1px solid #2b3544;border-radius:12px;padding:6px}
+.adm-rail .admin-tab{flex:none;position:relative;width:100%;justify-content:flex-start;gap:9px;padding:9px 10px;font-size:13px;border-radius:9px;background:transparent;border-color:transparent}
+.adm-rail .admin-tab .rt-i{font-size:16px;line-height:1}
+.adm-rail .admin-tab.activa{background:rgba(243,186,47,.14);border-color:#f3ba2f;color:#f3ba2f}
+.adm-rail .admin-alerta{position:absolute;top:3px;right:4px}
+.adm-contenido{min-width:0}
+.adm-ayuda{margin:0 0 8px;font-size:12.5px;color:#9aa3bd}
+@media(max-width:800px){
+ body.modo-admin #admin-panel-section{padding:10px;border-radius:14px}
+ .adm-layout{grid-template-columns:54px minmax(0,1fr);gap:8px}
+ .adm-rail{padding:4px;gap:3px;top:6px}
+ .adm-rail .admin-tab{flex-direction:column;justify-content:center;gap:2px;padding:7px 2px;font-size:9.5px;text-align:center;line-height:1.1}
+ .adm-rail .admin-tab .rt-i{font-size:18px}
+ .adm-salir span{display:none}.adm-salir{padding:7px 10px}
+ .adm-tit{font-size:14px}
+}
+
+/* secciones de cobro/precios/niveles: se elige desde la barra lateral, no se pliegan */
+.cobro-sec summary{pointer-events:none;padding:9px 12px}
+.cobro-sec summary>i{display:none}
+.cs-ico{font-size:17px}.cs-t{font-size:14px}.cs-t small{font-size:11.5px}
+.cobro-sec{margin-bottom:0}
+.cobro-sec[hidden]{display:none}
+.cobro-sec .cobro-form{padding:2px 12px 12px;gap:8px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.cobro-form label{font-size:11.5px}.cobro-form input{padding:7px 9px;font-size:13px}
+.cobro-barra{padding:8px 10px;margin-bottom:8px}
+.cobro-barra p{font-size:12px}
+.cobro-guardar{padding:9px 14px;font-size:13px}
+@media(max-width:600px){.cobro-barra{flex-direction:row}.cobro-barra p{display:none}.cobro-guardar{width:100%}}
+
+/* precios: filas compactas */
+.pa-fila{grid-template-columns:62px 1fr 1fr;gap:8px;padding:5px 0}
+.pa-fila b{font-size:13px}
+.pa-fila input{padding:6px 8px;font-size:13px}
+.pa-fila .pa-eq{display:block;margin-top:2px;font-size:11px;font-weight:700;color:#7fd6ff}
+.pa-cab{font-size:10px;padding-bottom:4px}
+.pa-nota{font-size:11.5px;margin:2px 0 6px}
+@media(max-width:640px){
+ .pa-cab{display:grid}
+ .pa-fila{grid-template-columns:54px 1fr 1fr;gap:6px;padding:5px 0}
+ .pa-fila b{grid-column:auto;font-size:12.5px}
+ .pa-fila label::before{content:none}
+ .pa-eq{grid-column:auto}
+}
+
+/* chat del cliente en el panel (celular): cerrado = no se ve nunca debajo de la lista */
+@media(max-width:800px){
+ #admin-vista-clientes #admin-chat-view{display:none!important}
+ #admin-vista-clientes.adm-chat-abierto #admin-chat-view{display:flex!important}
+}
+
+/* Top de recargas: nunca se sale de la pantalla */
+.top-lista{grid-template-columns:minmax(0,1fr)}
+.top-lista li{min-width:0}
+.top-lista li .nom{min-width:0;flex:1 1 0}
+@media(max-width:600px){
+ .top-lista li{gap:7px;padding:7px 9px}
+ .top-lista li .nvb-t{display:none}
+ .top-lista li .nvb{padding:3px 8px 3px 7px}
+ .top-lista li .dia{font-size:12.5px}
+ .top-lista li .av{width:32px;height:32px}
+ .top-lista li .pos{width:20px;font-size:16px}
+}
+
+/* ===== v10: menú lateral más compacto ===== */
+.sidebar-menu{width:min(292px,84vw)}
+.sidebar-content{gap:8px;padding:10px 12px}
+.sb-perfil{padding:8px 10px;gap:10px}
+.sb-avatar{width:38px;height:38px;font-size:1rem}
+.sb-perfil-txt strong{font-size:.9rem}.sb-perfil-txt small{font-size:.7rem}
+.sb-accion{padding:8px 10px;gap:10px;border-radius:12px}
+.sb-ico{width:34px;height:34px;font-size:1.1rem;border-radius:10px}
+.sb-txt b{font-size:.86rem}.sb-txt small{font-size:.7rem}
+.sb-wallet{padding:8px;gap:6px;border-radius:12px}
+.sb-wallet-tit{font-size:.82rem}
+.sb-saldos2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sb-saldos2 .sb-saldo{flex-direction:column;align-items:flex-start;gap:4px;padding:7px 9px}
+.sb-saldos2 .sb-saldo-ico{width:24px;height:24px;font-size:.75rem;border-radius:7px}
+.sb-saldos2 .sb-saldo-txt small{font-size:.65rem}
+.sb-saldos2 .sb-saldo-txt strong{font-size:.92rem;word-break:normal}
+.sb-conv,.sb-cargar{margin-top:0;padding:8px;font-size:.82rem;border-radius:10px}
+.sb-niv{font-size:10.5px;padding:0 7px}
+.sidebar-header{padding:10px 14px}
+.status-indicator{font-size:.75rem}
+.sidebar-footer{padding:8px 12px calc(8px + env(safe-area-inset-bottom));gap:6px}
+.sb-logout{padding:8px;font-size:.82rem}

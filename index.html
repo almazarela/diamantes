@@ -677,11 +677,7 @@
   <p class="sb-login-nota">Ingresá para ver tu saldo, tus compras y chatear con soporte.</p>
   </div>
 
-  <a id="sb-wa" href="https://wa.me/" target="_blank" rel="noopener" class="sb-accion sb-wa">
-  <span class="sb-ico"><i class="fa-brands fa-whatsapp"></i></span>
-  <span class="sb-txt"><b>Atención por WhatsApp</b><small>Escribinos, respondemos rápido</small></span>
-  <i class="fa-solid fa-chevron-right sb-flecha"></i>
-  </a>
+
 
   <div class="sidebar-section" id="sidebar-historial" style="display: none;">
   <button type="button" class="sb-accion sb-hist" onclick="abrirHistorial()">
@@ -693,17 +689,25 @@
 
   <div class="sb-wallet" id="sb-wallet" hidden>
   <div class="sb-wallet-tit"><span><i class="fa-solid fa-wallet"></i> Mi billetera</span><small>ID <strong id="menu-wallet-id">#REV-00000</strong></small></div>
+  <div class="sb-saldos2">
   <div class="sb-saldo sb-mp">
   <span class="sb-saldo-ico"><i class="fa-solid fa-handshake"></i></span>
-  <span class="sb-saldo-txt"><small>Mercado Pago · Pesos</small><strong id="menu-wallet-balance-ars">$0 ARS</strong></span>
+  <span class="sb-saldo-txt"><small>Mercado Pago</small><strong id="menu-wallet-balance-ars">$0 ARS</strong></span>
   </div>
   <div class="sb-saldo sb-bn">
   <span class="sb-saldo-ico"><i class="fa-solid fa-coins"></i></span>
-  <span class="sb-saldo-txt"><small>Binance · Dólares</small><strong id="menu-wallet-balance">$0.00 USD</strong></span>
+  <span class="sb-saldo-txt"><small>Binance</small><strong id="menu-wallet-balance">$0.00 USD</strong></span>
   </div>
-  <button type="button" class="sb-cargar" onclick="toggleMenu(); abrirModalSeleccionCarga()"><i class="fa-solid fa-circle-plus"></i> Cargar saldo</button>
+  </div>
   <button type="button" class="sb-conv" onclick="toggleMenu(); abrirModalConvertir()"><i class="fa-solid fa-right-left"></i> Convertir pesos a USD</button>
+  <button type="button" class="sb-cargar" onclick="toggleMenu(); abrirModalSeleccionCarga()"><i class="fa-solid fa-circle-plus"></i> Cargar saldo</button>
   </div>
+
+  <a id="sb-wa" href="https://wa.me/" target="_blank" rel="noopener" class="sb-accion sb-wa">
+  <span class="sb-ico"><i class="fa-brands fa-whatsapp"></i></span>
+  <span class="sb-txt"><b>Atención por WhatsApp</b><small>Te respondemos rápido</small></span>
+  <i class="fa-solid fa-chevron-right sb-flecha"></i>
+  </a>
 
   <div class="status-indicator">
   <span class="status-dot online"></span>
@@ -1061,22 +1065,24 @@
   </section>
 
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
-  <div class="step-title">
-  <span class="badge" style="background: #f3ba2f; color:#000;"><i class="fa-solid fa-shield-halved"></i></span>
-  <h3 style="color: #f3ba2f;">PANEL ADMINISTRADOR</h3>
+  <div class="adm-top">
+  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador</span>
+  <button type="button" class="adm-salir" onclick="salirModoAdmin()" aria-label="Volver al modo normal"><i class="fa-solid fa-arrow-left"></i> <span>Volver al modo normal</span></button>
   </div>
 
-  <div class="adm-modo" id="adm-modo"><span>🛡️ Modo administrador</span><button type="button" onclick="salirModoAdmin()"><i class="fa-solid fa-arrow-left"></i> Volver al modo normal</button></div>
-
-  <div class="admin-tabs" role="tablist" aria-label="Secciones del panel">
-  <button type="button" id="admin-tab-clientes" class="admin-tab activa" role="tab" aria-selected="true" aria-controls="admin-vista-clientes" onclick="mostrarVistaAdmin('clientes')">💬 Mensajes y saldos</button>
-  <button type="button" id="admin-tab-ordenes" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-ordenes" onclick="mostrarVistaAdmin('ordenes')">🧾 Historial de órdenes <span id="admin-ordenes-alerta" class="admin-alerta" hidden>0</span></button>
-  <button type="button" id="admin-tab-stock" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-stock" onclick="mostrarVistaAdmin('stock')">📦 Stock de PINs</button>
-  <button type="button" id="admin-tab-cobro" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-cobro" onclick="mostrarVistaAdmin('cobro')">💳 Cobro, precios y niveles</button>
-  </div>
+  <div class="adm-layout">
+  <nav class="adm-rail" role="tablist" aria-label="Secciones del panel">
+  <button type="button" id="admin-tab-clientes" class="admin-tab activa" role="tab" aria-selected="true" aria-controls="admin-vista-clientes" onclick="mostrarVistaAdmin('clientes')" title="Mensajes y saldos de clientes"><span class="rt-i">💬</span><span class="rt-t">Chats</span></button>
+  <button type="button" id="admin-tab-ordenes" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-ordenes" onclick="mostrarVistaAdmin('ordenes')" title="Historial de órdenes"><span class="rt-i">🧾</span><span class="rt-t">Órdenes</span><span id="admin-ordenes-alerta" class="admin-alerta" hidden>0</span></button>
+  <button type="button" id="admin-tab-stock" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-stock" onclick="mostrarVistaAdmin('stock')" title="Stock de PINs"><span class="rt-i">📦</span><span class="rt-t">Stock</span></button>
+  <button type="button" id="admin-tab-precios" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-cobro" onclick="mostrarVistaAdmin('precios')" title="Precios de los paquetes"><span class="rt-i">🏷️</span><span class="rt-t">Precios</span></button>
+  <button type="button" id="admin-tab-cobro" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-cobro" onclick="mostrarVistaAdmin('cobro')" title="Alias, CVU, Binance y tasa del dólar"><span class="rt-i">💳</span><span class="rt-t">Cobro</span></button>
+  <button type="button" id="admin-tab-niveles" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-cobro" onclick="mostrarVistaAdmin('niveles')" title="Niveles de cliente"><span class="rt-i">🏆</span><span class="rt-t">Niveles</span></button>
+  </nav>
+  <div class="adm-contenido">
 
   <div id="admin-vista-clientes" role="tabpanel">
-  <p style="font-size: 13px; color: #aaa; margin-bottom: 12px;">Seleccioná un cliente para ver sus comprobantes y acreditarle saldo:</p>
+  <p class="adm-ayuda">Tocá un cliente para ver su chat y acreditarle saldo.</p>
   <div style="display: flex; gap: 15px; flex-wrap: wrap;">
   <div id="admin-col-lista" style="flex: 1; min-width: 200px; align-self: flex-start; display: flex; flex-direction: column; gap: 8px;">
   <label class="adm-buscar"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="admin-buscar-cliente" placeholder="Buscar cliente…" autocomplete="off" aria-label="Buscar cliente"></label>
@@ -1112,11 +1118,11 @@
 
   <div id="admin-vista-cobro" role="tabpanel" hidden>
   <div class="cobro-barra">
-  <p>Lo que cambies acá se ve al instante en las ventanas de <b>Cargar saldo</b> y en los precios de todos los clientes.</p>
+  <p>Los cambios los ven todos los clientes al instante.</p>
   <button type="button" id="cobro-guardar" class="cobro-guardar" onclick="guardarCobro()">💾 Guardar cambios</button>
   </div>
   <div class="cobro-acordeon">
-  <details class="cobro-sec">
+  <details class="cobro-sec" data-pane="cobro" open>
   <summary><span class="cs-ico">💳</span><span class="cs-t">Datos de cobro<small>Alias, CVU, titular, Binance y tasa del dólar</small></span><i class="fa-solid fa-chevron-down"></i></summary>
   <div class="cobro-form">
   <label>Alias de Mercado Pago<input type="text" id="cobro-alias_mp" maxlength="60" autocomplete="off"></label>
@@ -1126,14 +1132,14 @@
   <label>Tasa de conversión (pesos por 1 USD)<input type="number" id="cobro-tasa_ars_usd" inputmode="decimal" step="any" min="1"></label>
   </div>
   </details>
-  <details class="cobro-sec">
+  <details class="cobro-sec" data-pane="precios" open>
   <summary><span class="cs-ico">🏷️</span><span class="cs-t">Precios de los paquetes<small>Mercado Pago (pesos) y Binance (dólares)</small></span><i class="fa-solid fa-chevron-down"></i></summary>
   <div style="padding:4px 14px 14px">
-  <p class="pa-nota">Al guardar, los precios cambian en la página para todos. Debajo de cada precio Binance se muestra su equivalente en pesos con la tasa de "Datos de cobro".</p>
+  <p class="pa-nota">Cambiá un precio y tocá <b>Guardar</b>. Se actualiza para todos. Bajo el precio en dólares ves cuántos pesos son.</p>
   <div id="precios-admin"></div>
   </div>
   </details>
-  <details class="cobro-sec">
+  <details class="cobro-sec" data-pane="niveles" open>
   <summary><span class="cs-ico">🏆</span><span class="cs-t">Niveles de cliente<small>Diamantes que tiene que haber recargado cada cliente en total</small></span><i class="fa-solid fa-chevron-down"></i></summary>
   <div class="cobro-form">
   <label>🥉 Bronce desde<input type="number" id="cobro-nivel_1" inputmode="numeric" min="1"></label>
@@ -1143,7 +1149,7 @@
   <label>👑 Leyenda desde<input type="number" id="cobro-nivel_5" inputmode="numeric" min="1"></label>
   </div>
   </details>
-  <details class="cobro-sec">
+  <details class="cobro-sec" data-pane="precios" open>
   <summary><span class="cs-ico">🔒</span><span class="cs-t">Precios Binance<small>Diamantes que hay que cargar para desbloquearlos</small></span><i class="fa-solid fa-chevron-down"></i></summary>
   <div class="cobro-form">
   <label>Desbloquear al llegar a (💎 recargados en total)<input type="number" id="cobro-binance_min" inputmode="numeric" min="1"></label>
@@ -1165,6 +1171,8 @@
   <button type="button" id="stock-agregar" class="stock-btn" onclick="agregarPinesStock()">Agregar al stock</button>
   </div>
   <p id="stock-resultado" class="stock-resultado" aria-live="polite"></p>
+  </div>
+  </div>
   </div>
   </div>
   </section>

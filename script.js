@@ -1655,18 +1655,19 @@ const fechaCorta = (v) => {
 };
 
 function mostrarVistaAdmin(vista) {
-  vistaAdmin = vista === "ordenes" || vista === "stock" || vista === "cobro" ? vista : "clientes";
-  [["clientes", "admin-vista-clientes", "admin-tab-clientes"], ["ordenes", "admin-vista-ordenes", "admin-tab-ordenes"], ["stock", "admin-vista-stock", "admin-tab-stock"], ["cobro", "admin-vista-cobro", "admin-tab-cobro"]].forEach(([v, vid, tid]) => {
+  const esCobro = vista === "cobro" || vista === "precios" || vista === "niveles";
+  vistaAdmin = vista === "ordenes" || vista === "stock" || esCobro ? vista : "clientes";
+  [["clientes", "admin-vista-clientes", "admin-tab-clientes"], ["ordenes", "admin-vista-ordenes", "admin-tab-ordenes"], ["stock", "admin-vista-stock", "admin-tab-stock"]].forEach(([v, vid, tid]) => {
     const vistaEl = $(vid), t = $(tid);
     if (vistaEl) vistaEl.hidden = v !== vistaAdmin;
-    if (t) {
-      t.classList.toggle("activa", v === vistaAdmin);
-      t.setAttribute("aria-selected", String(v === vistaAdmin));
-    }
+    if (t) { t.classList.toggle("activa", v === vistaAdmin); t.setAttribute("aria-selected", String(v === vistaAdmin)); }
   });
+  if ($("admin-vista-cobro")) $("admin-vista-cobro").hidden = !esCobro;
+  ["cobro", "precios", "niveles"].forEach((v) => { const t = $("admin-tab-" + v); if (t) { t.classList.toggle("activa", v === vistaAdmin); t.setAttribute("aria-selected", String(v === vistaAdmin)); } });
+  document.querySelectorAll("#admin-vista-cobro .cobro-sec").forEach((d) => { d.hidden = d.dataset.pane !== vistaAdmin; d.open = true; });
   if (vistaAdmin === "ordenes") cargarOrdenesAdmin(false);
   if (vistaAdmin === "stock") cargarStockPines();
-  if (vistaAdmin === "cobro") rellenarCobro();
+  if (esCobro) rellenarCobro();
 }
 
 // ------------------------- STOCK DE PINs (solo admin) ------------------
@@ -4442,25 +4443,26 @@ async function cargarPrecios() {
 // editor del panel
 function rellenarPreciosAdmin() {
   const host = $("precios-admin"); if (!host) return;
-  const ids = Object.keys(precios);
+  const enPagina = new Set(cajasPaquetes().map((x) => x.id));
+  const ids = Object.keys(precios).filter((id) => enPagina.has(id));   // solo los paquetes que se venden en la página
   if (!ids.length) { host.innerHTML = '<p class="pa-vacio">Todavía no se pueden editar los precios: ejecutá <b>novedades_clientes_v9.sql</b> en Supabase.</p>'; return; }
   const tasa = () => Number($("cobro-tasa_ars_usd")?.value) || tasaArs();
   host.replaceChildren();
   const cab = document.createElement("div"); cab.className = "pa-fila pa-cab";
-  cab.innerHTML = "<span>Paquete</span><span>Mercado Pago (ARS)</span><span>Binance (USD)</span><span>Binance en pesos</span>";
+  cab.innerHTML = "<span>Paquete</span><span>Mercado Pago · $ ARS</span><span>Binance · US$</span>";
   host.appendChild(cab);
   ids.forEach((id) => {
     const p = precios[id];
     const f = document.createElement("div"); f.className = "pa-fila"; f.dataset.id = id;
     const n = document.createElement("b"); n.textContent = fmtNum(p.dia) + " 💎";
-    const la = document.createElement("label"); la.dataset.t = "Mercado Pago (ARS)";
+    const la = document.createElement("label");
     const ia = document.createElement("input"); ia.type = "number"; ia.min = "1"; ia.step = "1"; ia.inputMode = "numeric"; ia.className = "pa-ars"; ia.value = p.ars == null ? "" : String(Math.round(p.ars)); la.appendChild(ia);
-    const lu = document.createElement("label"); lu.dataset.t = "Binance (USD)";
+    const lu = document.createElement("label");
     const iu = document.createElement("input"); iu.type = "number"; iu.min = "0.01"; iu.step = "0.01"; iu.inputMode = "decimal"; iu.className = "pa-usd"; iu.value = String(p.usd); lu.appendChild(iu);
     const eq = document.createElement("span"); eq.className = "pa-eq";
-    const act = () => { const u = Number(iu.value); eq.textContent = u > 0 ? "≈ " + formatoARS(Math.round(u * tasa())) + " ARS" : "—"; };
+    const act = () => { const u = Number(iu.value); eq.textContent = u > 0 ? "= " + formatoARS(Math.round(u * tasa())) + " ARS" : "—"; };
     iu.addEventListener("input", act); $("cobro-tasa_ars_usd")?.addEventListener("input", act); act();
-    f.append(n, la, lu, eq); host.appendChild(f);
+    lu.appendChild(eq); f.append(n, la, lu); host.appendChild(f);
   });
 }
 async function guardarPrecios() {
