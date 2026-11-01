@@ -2011,16 +2011,35 @@ body.chat-con-fondo .chat-v2 .chat-messages-area,body.chat-con-fondo #admin-msgs
 .fch-foto{display:flex;justify-content:center;padding:10px;border-radius:12px;border:1px dashed rgba(127,214,255,.6);cursor:pointer;font-weight:700;font-size:13px}
 .fch-box small{color:#9aa6c0;text-align:center}
 
-/* Panel de administradora: rojo y rosado cristal */
-body.modo-admin{--zacc:#ff5c8a;--zacc-bg:rgba(255,92,138,.22)}
-body.modo-admin #admin-panel-section{background:linear-gradient(160deg,rgba(255,45,85,.16),rgba(255,92,138,.07) 45%,rgba(18,6,16,.92))!important;border:1px solid rgba(255,110,160,.55)!important;box-shadow:0 10px 40px rgba(255,45,85,.18),inset 0 1px 0 rgba(255,255,255,.14);backdrop-filter:blur(10px)}
-body.modo-admin .adm-modo{background:rgba(255,92,138,.14)!important;border-color:#ff5c8a!important}
-.adm-rail{background:rgba(255,255,255,.04)!important;border-color:rgba(255,110,160,.35)!important}
-.adm-rail .admin-tab.activa{background:rgba(255,92,138,.2)!important;border-color:#ff5c8a!important;color:#ffd1e0!important}
-.adm-rail .rt-n{background:#ff2d55!important}
-#admin-users-list{scrollbar-color:#ff5c8a #0e0f16}
-#admin-users-list::-webkit-scrollbar-thumb,#admin-msgs::-webkit-scrollbar-thumb{background:#ff5c8a!important}
-#admin-chat-view{background:linear-gradient(170deg,rgba(255,45,85,.10),rgba(14,15,22,.92))!important;border:1px solid rgba(255,110,160,.3)}
-.adm-puntos:hover{border-color:#ff5c8a!important;color:#ff5c8a!important}
-.adm-chat-abierto .adm-atras{border-color:#ff5c8a!important;background:rgba(255,92,138,.14)!important}
-.msg-ctx.msg-abierto{outline-color:#ff5c8a}
+/* Panel de administradora: azul cristal oscuro */
+body.modo-admin{--zacc:#7fd6ff;--zacc-bg:rgba(127,214,255,.2)}
+body.modo-admin #admin-panel-section{background:linear-gradient(160deg,rgba(16,38,82,.97),rgba(8,14,34,.98) 60%)!important;border:1px solid rgba(127,214,255,.4)!important;box-shadow:0 10px 40px rgba(0,10,40,.6),inset 0 1px 0 rgba(255,255,255,.1)}
+body.modo-admin .adm-modo{background:rgba(127,214,255,.1)!important;border-color:#7fd6ff!important}
+.adm-rail{background:rgba(6,12,30,.7)!important;border-color:rgba(127,214,255,.28)!important}
+.adm-rail .admin-tab.activa{background:rgba(127,214,255,.16)!important;border-color:#7fd6ff!important;color:#dff4ff!important}
+.adm-rail .rt-n{background:#2f6bff!important}
+#admin-users-list{scrollbar-color:#7fd6ff #0e0f16}
+#admin-users-list::-webkit-scrollbar-thumb,#admin-msgs::-webkit-scrollbar-thumb{background:#7fd6ff!important}
+#admin-chat-view{background:linear-gradient(170deg,rgba(18,36,78,.95),rgba(8,12,26,.97))!important;border:1px solid rgba(127,214,255,.28)}
+.adm-puntos:hover{border-color:#7fd6ff!important;color:#7fd6ff!important}
+.adm-chat-abierto .adm-atras{border-color:#7fd6ff!important;background:rgba(127,214,255,.12)!important}
+.msg-ctx.msg-abierto{outline-color:#7fd6ff}
+
+/* Estrellitas en los fondos del chat (como las del carrusel) */
+body.chat-con-fondo .chat-widget-card.chat-v2{background:var(--chat-fondo)!important}
+body.chat-con-fondo .chat-v2 .chat-messages-area{background:transparent!important}
+body.chat-con-fondo #admin-chat-view{position:relative;background:var(--chat-fondo)!important}
+body.chat-con-fondo #admin-msgs{background:transparent!important}
+body.chat-con-fondo .chat-widget-card.chat-v2::before,body.chat-con-fondo .chat-widget-card.chat-v2::after,
+body.chat-con-fondo #admin-chat-view::before,body.chat-con-fondo #admin-chat-view::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.2}
+body.chat-con-fondo .chat-widget-card.chat-v2::before,body.chat-con-fondo #admin-chat-view::before{background:radial-gradient(circle at 59% 68%,#cfe8ff 0,#cfe8ff 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 25% 68%,#fff 0,#fff 0.8px,transparent 1.4px),radial-gradient(circle at 14% 60%,#cfe8ff 0,#cfe8ff 0.8px,transparent 1.4px),radial-gradient(circle at 13% 71%,#cfe8ff 0,#cfe8ff 0.8px,transparent 1.4px),radial-gradient(circle at 78% 53%,#fff 0,#fff 0.6px,transparent 1.2px),radial-gradient(circle at 81% 4%,#cfe8ff 0,#cfe8ff 0.8px,transparent 1.4px),radial-gradient(circle at 9% 7%,#fff 0,#fff 0.6px,transparent 1.2px),radial-gradient(circle at 78% 6%,#eafff4 0,#eafff4 0.8px,transparent 1.4px),radial-gradient(circle at 58% 78%,#cfe8ff 0,#cfe8ff 1px,transparent 1.6px),radial-gradient(circle at 83% 40%,#eafff4 0,#eafff4 0.8px,transparent 1.4px),radial-gradient(circle at 86% 13%,#cfe8ff 0,#cfe8ff 0.6px,transparent 1.2px),radial-gradient(circle at 54% 73%,#cfe8ff 0,#cfe8ff 1px,transparent 1.6px),radial-gradient(circle at 42% 32%,#eafff4 0,#eafff4 1px,transparent 1.6px),radial-gradient(circle at 5% 11%,#fff 0,#fff 1px,transparent 1.6px),radial-gradient(circle at 53% 16%,#fff 0,#fff 0.6px,transparent 1.2px),radial-gradient(circle at 10% 5%,#cfe8ff 0,#cfe8ff 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 29% 29%,#fff 0,#fff 0.6px,transparent 1.2px),radial-gradient(circle at 50% 93%,#eafff4 0,#eafff4 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 11% 75%,#cfe8ff 0,#cfe8ff 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 88% 37%,#fff 0,#fff 0.8px,transparent 1.4px),radial-gradient(circle at 41% 45%,#cfe8ff 0,#cfe8ff 0.6px,transparent 1.2px),radial-gradient(circle at 17% 20%,#eafff4 0,#eafff4 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 3% 10%,#eafff4 0,#eafff4 0.6px,transparent 1.2px),radial-gradient(circle at 24% 90%,#cfe8ff 0,#cfe8ff 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 59% 68%,#fff 0,#fff 0.8px,transparent 1.4px),radial-gradient(circle at 55% 85%,#eafff4 0,#eafff4 0.8px,transparent 1.4px);animation:stTit 3.6s ease-in-out infinite}
+body.chat-con-fondo .chat-widget-card.chat-v2::after,body.chat-con-fondo #admin-chat-view::after{background:radial-gradient(circle at 52% 56%,#9dffcb 0,#9dffcb 0.6px,transparent 1.2px),radial-gradient(circle at 36% 78%,#eafff4 0,#eafff4 0.6px,transparent 1.2px),radial-gradient(circle at 28% 26%,#9dffcb 0,#9dffcb 0.6px,transparent 1.2px),radial-gradient(circle at 7% 21%,#9dffcb 0,#9dffcb 0.6px,transparent 1.2px),radial-gradient(circle at 35% 4%,#eafff4 0,#eafff4 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 39% 52%,#d6f5ff 0,#d6f5ff 1px,transparent 1.6px),radial-gradient(circle at 13% 29%,#eafff4 0,#eafff4 0.6px,transparent 1.2px),radial-gradient(circle at 3% 79%,#d6f5ff 0,#d6f5ff 0.8px,transparent 1.4px),radial-gradient(circle at 81% 61%,#9dffcb 0,#9dffcb 1px,transparent 1.6px),radial-gradient(circle at 75% 20%,#eafff4 0,#eafff4 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 82% 22%,#9dffcb 0,#9dffcb 0.8px,transparent 1.4px),radial-gradient(circle at 80% 34%,#9dffcb 0,#9dffcb 0.8px,transparent 1.4px),radial-gradient(circle at 22% 97%,#d6f5ff 0,#d6f5ff 0.8px,transparent 1.4px),radial-gradient(circle at 89% 52%,#d6f5ff 0,#d6f5ff 0.8px,transparent 1.4px),radial-gradient(circle at 55% 9%,#9dffcb 0,#9dffcb 0.6px,transparent 1.2px),radial-gradient(circle at 6% 68%,#eafff4 0,#eafff4 0.6px,transparent 1.2px),radial-gradient(circle at 96% 93%,#9dffcb 0,#9dffcb 0.8px,transparent 1.4px),radial-gradient(circle at 55% 79%,#9dffcb 0,#9dffcb 1px,transparent 1.6px),radial-gradient(circle at 68% 25%,#9dffcb 0,#9dffcb 1px,transparent 1.6px),radial-gradient(circle at 18% 32%,#d6f5ff 0,#d6f5ff 0.6px,transparent 1.2px),radial-gradient(circle at 37% 30%,#9dffcb 0,#9dffcb 0.6px,transparent 1.2px),radial-gradient(circle at 10% 37%,#eafff4 0,#eafff4 0.6px,transparent 1.2px),radial-gradient(circle at 33% 10%,#9dffcb 0,#9dffcb 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 38% 50%,#eafff4 0,#eafff4 0.8px,transparent 1.4px),radial-gradient(circle at 13% 49%,#d6f5ff 0,#d6f5ff 0.8px,transparent 1.4px),radial-gradient(circle at 44% 87%,#eafff4 0,#eafff4 1.2px,transparent 1.7999999999999998px);animation:stTit 3.6s ease-in-out -1.8s infinite}
+body.chat-con-fondo .chat-v2>*,body.chat-con-fondo #admin-chat-view>*{position:relative;z-index:1}
+@media (prefers-reduced-motion:reduce){body.chat-con-fondo .chat-widget-card.chat-v2::before,body.chat-con-fondo .chat-widget-card.chat-v2::after,body.chat-con-fondo #admin-chat-view::before,body.chat-con-fondo #admin-chat-view::after{animation:none;opacity:.6}}
+
+/* Reacciones compactas, como WhatsApp: una chapita que asoma debajo del mensaje */
+.msg-ctx.con-react{margin-bottom:12px}
+.msg-reacts{position:absolute!important;right:8px;bottom:-11px;margin:0!important;gap:1px!important;background:#232b3f;border:1px solid rgba(255,255,255,.22);border-radius:99px;padding:0 4px;box-shadow:0 1px 5px rgba(0,0,0,.45);z-index:3;flex-wrap:nowrap!important}
+.msg-react{background:none!important;border:0!important;padding:1px 2px!important;font-size:13px!important;line-height:1.3}
+.msg-react.mia{background:rgba(127,214,255,.22)!important;border-radius:99px!important}
+.inst-pasos{margin:0;padding-left:22px;display:grid;gap:8px;font-size:14px;line-height:1.35}

@@ -1344,7 +1344,7 @@ function renderListaClientes() {
     const b = document.createElement("button");
     b.type = "button";
     b.setAttribute("aria-label", noLeidos ? `${etiqueta}, ${noLeidos} mensajes sin leer` : etiqueta);
-    const borde = seleccionado ? "#ff5c8a" : noLeidos ? "#3b82f6" : "#2b3544";
+    const borde = seleccionado ? "#7fd6ff" : noLeidos ? "#3b82f6" : "#2b3544";
     const fondo = noLeidos ? "#10264a" : "#161822";
     b.style.cssText =
       `display:block;width:100%;text-align:left;margin-bottom:6px;padding:8px;background:${fondo};color:#fff;` +
@@ -2321,7 +2321,7 @@ function construirVistaCliente() {
       monto.placeholder = "Monto " + m;
       ["USD", "ARS"].forEach((x) => {
         const t = $("admin-tile-" + x);
-        if (t) t.style.borderColor = x === m ? "#ff5c8a" : "#2b3544";
+        if (t) t.style.borderColor = x === m ? "#7fd6ff" : "#2b3544";
       });
     };
     moneda.addEventListener("change", resaltar);
@@ -2349,7 +2349,7 @@ function construirVistaCliente() {
       caja.hidden = !abrir;
       tog.setAttribute("aria-expanded", String(abrir));
       flecha.style.transform = abrir ? "rotate(180deg)" : "";
-      tog.style.borderColor = abrir ? "#ff5c8a" : "#2b3544";
+      tog.style.borderColor = abrir ? "#7fd6ff" : "#2b3544";
     });
     vista.append(tog, caja);
     resaltar();
@@ -2376,7 +2376,7 @@ function construirVistaCliente() {
   const inp = document.createElement("input");
   inp.id = "admin-respuesta"; inp.type = "text"; inp.placeholder = "Responder al cliente…"; inp.maxLength = 1000;
   inp.style.cssText = ESTILO_INPUT + "flex:1;";
-  const env = creaBoton("Enviar", "background:linear-gradient(135deg,#ff2d55,#ff6fa3);color:#fff;border:1px solid rgba(255,190,210,.6);");
+  const env = creaBoton("Enviar", "background:linear-gradient(135deg,#2f6bff,#1b3fa8);color:#fff;border:1px solid rgba(127,214,255,.55);");
   env.id = "admin-btn-responder";
   const enviar = () => responderCliente();
   env.addEventListener("click", enviar);
@@ -2452,7 +2452,7 @@ async function refrescarMensajes(forzar) {
     const burbuja = document.createElement("div");
     burbuja.style.cssText =
       "max-width:80%;padding:7px 10px;border-radius:10px;font-size:13px;word-break:break-word;color:#fff;" +
-      (mio ? "align-self:flex-end;background:linear-gradient(135deg,rgba(255,45,85,.82),rgba(214,51,132,.78));border:1px solid rgba(255,170,200,.5);box-shadow:0 2px 10px rgba(255,45,85,.25);" : "align-self:flex-start;background:#1f2937;");
+      (mio ? "align-self:flex-end;background:linear-gradient(135deg,#1f4fd0,#15338f);border:1px solid rgba(127,214,255,.4);box-shadow:0 2px 10px rgba(20,60,180,.35);" : "align-self:flex-start;background:#1f2937;");
 
     const texto = f[MSG.textoCol];
     if (texto) {
@@ -2805,7 +2805,7 @@ function adornarMensaje(burbuja, f, ctx, filas) {
   const activas = reacciones.filter(([, ids]) => Array.isArray(ids) && ids.length);
   if (activas.length) {
     const fila = document.createElement("div");
-    fila.className = "msg-reacts";
+    fila.className = "msg-reacts"; burbuja.classList.add("con-react");
     activas.forEach(([emoji, ids]) => {
       const chip = document.createElement("button");
       chip.type = "button";
@@ -4888,19 +4888,19 @@ setInterval(() => {
 supabase.auth.onAuthStateChange((_e, session) => { if (session && (session.user.email || "").toLowerCase() === CONFIG.ADMIN_EMAIL.toLowerCase()) setTimeout(() => { try { supabase.rpc("admin_marcar_entregados").then(() => {}, () => {}); } catch (_) {} }, 1200); });
 
 const FONDOS_CHAT = [
-  { id: "ninguno", n: "Liso", css: "" },
-  { id: "cristal", n: "Cristal azul", css: "radial-gradient(circle at 20% 0%,rgba(127,214,255,.3),transparent 55%),linear-gradient(160deg,#10294f,#070c1c)" },
-  { id: "orion", n: "Verde Orión", css: "radial-gradient(ellipse at 50% -10%,rgba(25,230,140,.45),transparent 60%),linear-gradient(180deg,#0d4a34,#04140d)" },
-  { id: "rosa", n: "Rosa cristal", css: "radial-gradient(circle at 80% 0%,rgba(255,92,138,.4),transparent 55%),linear-gradient(160deg,#3a0b24,#10060f)" },
-  { id: "noche", n: "Noche", css: "linear-gradient(160deg,#171a2e,#05060c)" },
-  { id: "ff", n: "Free Fire", css: "linear-gradient(rgba(5,8,20,.6),rgba(5,8,20,.6)),url('fondo-difuminado.jpg') center/cover" },
+  { id: "ninguno", n: "Oscuro", css: "linear-gradient(170deg,#0b0d18,#04050a)" },
+  { id: "cristal", n: "Cristal azul", css: "radial-gradient(circle at 20% 0%,rgba(80,150,230,.2),transparent 55%),linear-gradient(160deg,#0a1a38,#04070f)" },
+  { id: "orion", n: "Verde Orión", css: "radial-gradient(ellipse at 50% -10%,rgba(25,230,140,.26),transparent 62%),linear-gradient(180deg,#07291d,#020a07)" },
+  { id: "rosa", n: "Rosa oscuro", css: "radial-gradient(circle at 80% 0%,rgba(255,92,138,.22),transparent 55%),linear-gradient(160deg,#25091a,#0a040a)" },
+  { id: "noche", n: "Noche", css: "linear-gradient(160deg,#0f1224,#030409)" },
+  { id: "ff", n: "Free Fire", css: "linear-gradient(rgba(3,5,14,.78),rgba(3,5,14,.78)),url('fondo-difuminado.jpg') center/cover" },
 ];
 const claveFondo = "zarela_chat_fondo";
 function fondoGuardado() { try { return JSON.parse(localStorage.getItem(claveFondo) || "null"); } catch (_) { return null; } }
 function aplicarFondoChat() {
   const f = fondoGuardado(); let css = "";
   if (f?.tipo === "preset") css = (FONDOS_CHAT.find((x) => x.id === f.id) || {}).css || "";
-  else if (f?.tipo === "foto" && f.data) css = `linear-gradient(rgba(5,8,20,.45),rgba(5,8,20,.45)),url(${f.data}) center/cover`;
+  else if (f?.tipo === "foto" && f.data) css = `linear-gradient(rgba(3,5,14,.6),rgba(3,5,14,.6)),url(${f.data}) center/cover`;
   document.documentElement.style.setProperty("--chat-fondo", css || "none");
   document.body.classList.toggle("chat-con-fondo", !!css);
 }
@@ -4909,7 +4909,7 @@ function pintarSelectorFondo() {
   const cont = $("fch-grid"); if (!cont) return; const f = fondoGuardado();
   cont.replaceChildren(...FONDOS_CHAT.map((x) => {
     const b = document.createElement("button"); b.type = "button"; b.className = "fch-op" + ((f?.tipo === "preset" && f.id === x.id) || (!f && x.id === "ninguno") ? " on" : "");
-    b.innerHTML = `<i style="background:${x.css || "#0d0e15"}"></i><span>${x.n}</span>`;
+    b.innerHTML = `<i style="background:${x.css}"></i><span>${x.n}</span>`;
     b.addEventListener("click", () => elegirFondo({ tipo: "preset", id: x.id })); return b;
   }));
 }
@@ -4944,3 +4944,27 @@ aplicarFondoChat();
     menu.insertBefore(b, menu.querySelector(".adm-sep") || null);
   };
 }
+
+
+// =====================================================================
+// v17: instalar la app (PWA) desde la página
+// =====================================================================
+let promptInstalar = null;
+const esStandalone = () => window.matchMedia?.("(display-mode: standalone)").matches || navigator.standalone === true;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); promptInstalar = e; pintarInstalar(); });
+window.addEventListener("appinstalled", () => { promptInstalar = null; pintarInstalar(); });
+function pintarInstalar() { const b = $("sb-instalar"); if (b) b.hidden = esStandalone(); }
+function modalInstalar() {
+  const ua = navigator.userAgent, ios = /iPhone|iPad|iPod/.test(ua), and = /Android/.test(ua);
+  const pasos = ios ? ["Abrí esta página en <b>Safari</b>.", "Tocá el botón <b>Compartir</b> (el cuadrado con la flecha hacia arriba).", "Elegí <b>Agregar a pantalla de inicio</b> y tocá <b>Agregar</b>."]
+    : and ? ["Abrí esta página en <b>Chrome</b>.", "Tocá los <b>3 puntitos</b> (⋮) de arriba a la derecha.", "Elegí <b>Instalar aplicación</b> o <b>Agregar a la pantalla de inicio</b>.", "Confirmá con <b>Instalar</b>."]
+    : ["En <b>Chrome</b> o <b>Edge</b>, mirá a la derecha de la barra de direcciones.", "Tocá el ícono de <b>instalar</b> (una pantallita con una flecha).", "Confirmá con <b>Instalar</b>."];
+  let m = $("inst-modal"); if (!m) { m = document.createElement("div"); m.id = "inst-modal"; m.className = "fch-modal"; document.body.appendChild(m); m.addEventListener("click", (e) => { if (e.target === m || e.target.closest(".fch-x")) m.classList.remove("abierto"); }); }
+  m.innerHTML = `<div class="fch-box" role="dialog" aria-label="Descargar app"><div class="fch-top"><b>📲 Descargar la app de Zarela</b><button type="button" class="fch-x" aria-label="Cerrar">✕</button></div><ol class="inst-pasos">${pasos.map((x) => `<li>${x}</li>`).join("")}</ol><small>Funciona igual que la página y se actualiza sola. Si ya la instalaste, buscá el ícono “Zarela” en tu pantalla.</small></div>`;
+  m.classList.add("abierto");
+}
+async function instalarApp() {
+  if (promptInstalar) { try { promptInstalar.prompt(); await promptInstalar.userChoice; } catch (_) {} promptInstalar = null; pintarInstalar(); return; }
+  modalInstalar();
+}
+document.addEventListener("DOMContentLoaded", () => { pintarInstalar(); $("sb-instalar")?.addEventListener("click", () => { try { toggleMenu(); } catch (_) {} instalarApp(); }); });
