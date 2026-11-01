@@ -981,7 +981,7 @@
   </button>
   <div id="como-panel" class="hist-panel" hidden>
   <div class="cf-guia">
-  <div class="cf-paso"><div class="sa-ill"><div class="mk-input"><span>73270042</span><em>Verificar</em></div></div><p><b>1. Poné tu ID de jugador</b><br>Escribilo arriba y tocá <b>Verificar</b>: te mostramos el nombre para que confirmes que es tu cuenta.</p></div>
+  <div class="cf-paso"><div class="sa-ill"><div class="mk-input"><span>Tu ID</span><em>Verificar</em></div></div><p><b>1. Poné tu ID de jugador</b><br>Escribilo arriba y tocá <b>Verificar</b>: te mostramos el nombre para que confirmes que es tu cuenta.</p></div>
   <div class="cf-paso"><div class="sa-ill"><div class="mk-head"><span class="mk-p mk-bn">USD</span><span class="mk-p mk-mp">ARS</span><span class="mk-cargar">＋ Cargar saldo</span><span class="mk-flecha">↗</span></div></div><p><b>2. Cargá saldo</b><br>Arriba a la derecha tocá <b>Cargar saldo</b> y elegí Mercado Pago o Binance. Si cargás pesos, podés pasarlos a dólares con <b>Convertir saldo</b>.</p></div>
   <div class="cf-paso"><div class="sa-ill"><span class="mk-alias js-alias">almazarela.com</span><span class="mk-copiar">⧉ Copiar</span></div><p><b>3. Copiá el alias y transferí</b><br>Copiá <b class="js-alias">almazarela.com</b> (Binance: ID <span class="js-bn">1252553144</span>) y hacé la transferencia <b>a nombre de <span class="js-titular">Julian Pereyra</span></b>.</p></div>
   <div class="cf-paso"><div class="sa-ill sa-pc"><div class="mk-pc"><i></i><div class="mk-chatp">💬 Chat</div></div></div><div class="sa-ill sa-cel"><span class="mk-fab">💬 Chat</span></div><p><b>4. Mandá el comprobante por el chat</b><br>Enviá la <b>captura</b> <span class="sa-pc">en el panel de chat de la derecha</span><span class="sa-cel">con el botón verde “Chat” de abajo a la derecha</span>. Te acreditamos el saldo lo antes posible.</p></div>
@@ -1090,6 +1090,7 @@
   <button type="button" id="admin-tab-sala2" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-clientes" onclick="mostrarVistaAdmin('sala2')" title="Clientes de la Sala 2"><span class="rt-i">🎮</span><span class="rt-t">Sala 2</span><span class="rt-n" id="rt-n-sala2" hidden>0</span></button>
   <button type="button" id="admin-tab-sala3" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-clientes" onclick="mostrarVistaAdmin('sala3')" title="Clientes de la Sala 3"><span class="rt-i">🎮</span><span class="rt-t">Sala 3</span><span class="rt-n" id="rt-n-sala3" hidden>0</span></button>
   <button type="button" id="admin-tab-todas" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-salas" onclick="mostrarVistaAdmin('todas')" title="Todas las salas y avisos"><span class="rt-i">📣</span><span class="rt-t">Todas las salas</span></button>
+  <button type="button" id="admin-tab-jugadores" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-jugadores" onclick="mostrarVistaAdmin('jugadores')" title="Todos los que alguna vez jugaron en tus salas"><span class="rt-i">👥</span><span class="rt-t">Jugadores</span><span class="rt-n" id="rt-n-jugadores" hidden>0</span></button>
   </nav>
   <div class="adm-contenido">
 
@@ -1179,6 +1180,18 @@
   <textarea id="sl-texto" rows="3" maxlength="300"></textarea>
   <button type="button" id="sl-enviar" class="sl-enviar"><i class="fa-solid fa-bullhorn"></i> <span>Avisar</span></button>
   <small>Les llega por el chat con sonido (si tienen la página abierta). Más adelante lo conectamos al mail y a las notificaciones.</small>
+  </div>
+  </div>
+
+  <div id="admin-vista-jugadores" role="tabpanel" hidden>
+  <p class="adm-ayuda">Todos los que alguna vez mandaste a una sala. Quedan guardados para siempre, aunque después los saques de la sala.</p>
+  <div class="sl-chips" id="jg-chips"></div>
+  <div class="sl-lista" id="jg-lista"></div>
+  <div class="sl-aviso">
+  <label for="jg-texto">Mensaje para enviar</label>
+  <textarea id="jg-texto" rows="3" maxlength="300"></textarea>
+  <button type="button" id="jg-enviar" class="sl-enviar"><i class="fa-solid fa-bullhorn"></i> <span>Avisar</span></button>
+  <small>Les llega por el chat. Con el mail conectado también les llega a su correo.</small>
   </div>
   </div>
 

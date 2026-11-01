@@ -1,0 +1,5 @@
+{"name":"Zarela - Aviso por mail","nodes":[
+{"parameters":{"httpMethod":"POST","path":"zarela-aviso","options":{}},"name":"Webhook","type":"n8n-nodes-base.webhook","typeVersion":1,"position":[0,0],"webhookId":"zarela-aviso"},
+{"parameters":{"jsCode":"const b=$input.first().json.body||$input.first().json;\nreturn (b.mails||[]).map(m=>({json:{to:m,subject:b.asunto||'Zarela',message:b.mensaje||''}}));"},"name":"Un item por mail","type":"n8n-nodes-base.code","typeVersion":2,"position":[240,0]},
+{"parameters":{"sendTo":"={{$json.to}}","subject":"={{$json.subject}}","message":"={{$json.message}}","options":{}},"name":"Gmail","type":"n8n-nodes-base.gmail","typeVersion":2.1,"position":[480,0]}
+],"connections":{"Webhook":{"main":[[{"node":"Un item por mail","type":"main","index":0}]]},"Un item por mail":{"main":[[{"node":"Gmail","type":"main","index":0}]]}}}

@@ -1659,7 +1659,7 @@ const fechaCorta = (v) => {
 
 const VISTAS_CHAT = ["clientes", "archivados", "sala1", "sala2", "sala3"];
 const VISTAS_COBRO = ["cobro", "precios", "niveles"];
-const TODAS_VISTAS = [...VISTAS_CHAT, "ordenes", "stock", "todas", ...VISTAS_COBRO];
+const TODAS_VISTAS = [...VISTAS_CHAT, "ordenes", "stock", "todas", "jugadores", ...VISTAS_COBRO];
 function mostrarVistaAdmin(vista) {
   if (!TODAS_VISTAS.includes(vista)) vista = "clientes";
   const esCobro = VISTAS_COBRO.includes(vista), esChat = VISTAS_CHAT.includes(vista);
@@ -1667,14 +1667,14 @@ function mostrarVistaAdmin(vista) {
   vistaChats = vista === "clientes" ? "normal" : esChat ? vista : vistaChats;
   const mostrar = (id, ok) => { const e = $(id); if (e) e.hidden = !ok; };
   mostrar("admin-vista-clientes", esChat); mostrar("admin-vista-ordenes", vista === "ordenes"); mostrar("admin-vista-stock", vista === "stock");
-  mostrar("admin-vista-salas", vista === "todas"); mostrar("admin-vista-cobro", esCobro);
+  mostrar("admin-vista-salas", vista === "todas"); mostrar("admin-vista-jugadores", vista === "jugadores"); mostrar("admin-vista-cobro", esCobro);
   TODAS_VISTAS.forEach((v) => { const t = $("admin-tab-" + v); if (t) { t.classList.toggle("activa", v === vista); t.setAttribute("aria-selected", String(v === vista)); } });
   document.querySelectorAll("#admin-vista-cobro .cobro-sec").forEach((d) => { d.hidden = d.dataset.pane !== vista; d.open = true; });
   if (vista === "ordenes") cargarOrdenesAdmin(false);
   if (vista === "stock") cargarStockPines();
   if (esCobro) rellenarCobro();
   if (esChat) { pintarAyudaChats(); renderListaClientes(); }
-  if (vista === "todas") pintarTodasSalas();
+  if (vista === "todas" || vista === "jugadores") pintarTodasSalas();
 }
 
 // ------------------------- STOCK DE PINs (solo admin) ------------------
@@ -4059,7 +4059,9 @@ function pintarTopCarrusel(data) {
     else av = letra();
     const n = document.createElement("b"); n.className = "st-nom"; n.textContent = nombre.split(" ")[0];
     const d = document.createElement("span"); d.className = "st-dia"; d.textContent = fmtNum(r.diamantes) + " 💎";
-    c.append(m, av, n, d);
+    c.append(m, av, n);
+    { const nvC = nivelDe(r.diamantes); if (nvC >= 0) { const ins = document.createElement("span"); ins.className = "st-niv n" + nvC; ins.textContent = NIVELES[nvC].ico + " " + NIVELES[nvC].n; c.appendChild(ins); } }
+    c.appendChild(d);
     if (r.es_soporte) { const t = document.createElement("i"); t.className = "st-sop"; t.textContent = "Soporte"; c.appendChild(t); }
     return c;
   }));
@@ -4670,10 +4672,10 @@ function armarMenuChat() {
 // =====================================================================
 const CLAVE_META = "zarela_chat_meta";
 let chatMeta = new Map(), metaEnBase = true, metaAvisada = false;
-const metaDe = (uid) => chatMeta.get(uid) || { archivado: false, salas: [] };
+const metaDe = (uid) => { const m = chatMeta.get(uid) || {}; return { archivado: !!m.archivado, salas: m.salas || [], hist: m.hist || [], ultima: m.ultima || null }; };
 function leerMetaLocal() { try { return JSON.parse(localStorage.getItem(CLAVE_META) || "{}"); } catch (_) { return {}; } }
 function escribirMetaLocal() {
-  const o = {}; chatMeta.forEach((v, k) => { if (v.archivado || v.salas.length) o[k] = v; });
+  const o = {}; chatMeta.forEach((v, k) => { if (v.archivado || (v.salas || []).length || (v.hist || []).length) o[k] = v; });
   try { localStorage.setItem(CLAVE_META, JSON.stringify(o)); } catch (_) {}
 }
 async function cargarChatMeta() {
@@ -4681,21 +4683,23 @@ async function cargarChatMeta() {
   const local = leerMetaLocal();
   chatMeta = new Map(Object.entries(local));
   try {
-    const { data, error } = await conTimeout(supabase.from("admin_chat_meta").select("user_id, archivado, salas"), 8000);
+    const { data, error } = await conTimeout(supabase.from("admin_chat_meta").select("user_id, archivado, salas, jugo_salas, ultima_sala_at"), 8000);
     if (error) throw error;
     metaEnBase = true;
-    chatMeta = new Map((data || []).map((r) => [r.user_id, { archivado: !!r.archivado, salas: (r.salas || []).map(Number) }]));
+    chatMeta = new Map((data || []).map((r) => [r.user_id, { archivado: !!r.archivado, salas: (r.salas || []).map(Number), hist: (r.jugo_salas || []).map(Number), ultima: r.ultima_sala_at || null }]));
     escribirMetaLocal();
   } catch (_) { metaEnBase = false; }
   pintarContadoresSalas(); if (vistaChats !== "normal" || true) { try { renderListaClientes(); } catch (_) {} }
 }
 async function guardarMeta(uid, cambios) {
   const nuevo = { ...metaDe(uid), ...cambios };
+  const agregadas = (nuevo.salas || []).filter((n) => !metaDe(uid).salas.includes(n));
+  if (agregadas.length) { nuevo.hist = [...new Set([...(nuevo.hist || []), ...nuevo.salas])].sort(); nuevo.ultima = new Date().toISOString(); }   // el historial de jugadores nunca se borra
   chatMeta.set(uid, nuevo); escribirMetaLocal(); pintarContadoresSalas();
-  try { renderListaClientes(); if ($("admin-vista-salas") && !$("admin-vista-salas").hidden) pintarTodasSalas(); } catch (_) {}
+  try { renderListaClientes(); if (($("admin-vista-salas") && !$("admin-vista-salas").hidden) || ($("admin-vista-jugadores") && !$("admin-vista-jugadores").hidden)) pintarTodasSalas(); } catch (_) {}
   if (!metaEnBase) { avisarMetaLocal(); return; }
   try {
-    const { error } = await supabase.from("admin_chat_meta").upsert({ user_id: uid, archivado: nuevo.archivado, salas: nuevo.salas, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+    const { error } = await supabase.from("admin_chat_meta").upsert({ user_id: uid, archivado: nuevo.archivado, salas: nuevo.salas, jugo_salas: nuevo.hist || [], ultima_sala_at: nuevo.ultima, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
     if (error) throw error;
   } catch (_) { metaEnBase = false; avisarMetaLocal(); }
 }
@@ -4721,7 +4725,8 @@ function pintarAyudaChats() {
     : "Tocá un cliente para ver su chat y acreditarle saldo.";
 }
 function pintarContadoresSalas() {
-  const cuentas = { archivados: 0, sala1: 0, sala2: 0, sala3: 0 };
+  const cuentas = { archivados: 0, sala1: 0, sala2: 0, sala3: 0, jugadores: 0 };
+  chatMeta.forEach((m) => { if ((m.hist || []).length) cuentas.jugadores++; });
   chatMeta.forEach((m) => { if (m.archivado) cuentas.archivados++; else m.salas.forEach((n) => { if (cuentas["sala" + n] !== undefined) cuentas["sala" + n]++; }); });
   Object.entries(cuentas).forEach(([k, n]) => { const e = $("rt-n-" + k); if (e) { e.textContent = String(n); e.hidden = !n; } });
 }
@@ -4734,33 +4739,40 @@ function cerrarChatActual() {
   renderListaClientes();
 }
 
-// ---- Todas las salas: lista sin repetir y aviso masivo
-let filtroSalas = "todas";
-function pintarTodasSalas() {
-  const chips = $("sl-chips"), lista = $("sl-lista"); if (!chips || !lista) return;
+// ---- Todas las salas (los que están ahora) y Jugadores (historial permanente): lista sin repetir y aviso masivo
+const filtroSalas = { sl: "todas", jg: "todas" };
+function pintarTodasSalas() { pintarListaSalas("sl", "salas"); pintarListaSalas("jg", "jugadores"); }
+function pintarListaSalas(pref, modo) {
+  const chips = $(pref + "-chips"), lista = $(pref + "-lista"); if (!chips || !lista) return;
+  const enSalas = (m) => (modo === "salas" ? m.salas : m.hist);
   const miembros = [];
-  clientesAdmin.forEach((f) => { const m = metaDe(f[CONFIG.COL_ID]); if (m.salas.length) miembros.push({ f, m }); });
-  const cuenta = (n) => miembros.filter((x) => x.m.salas.includes(n)).length;
+  clientesAdmin.forEach((f) => { const m = metaDe(f[CONFIG.COL_ID]); if (enSalas(m).length) miembros.push({ f, m }); });
+  const cuenta = (n) => miembros.filter((x) => enSalas(x.m).includes(n)).length;
   const defs = [["todas", "Todas", miembros.length], ["1", "Sala 1", cuenta(1)], ["2", "Sala 2", cuenta(2)], ["3", "Sala 3", cuenta(3)]];
-  chips.replaceChildren(...defs.map(([k, t, n]) => { const b = document.createElement("button"); b.type = "button"; b.className = "sl-chip" + (filtroSalas === k ? " on" : ""); b.innerHTML = `${t} <b>${n}</b>`; b.addEventListener("click", () => { filtroSalas = k; pintarTodasSalas(); }); return b; }));
-  const vis = miembros.filter((x) => filtroSalas === "todas" || x.m.salas.includes(Number(filtroSalas)));
+  chips.replaceChildren(...defs.map(([k, t, n]) => { const b = document.createElement("button"); b.type = "button"; b.className = "sl-chip" + (filtroSalas[pref] === k ? " on" : ""); b.innerHTML = `${t} <b>${n}</b>`; b.addEventListener("click", () => { filtroSalas[pref] = k; pintarListaSalas(pref, modo); }); return b; }));
+  const vis = miembros.filter((x) => filtroSalas[pref] === "todas" || enSalas(x.m).includes(Number(filtroSalas[pref])));
   lista.replaceChildren();
-  if (!vis.length) lista.appendChild(Object.assign(document.createElement("p"), { className: "adm-vacio", textContent: "Todavía no anotaste a nadie. Desde el menú ⋮ de un chat tocá “Mandar a Sala 1/2/3”." }));
+  if (!vis.length) lista.appendChild(Object.assign(document.createElement("p"), { className: "adm-vacio", textContent: modo === "salas" ? "Todavía no anotaste a nadie. Desde el menú ⋮ de un chat tocá “Mandar a Sala 1/2/3”." : "Todavía no hay jugadores guardados. Cada persona que mandes a una sala queda acá para siempre." }));
   vis.forEach(({ f, m }) => {
     const r = document.createElement("div"); r.className = "sl-fila";
     const n = document.createElement("div"); n.className = "sl-n";
-    n.append(Object.assign(document.createElement("b"), { textContent: f[CONFIG.COL_NOMBRE] || f[CONFIG.COL_EMAIL] || "Cliente" }), Object.assign(document.createElement("small"), { textContent: f[CONFIG.COL_EMAIL] || "" }));
+    const sub = (f[CONFIG.COL_EMAIL] || "") + (modo === "jugadores" && m.ultima ? " · última sala: " + new Date(m.ultima).toLocaleDateString("es-AR", { day: "numeric", month: "short" }) : "");
+    n.append(Object.assign(document.createElement("b"), { textContent: f[CONFIG.COL_NOMBRE] || f[CONFIG.COL_EMAIL] || "Cliente" }), Object.assign(document.createElement("small"), { textContent: sub }));
     const t = document.createElement("div"); t.className = "sl-tags";
-    m.salas.forEach((x) => t.appendChild(Object.assign(document.createElement("span"), { textContent: "Sala " + x })));
-    const q = document.createElement("button"); q.type = "button"; q.className = "sl-quitar"; q.title = "Quitar de las salas"; q.textContent = "✕";
-    q.addEventListener("click", () => guardarMeta(f[CONFIG.COL_ID], { salas: filtroSalas === "todas" ? [] : m.salas.filter((x) => x !== Number(filtroSalas)) }));
-    r.append(n, t, q); lista.appendChild(r);
+    enSalas(m).forEach((x) => t.appendChild(Object.assign(document.createElement("span"), { textContent: "Sala " + x })));
+    r.append(n, t);
+    if (modo === "salas") {
+      const q = document.createElement("button"); q.type = "button"; q.className = "sl-quitar"; q.title = "Quitar de las salas (sigue en Jugadores)"; q.textContent = "✕";
+      q.addEventListener("click", () => guardarMeta(f[CONFIG.COL_ID], { salas: filtroSalas[pref] === "todas" ? [] : m.salas.filter((x) => x !== Number(filtroSalas[pref])) }));
+      r.appendChild(q);
+    }
+    lista.appendChild(r);
   });
-  const btn = $("sl-enviar"); if (btn) { btn.disabled = !vis.length; btn.querySelector("span").textContent = vis.length ? `Avisar a ${vis.length} ${vis.length === 1 ? "persona" : "personas"}` : "Avisar"; btn._ids = vis.map((x) => x.f[CONFIG.COL_ID]); }
-  const ta = $("sl-texto"); if (ta && !ta.dataset.tocado) ta.value = "Hoy " + new Date().toLocaleDateString("es-AR", { weekday: "long" }) + " sala con Alma Zarela 🎮 ¡No pierdas tu lugar!";
+  const btn = $(pref + "-enviar"); if (btn) { btn.disabled = !vis.length; btn.querySelector("span").textContent = vis.length ? `Avisar a ${vis.length} ${vis.length === 1 ? "persona" : "personas"}` : "Avisar"; btn._ids = vis.map((x) => x.f[CONFIG.COL_ID]); }
+  const ta = $(pref + "-texto"); if (ta && !ta.dataset.tocado) ta.value = "Hoy " + new Date().toLocaleDateString("es-AR", { weekday: "long" }) + " hay sala con Alma Zarela 🎮 ¡No pierdas tu lugar!";
 }
-async function enviarAvisoSalas() {
-  const btn = $("sl-enviar"), ta = $("sl-texto"); if (!btn || !ta) return;
+async function enviarAvisoSalas(pref) {
+  const btn = $(pref + "-enviar"), ta = $(pref + "-texto"); if (!btn || !ta) return;
   const ids = btn._ids || [], texto = ta.value.trim();
   if (!ids.length) return;
   if (!texto) return mostrarAviso("Escribí el mensaje que querés enviar.", "error");
@@ -4773,14 +4785,21 @@ async function enviarAvisoSalas() {
     const { error } = await supabase.from(MSG.tabla).insert(filas);
     if (error) throw error;
     mostrarAviso(`Aviso enviado a ${ids.length} ${ids.length === 1 ? "persona" : "personas"}. ✅`, "ok");
+    try { enviarMailAviso(ids, texto); } catch (_) {}
   } catch (err) {
     console.error("Aviso masivo:", err);
     mostrarAviso("No se pudo enviar el aviso. Reintentá.", "error");
   } finally { btn.disabled = false; }
 }
+// mail por n8n/Gmail (queda activo cuando se ejecuta novedades_clientes_v11.sql y se conecta Gmail en n8n; si no, no pasa nada)
+async function enviarMailAviso(ids, texto) {
+  try { await supabase.rpc("admin_enviar_aviso_mail", { p_ids: ids, p_asunto: "Zarela · Sala de hoy 🎮", p_mensaje: texto }); } catch (_) {}
+}
 document.addEventListener("DOMContentLoaded", () => {
-  $("sl-enviar")?.addEventListener("click", enviarAvisoSalas);
-  $("sl-texto")?.addEventListener("input", (e) => { e.target.dataset.tocado = "1"; });
+  ["sl", "jg"].forEach((pref) => {
+    $(pref + "-enviar")?.addEventListener("click", () => enviarAvisoSalas(pref));
+    $(pref + "-texto")?.addEventListener("input", (e) => { e.target.dataset.tocado = "1"; });
+  });
 });
 supabase.auth.onAuthStateChange((_e, session) => { setTimeout(() => { if (session && (session.user.email || "").toLowerCase() === CONFIG.ADMIN_EMAIL.toLowerCase()) cargarChatMeta(); }, 700); });
 Object.assign(window, { cerrarChatActual });
