@@ -1084,11 +1084,17 @@
   <button type="button" id="admin-tab-precios" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-cobro" onclick="mostrarVistaAdmin('precios')" title="Precios de los paquetes"><span class="rt-i">🏷️</span><span class="rt-t">Precios</span></button>
   <button type="button" id="admin-tab-cobro" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-cobro" onclick="mostrarVistaAdmin('cobro')" title="Alias, CVU, Binance y tasa del dólar"><span class="rt-i">💳</span><span class="rt-t">Cobro</span></button>
   <button type="button" id="admin-tab-niveles" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-cobro" onclick="mostrarVistaAdmin('niveles')" title="Niveles de cliente"><span class="rt-i">🏆</span><span class="rt-t">Niveles</span></button>
+  <span class="rt-sep" aria-hidden="true"></span>
+  <button type="button" id="admin-tab-archivados" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-clientes" onclick="mostrarVistaAdmin('archivados')" title="Chats archivados"><span class="rt-i">🗄️</span><span class="rt-t">Archivados</span><span class="rt-n" id="rt-n-archivados" hidden>0</span></button>
+  <button type="button" id="admin-tab-sala1" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-clientes" onclick="mostrarVistaAdmin('sala1')" title="Clientes de la Sala 1"><span class="rt-i">🎮</span><span class="rt-t">Sala 1</span><span class="rt-n" id="rt-n-sala1" hidden>0</span></button>
+  <button type="button" id="admin-tab-sala2" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-clientes" onclick="mostrarVistaAdmin('sala2')" title="Clientes de la Sala 2"><span class="rt-i">🎮</span><span class="rt-t">Sala 2</span><span class="rt-n" id="rt-n-sala2" hidden>0</span></button>
+  <button type="button" id="admin-tab-sala3" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-clientes" onclick="mostrarVistaAdmin('sala3')" title="Clientes de la Sala 3"><span class="rt-i">🎮</span><span class="rt-t">Sala 3</span><span class="rt-n" id="rt-n-sala3" hidden>0</span></button>
+  <button type="button" id="admin-tab-todas" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-salas" onclick="mostrarVistaAdmin('todas')" title="Todas las salas y avisos"><span class="rt-i">📣</span><span class="rt-t">Todas las salas</span></button>
   </nav>
   <div class="adm-contenido">
 
   <div id="admin-vista-clientes" role="tabpanel">
-  <p class="adm-ayuda">Tocá un cliente para ver su chat y acreditarle saldo.</p>
+  <p class="adm-ayuda" id="adm-ayuda-chats">Tocá un cliente para ver su chat y acreditarle saldo.</p>
   <div style="display: flex; gap: 15px; flex-wrap: wrap;">
   <div id="admin-col-lista" style="flex: 1; min-width: 200px; align-self: flex-start; display: flex; flex-direction: column; gap: 8px;">
   <label class="adm-buscar"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="admin-buscar-cliente" placeholder="Buscar cliente…" autocomplete="off" aria-label="Buscar cliente"></label>
@@ -1161,6 +1167,18 @@
   <label>Desbloquear al llegar a (💎 recargados en total)<input type="number" id="cobro-binance_min" inputmode="numeric" min="1"></label>
   </div>
   </details>
+  </div>
+  </div>
+
+  <div id="admin-vista-salas" role="tabpanel" hidden>
+  <p class="adm-ayuda">Todas las personas que anotaste en las salas, sin repetir. Elegí a quiénes avisar y mandales el mensaje.</p>
+  <div class="sl-chips" id="sl-chips"></div>
+  <div class="sl-lista" id="sl-lista"></div>
+  <div class="sl-aviso">
+  <label for="sl-texto">Mensaje para enviar</label>
+  <textarea id="sl-texto" rows="3" maxlength="300"></textarea>
+  <button type="button" id="sl-enviar" class="sl-enviar"><i class="fa-solid fa-bullhorn"></i> <span>Avisar</span></button>
+  <small>Les llega por el chat con sonido (si tienen la página abierta). Más adelante lo conectamos al mail y a las notificaciones.</small>
   </div>
   </div>
 
