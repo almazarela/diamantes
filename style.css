@@ -1921,28 +1921,36 @@ body.modo-admin #admin-panel-section{display:block!important;width:min(1100px,10
 @keyframes sbBrillo{0%,100%{background-position:100% 0}50%{background-position:0 0}}
 @media (prefers-reduced-motion:reduce){.sb-in h2 b{animation:none}}
 
-.slide-top{container-type:inline-size;background:radial-gradient(circle at 50% 0%,rgba(127,214,255,.28),transparent 60%),radial-gradient(circle at 10% 100%,rgba(25,230,140,.14),transparent 50%),linear-gradient(135deg,#142447,#0a0f20)!important}
-.st-in{padding:1.6cqw 3cqw;gap:1cqw;justify-content:space-between}
-.st-in h4{font-size:3.6cqw;line-height:1.1}
-.st-lista{display:flex;flex-direction:column;gap:1.4cqw;align-items:stretch}
+.slide-top{container-type:size;border:1px solid rgba(25,230,140,.65);
+  background:radial-gradient(ellipse at 50% -15%,rgba(25,230,140,.5),transparent 62%),radial-gradient(ellipse at 50% 125%,rgba(0,40,28,.95),transparent 70%),linear-gradient(180deg,#0d4a34 0%,#06241a 52%,#020b08 100%)!important;
+  box-shadow:0 0 16px rgba(25,230,140,.35),inset 0 0 22px rgba(25,230,140,.22),0 6px 20px rgba(0,0,0,.8)}
+.slide-top::before,.slide-top::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.2}
+.slide-top::before{background:radial-gradient(circle at 43% 22%,#b9ffd9 0,#b9ffd9 0.6px,transparent 1.2px),radial-gradient(circle at 11% 71%,#eafff4 0,#eafff4 1px,transparent 1.6px),radial-gradient(circle at 76% 10%,#fff 0,#fff 0.8px,transparent 1.4px),radial-gradient(circle at 6% 14%,#b9ffd9 0,#b9ffd9 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 10% 33%,#eafff4 0,#eafff4 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 9% 75%,#eafff4 0,#eafff4 0.8px,transparent 1.4px),radial-gradient(circle at 82% 83%,#fff 0,#fff 0.6px,transparent 1.2px),radial-gradient(circle at 75% 77%,#b9ffd9 0,#b9ffd9 0.6px,transparent 1.2px),radial-gradient(circle at 30% 8%,#fff 0,#fff 0.8px,transparent 1.4px),radial-gradient(circle at 39% 56%,#eafff4 0,#eafff4 0.6px,transparent 1.2px),radial-gradient(circle at 75% 42%,#fff 0,#fff 0.8px,transparent 1.4px),radial-gradient(circle at 15% 77%,#fff 0,#fff 0.8px,transparent 1.4px),radial-gradient(circle at 49% 15%,#fff 0,#fff 0.6px,transparent 1.2px),radial-gradient(circle at 74% 10%,#fff 0,#fff 0.8px,transparent 1.4px),radial-gradient(circle at 65% 90%,#fff 0,#fff 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 42% 62%,#fff 0,#fff 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 48% 41%,#eafff4 0,#eafff4 0.8px,transparent 1.4px),radial-gradient(circle at 91% 34%,#eafff4 0,#eafff4 1px,transparent 1.6px),radial-gradient(circle at 69% 66%,#b9ffd9 0,#b9ffd9 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 38% 80%,#eafff4 0,#eafff4 0.6px,transparent 1.2px),radial-gradient(circle at 67% 56%,#eafff4 0,#eafff4 1px,transparent 1.6px),radial-gradient(circle at 21% 65%,#b9ffd9 0,#b9ffd9 0.6px,transparent 1.2px);animation:stTit 3.6s ease-in-out infinite}
+.slide-top::after{background:radial-gradient(circle at 87% 12%,#d6f5ff 0,#d6f5ff 1px,transparent 1.6px),radial-gradient(circle at 45% 91%,#9dffcb 0,#9dffcb 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 76% 61%,#eafff4 0,#eafff4 0.6px,transparent 1.2px),radial-gradient(circle at 36% 63%,#d6f5ff 0,#d6f5ff 0.6px,transparent 1.2px),radial-gradient(circle at 9% 96%,#d6f5ff 0,#d6f5ff 1px,transparent 1.6px),radial-gradient(circle at 84% 76%,#d6f5ff 0,#d6f5ff 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 38% 94%,#9dffcb 0,#9dffcb 1px,transparent 1.6px),radial-gradient(circle at 4% 62%,#9dffcb 0,#9dffcb 0.8px,transparent 1.4px),radial-gradient(circle at 80% 17%,#9dffcb 0,#9dffcb 0.6px,transparent 1.2px),radial-gradient(circle at 29% 39%,#eafff4 0,#eafff4 0.8px,transparent 1.4px),radial-gradient(circle at 52% 53%,#9dffcb 0,#9dffcb 0.6px,transparent 1.2px),radial-gradient(circle at 23% 60%,#9dffcb 0,#9dffcb 1px,transparent 1.6px),radial-gradient(circle at 19% 58%,#d6f5ff 0,#d6f5ff 1px,transparent 1.6px),radial-gradient(circle at 92% 56%,#9dffcb 0,#9dffcb 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 31% 22%,#eafff4 0,#eafff4 0.8px,transparent 1.4px),radial-gradient(circle at 21% 32%,#d6f5ff 0,#d6f5ff 0.8px,transparent 1.4px),radial-gradient(circle at 3% 65%,#d6f5ff 0,#d6f5ff 0.8px,transparent 1.4px),radial-gradient(circle at 35% 39%,#eafff4 0,#eafff4 0.8px,transparent 1.4px),radial-gradient(circle at 55% 71%,#9dffcb 0,#9dffcb 1px,transparent 1.6px),radial-gradient(circle at 18% 91%,#d6f5ff 0,#d6f5ff 0.6px,transparent 1.2px),radial-gradient(circle at 60% 90%,#d6f5ff 0,#d6f5ff 1.2px,transparent 1.7999999999999998px),radial-gradient(circle at 52% 54%,#9dffcb 0,#9dffcb 0.6px,transparent 1.2px);animation:stTit 3.6s ease-in-out -1.8s infinite}
+@keyframes stTit{0%,100%{opacity:.08}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.slide-top::before,.slide-top::after{animation:none;opacity:.6}}
+.st-in{position:relative;z-index:1;padding:3cqh 3cqw;gap:2cqh;justify-content:space-between}
+.st-in h4{font-size:8.5cqh;line-height:1;text-shadow:0 0 12px rgba(25,230,140,.6)}
+.st-lista{display:flex;flex-direction:column;gap:3cqh;align-items:stretch}
 .st-podio{display:flex;justify-content:center;align-items:flex-end;gap:2.4cqw}
-.st-podio .st-item{flex:0 1 25cqw;background:rgba(255,255,255,.07);border:1px solid rgba(127,214,255,.4);border-radius:3.5cqw;padding:1.1cqw .8cqw;gap:.3cqw;box-shadow:inset 0 1px 0 rgba(255,255,255,.15)}
-.st-podio .st-item.st0{flex-basis:29cqw;border-color:#19e68c;background:rgba(25,230,140,.1);box-shadow:0 0 4cqw rgba(25,230,140,.28),inset 0 1px 0 rgba(255,255,255,.2);padding-bottom:1.4cqw}
-.st-podio .st-av{width:9.5cqw;height:9.5cqw;font-size:4cqw;border-width:.4cqw;border-color:#7fd6ff}
-.st-podio .st-item.st0 .st-av{width:12.5cqw;height:12.5cqw;font-size:5cqw;border-color:#19e68c}
-.st-podio .st-med{position:absolute;top:.6cqw;left:1.2cqw;font-size:3.2cqw}
-.st-fn{display:flex;align-items:center;gap:1cqw;max-width:100%;justify-content:center}
-.st-podio .st-nom{font-size:3cqw}
-.st-podio .st-dia{font-size:2.9cqw;color:#e9fbff}
-.st-niv{font-size:2.8cqw;padding:0;background:none;border:0;line-height:1}
+.st-podio .st-item{flex:0 1 25cqw;background:rgba(255,255,255,.06);border:1px solid rgba(25,230,140,.35);border-radius:min(5cqh,3cqw);padding:2cqh 1cqw;gap:.8cqh;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);backdrop-filter:blur(3px)}
+.st-podio .st-item.st0{flex-basis:29cqw;border-color:#19e68c;background:rgba(25,230,140,.14);box-shadow:0 0 14px rgba(25,230,140,.4),inset 0 1px 0 rgba(255,255,255,.2)}
+.st-podio .st-av{width:18cqh;height:18cqh;font-size:8cqh;border:2px solid #7fd6ff}
+.st-podio .st-item.st0 .st-av{width:23cqh;height:23cqh;font-size:10cqh;border-color:#19e68c}
+.st-podio .st-med{position:absolute;top:1cqh;left:1.2cqw;font-size:6.5cqh}
+.st-fn{display:flex;align-items:center;gap:1cqw;max-width:100%;justify-content:center;min-width:0}
+.st-podio .st-nom{font-size:7.5cqh;line-height:1.1}
+.st-podio .st-dia{font-size:7cqh;line-height:1.1;color:#e9fbff}
+.st-niv{font-size:6.5cqh;padding:0;background:none;border:0;line-height:1}
 .st-resto{display:grid;grid-template-columns:1fr 1fr;gap:2cqw}
-.st-resto .st-item{flex-direction:row;gap:1.6cqw;padding:.9cqw 2.2cqw;border-radius:99px;background:rgba(255,255,255,.08);border:1px solid rgba(127,214,255,.3);min-width:0}
-.st-resto .st-av{width:7cqw;height:7cqw;font-size:3cqw;flex:none}
-.st-resto .st-med{font-size:2.8cqw;flex:none}
+.st-resto .st-item{flex-direction:row;gap:1.6cqw;padding:1.4cqh 2.2cqw;border-radius:99px;background:rgba(255,255,255,.08);border:1px solid rgba(25,230,140,.3);min-width:0}
+.st-resto .st-av{width:14cqh;height:14cqh;font-size:6.5cqh;flex:none;border:2px solid #7fd6ff}
+.st-resto .st-med{font-size:6.5cqh;flex:none}
 .st-resto .st-tx{display:flex;flex-direction:row;align-items:center;gap:1cqw;min-width:0;flex:1}
-.st-resto .st-nom{font-size:3cqw}
-.st-resto .st-dia{font-size:2.9cqw;color:#e9fbff;flex:none}
-.st-sop{font-size:1.9cqw}
+.st-resto .st-nom{font-size:7cqh}
+.st-resto .st-dia{font-size:7cqh;color:#e9fbff;flex:none}
+.st-sop{font-size:4.6cqh}
+
 /* Top de recargas de abajo: un poco más redondeado */
 #top-mes{border-radius:26px}
 .top-lista{gap:8px}
