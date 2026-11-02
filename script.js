@@ -4285,6 +4285,7 @@ function avisarAcreditada(seguimiento) {
 }
 async function consultarSeguimiento() {
   if (!seg || !usuarioActual) return;
+  try { if (seg.estado === "pendiente") supabase.rpc("promo_liberar_mis_vencidas").then(() => {}, () => {}); } catch (_) {}
   try {
     const { data, error } = await conTimeout(supabase.from("ordenes_recarga").select("estado").eq("id", seg.id).maybeSingle(), 8000);
     if (error || !data) return;
@@ -5725,15 +5726,17 @@ document.addEventListener("DOMContentLoaded", () => {
 // v29: "Pendientes" del administrador + guía animada para clientes nuevos
 // =====================================================================
 async function hoyDatos() {
-  const d = { chats: [], ords: [], stock: [], hoyOk: 0, hoyDia: 0, err: [] };
+  const d = { chats: [], ords: [], stock: [], espera: [], modo: promoModo, hoyOk: 0, hoyDia: 0, err: [] };
   resumenAdmin.forEach((r, id) => { if (r.noLeidos > 0) d.chats.push({ id, n: r.noLeidos, ultima: r.ultima }); });
   d.chats.sort((a, b) => b.ultima - a.ultima);
   try {
-    const r = await conTimeout(supabase.from("ordenes_recarga").select("id,estado,envio_error,created_at,id_jugador,diamantes").order("created_at", { ascending: false }).limit(60), 10000);
+    let r = await conTimeout(supabase.from("ordenes_recarga").select("id,estado,envio_error,created_at,id_jugador,diamantes,promo_estado,promo_hasta").order("created_at", { ascending: false }).limit(60), 10000);
+    if (r.error) r = await conTimeout(supabase.from("ordenes_recarga").select("id,estado,envio_error,created_at,id_jugador,diamantes").order("created_at", { ascending: false }).limit(60), 10000);
     if (r.error) throw r.error;
     const inicio = new Date(); inicio.setHours(0, 0, 0, 0);
     (r.data || []).forEach((o) => {
-      if (o.estado === "pendiente" || o.estado === "error_envio") d.ords.push(o);
+      if (o.promo_estado === "esperando" && o.estado === "pendiente") d.espera.push(o);
+      else if (o.estado === "pendiente" || o.estado === "error_envio") d.ords.push(o);
       if (o.estado === "completada" && new Date(o.created_at) >= inicio) { d.hoyOk++; d.hoyDia += Number(o.diamantes) || 0; }
     });
   } catch (_) { d.err.push("órdenes"); }
@@ -5745,13 +5748,13 @@ async function hoyDatos() {
   } catch (_) { d.err.push("stock"); }
   return d;
 }
-const hoyTotal = (d) => d.chats.length + d.ords.length + d.stock.length;
+const hoyTotal = (d) => d.chats.length + d.ords.length + d.stock.length + d.espera.length;
 async function actualizarBadgeHoy() {
   if (!esAdminActual() || !document.body.classList.contains("modo-admin") || document.hidden) return;
   const d = await hoyDatos(), b = $("hoy-n"); if (!b) return;
   const n = hoyTotal(d); b.hidden = n === 0; b.textContent = n > 99 ? "99+" : String(n);
 }
-let hoySeq = 0;
+let hoySeq = 0, promoModo = false, promoVistas = new Set();
 async function pintarHoy() {
   const c = $("hoy-cont"); if (!c) return;
   const mi = ++hoySeq;
@@ -5771,6 +5774,35 @@ async function pintarHoy() {
   };
   const abrirChat = (id) => { mostrarVistaAdmin("clientes"); const f = clientesAdmin.find((x) => x[CONFIG.COL_ID] === id); if (f) seleccionarCliente(f, etiquetaCliente(id)); };
   const minOrd = (o) => { const m = Math.max(0, Math.round((Date.now() - new Date(o.created_at).getTime()) / 60000)); return m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`; };
+  // --- modo "Estoy disponible" (compra manual con descuento)
+  const caja = document.createElement("div"); caja.className = "hoy-promo" + (d.modo ? " on" : "");
+  caja.innerHTML = `<div class="hoy-promo-t"><b>💸 Compras con descuento (Pago Store)</b><label class="hoy-sw"><input type="checkbox"><span></span></label></div><p class="hoy-promo-d"></p>`;
+  const chk = caja.querySelector("input"); chk.checked = !!d.modo;
+  caja.querySelector(".hoy-promo-d").textContent = d.modo
+    ? "ESTÁS DISPONIBLE: cada pedido nuevo espera hasta 3 minutos acá. Si lo comprás vos con descuento, apretá «Ya la cargué». Si no hacés nada, sale solo con tu PIN."
+    : "Apagado: todos los pedidos salen al instante con tus PIN. Prendelo cuando estés frente a la compu y quieras aprovechar el 50 %.";
+  chk.addEventListener("change", async () => {
+    chk.disabled = true;
+    try { const { data, error } = await supabase.rpc("admin_promo_modo", { p_activo: chk.checked }); if (error) throw error; promoModo = !!data; mostrarAviso(promoModo ? "Disponible: los pedidos esperan hasta 3 min por vos." : "Apagado: todo sale con PIN al instante.", "ok"); }
+    catch (e) { chk.checked = !chk.checked; mostrarAviso(/PGRST202|does not exist/i.test(String(e.message || e.code)) ? "Falta ejecutar novedades_clientes_v20.sql en Supabase." : "No se pudo cambiar.", "error"); }
+    pintarHoy();
+  });
+  c.appendChild(caja);
+  if (d.espera.length) {
+    const w = document.createElement("div"); w.className = "hoy-espera";
+    d.espera.forEach((o) => {
+      const f = document.createElement("div"); f.className = "hoy-esp-fila";
+      const seg = Math.max(0, Math.round((new Date(o.promo_hasta).getTime() - Date.now()) / 1000));
+      f.innerHTML = `<div class="hoy-esp-i"><b></b><small></small></div><button type="button" class="hoy-ok">✅ Ya la cargué</button><button type="button" class="hoy-pin">🚀 Mandar con PIN</button>`;
+      f.querySelector("b").textContent = `Orden #${o.id} · ${o.diamantes || "?"} 💎 · ID ${o.id_jugador}`;
+      f.querySelector("small").textContent = `Pago Store → República Dominicana → ese ID → ${o.diamantes} → PayPal.  Sale solo con PIN en ${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, "0")}`;
+      f.querySelector("b").addEventListener("click", () => { try { navigator.clipboard.writeText(String(o.id_jugador)); mostrarAviso("ID copiado.", "ok"); } catch (_) {} });
+      f.querySelector(".hoy-ok").addEventListener("click", async () => { const { error } = await supabase.rpc("admin_promo_cargada", { p_orden_id: o.id }); mostrarAviso(error ? "No se pudo cerrar (¿ya salió con PIN?)." : "Listo: orden acreditada y el PIN volvió a tu stock.", error ? "error" : "ok"); pintarHoy(); });
+      f.querySelector(".hoy-pin").addEventListener("click", async () => { const { error } = await supabase.rpc("admin_promo_mandar_pin", { p_orden_id: o.id }); mostrarAviso(error ? "No se pudo enviar." : "Enviada con PIN.", error ? "error" : "ok"); pintarHoy(); });
+      w.appendChild(f);
+    });
+    c.appendChild(w);
+  }
   const grid = document.createElement("div"); grid.className = "hoy-grid";
   grid.append(
     tarjeta("💬", "Chats sin leer", d.chats.length, "aviso", d.chats.map((x) => [etiquetaCliente(x.id), `${x.n} sin leer · ${tiempoRelativo(x.ultima)}`, () => abrirChat(x.id)]), "No hay mensajes sin leer.", ["Ir a Chats", () => mostrarVistaAdmin("clientes")]),
@@ -5909,3 +5941,21 @@ function iniciarTiempoReal() {
   } catch (e) { console.warn("Tiempo real no disponible:", e && e.message); }
 }
 setInterval(iniciarTiempoReal, 4000);   // se (re)conecta solo cuando cambia la sesión
+
+
+// ---- vigilante del modo "Estoy disponible": avisa con sonido cuando entra un pedido que espera tu compra
+async function promoVigilar() {
+  if (!esAdminActual() || document.hidden || !document.body.classList.contains("modo-admin")) return;
+  try {
+    const m = await supabase.rpc("admin_promo_modo");
+    if (m.error) return; promoModo = !!m.data;
+    if (!promoModo) return;
+    const r = await supabase.from("ordenes_recarga").select("id,id_jugador,diamantes,promo_hasta").eq("promo_estado", "esperando").eq("estado", "pendiente");
+    if (r.error) return;
+    const nuevas = (r.data || []).filter((o) => !promoVistas.has(o.id));
+    nuevas.forEach((o) => promoVistas.add(o.id));
+    if (nuevas.length) { avisar("💸 Pedido esperando tu compra:", `${nuevas[0].diamantes} 💎 · ID ${nuevas[0].id_jugador}`, { tipo: "info" }); if (vistaAdmin !== "hoy") { const b = $("hoy-n"); if (b) { b.hidden = false; b.textContent = String((r.data || []).length); } } }
+    if (vistaAdmin === "hoy" && (r.data || []).length) pintarHoy();
+  } catch (_) {}
+}
+setInterval(promoVigilar, 5000);

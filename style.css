@@ -2597,3 +2597,24 @@ body.modo-admin .op-form-campos .op-btn{padding:5px 10px;font-size:.72rem}
  .slide-ayuda .mk-transf b{font-size:max(11px,6.2cqh);line-height:1.15}
  .slide-ayuda .mk-alias{font-size:max(11px,5.8cqh)}
 }
+
+/* ===== v31: modo "Estoy disponible" ===== */
+.hoy-promo{border:1px solid #2b3544;background:#101523;border-radius:12px;padding:8px 10px}
+.hoy-promo.on{border-color:#19e68c;box-shadow:0 0 12px rgba(25,230,140,.3)}
+.hoy-promo-t{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px}
+.hoy-promo-d{margin:4px 0 0;font-size:11.5px;color:#9db3cf;line-height:1.35}
+.hoy-promo.on .hoy-promo-d{color:#9dffc9}
+.hoy-sw{position:relative;width:42px;height:24px;flex:none}
+.hoy-sw input{opacity:0;position:absolute;inset:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1}
+.hoy-sw span{position:absolute;inset:0;border-radius:99px;background:#3b4a6b;transition:.2s}
+.hoy-sw span::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+.hoy-sw input:checked+span{background:#19e68c}
+.hoy-sw input:checked+span::after{transform:translateX(18px)}
+.hoy-espera{display:flex;flex-direction:column;gap:6px}
+.hoy-esp-fila{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;border:1px solid #f3ba2f;background:rgba(243,186,47,.08);border-radius:12px;padding:8px 10px;box-shadow:0 0 12px rgba(243,186,47,.25)}
+.hoy-esp-i{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:13px}
+.hoy-esp-i b{cursor:copy}
+.hoy-esp-i small{color:#cdb98a;font-size:11px}
+.hoy-ok,.hoy-pin{border:0;border-radius:9px;padding:7px 11px;font:800 12px/1.1 inherit;cursor:pointer}
+.hoy-ok{background:linear-gradient(135deg,#9dffc9,#19e68c);color:#04210f}
+.hoy-pin{background:#1d2740;color:#7dd3fc;border:1px solid #3f557f}
