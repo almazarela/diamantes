@@ -2004,6 +2004,13 @@ function renderOrdenesAdmin() {
       b.textContent = ocupada ? "Reenviando…" : "🔁 Reenviar a n8n";
       b.addEventListener("click", () => reenviarOrden(o, b));
       acciones.appendChild(b);
+      const ac = document.createElement("button");
+      ac.type = "button";
+      ac.className = "ord-btn ok";
+      ac.textContent = "✅ Ya se acreditó";
+      ac.title = "Usalo solo si en redeempins.com comprobaste que el PIN SÍ se usó";
+      ac.addEventListener("click", () => acreditarOrdenManual(o, ac));
+      acciones.appendChild(ac);
       const c = document.createElement("button");
       c.type = "button";
       c.className = "ord-btn peligro";
@@ -2038,6 +2045,36 @@ function textoErrorReenvio(err) {
   if (msg.includes("ORDEN_NO_ENCONTRADA")) return "La orden ya no existe.";
   if (msg.includes("cerrada")) return "Esa orden ya estaba cerrada: actualizá la lista.";
   return "No se pudo reenviar la orden. Probá de nuevo en un momento.";
+}
+
+async function acreditarOrdenManual(o, boton) {
+  const ok = await mostrarConfirmacion({
+    tono: "ok", icono: "✅", titulo: `Cerrar orden #${o.id} como acreditada`,
+    texto: "Usalo SOLO si ya comprobaste en redeempins.com que este PIN figura como usado (o el cliente ya vio sus diamantes). La orden pasa a «completada» y no se devuelve el saldo.",
+    filas: [
+      ["Cliente", etiquetaCliente(o.user_id) || "-"],
+      ["ID Free Fire", String(o.id_jugador || "-")],
+      ["Paquete", o.diamantes ? o.diamantes + " 💎" : String(o.paquete_id)],
+    ],
+    confirmar: "Sí, ya se acreditó", cancelar: "No, volver",
+  });
+  if (!ok) return;
+  if (boton) { boton.disabled = true; boton.textContent = "Cerrando…"; }
+  try {
+    const { error } = await conTimeout(supabase.rpc("admin_acreditar_orden", { p_orden_id: o.id }), 25000);
+    if (error) throw error;
+    ultimaCargaOrdenes = 0;
+    await cargarOrdenesAdmin(true);
+    mostrarAviso(`Orden #${o.id} cerrada como acreditada.`, "ok");
+    saludRevisar();
+  } catch (err) {
+    const msg = String((err && err.message) || "");
+    mostrarAviso(
+      err && err.code === "PGRST202" ? "Falta ejecutar novedades_clientes_v17.sql en Supabase."
+      : msg.includes("ORDEN_CERRADA") ? "Esa orden ya estaba cerrada: actualizá la lista."
+      : "No se pudo cerrar la orden. Probá de nuevo en un momento.", "error");
+    renderOrdenesAdmin();
+  }
 }
 
 async function cancelarOrden(o, boton) {
@@ -4023,22 +4060,38 @@ async function completarApodo() {
   if (idsEnTabla) { try { await supabase.from("ids_guardados").update({ apodo: x.apodo }).eq("id", x.id); } catch (_) {} } else guardarIdsLocal();
   pintarIdsGuardados();
 }
+let ziAbierto = false;
 function pintarIdsGuardados() {
   const caja = $("ids-guardados"), lista = $("zi-lista"), btn = $("zi-guardar");
   if (!caja) return;
   const actual = ($("player-id")?.value || "").trim();
   const valido = /^\d{5,15}$/.test(actual);
   const yaEsta = idsGuardados.some((x) => x.id_jugador === actual);
-  lista.replaceChildren(...idsGuardados.map((x) => {
+  const hacerChip = (x) => {
     const chip = document.createElement("span"); chip.className = "zi-chip";
     const b = document.createElement("button"); b.type = "button"; b.title = "Usar este ID";
     b.append(x.apodo ? x.apodo : x.id_jugador);
     if (x.apodo) { const sm = document.createElement("small"); sm.textContent = x.id_jugador.slice(-4).padStart(x.id_jugador.length > 4 ? 5 : 4, "…"); b.append(sm); }
-    b.onclick = () => { $("player-id").value = x.id_jugador; alEditarId(); pintarIdsGuardados(); verificarJugador(); };
+    b.onclick = () => { ziAbierto = false; $("player-id").value = x.id_jugador; alEditarId(); pintarIdsGuardados(); verificarJugador(); };
     const del = document.createElement("button"); del.type = "button"; del.className = "zi-x"; del.textContent = "✕"; del.title = "Borrar este ID guardado";
     del.onclick = () => borrarIdGuardado(x);
     chip.append(b, del); return chip;
-  }));
+  };
+  // El primero guardado queda a la vista; todos los demás van en el desplegable "Mis ID guardados"
+  const filas = idsGuardados.length ? [hacerChip(idsGuardados[0])] : [];
+  if (idsGuardados.length > 1) {
+    const mas = document.createElement("button"); mas.type = "button"; mas.className = "zi-mas" + (ziAbierto ? " abierto" : "");
+    mas.setAttribute("aria-expanded", String(ziAbierto));
+    mas.innerHTML = '<i class="fa-solid fa-folder-open"></i> Mis ID guardados <em>' + idsGuardados.length + '</em> <i class="fa-solid fa-chevron-down zi-fl"></i>';
+    mas.onclick = () => { ziAbierto = !ziAbierto; pintarIdsGuardados(); };
+    filas.push(mas);
+    if (ziAbierto) {
+      const panel = document.createElement("div"); panel.className = "zi-panel";
+      idsGuardados.forEach((x) => panel.appendChild(hacerChip(x)));
+      filas.push(panel);
+    }
+  }
+  lista.replaceChildren(...filas);
   const puedeGuardar = !!usuarioActual && valido && !yaEsta && idsGuardados.length < 6;
   btn.hidden = !puedeGuardar;
   caja.hidden = !usuarioActual || (!idsGuardados.length && !puedeGuardar);
@@ -5259,3 +5312,129 @@ async function instalarApp() {
   modalInstalar();
 }
 document.addEventListener("DOMContentLoaded", () => { pintarInstalar(); $("sb-instalar")?.addEventListener("click", () => { try { toggleMenu(); } catch (_) {} instalarApp(); }); });
+
+
+// =====================================================================
+// v24: botón rojo ❓ de "algo está fallando" (solo administrador) con guía de cómo arreglarlo
+// =====================================================================
+const erroresPagina = [];
+window.addEventListener("error", (e) => { erroresPagina.push({ t: Date.now(), m: String(e.message || "error").slice(0, 200), d: (e.filename || "").split("/").pop() + ":" + (e.lineno || "") }); if (erroresPagina.length > 20) erroresPagina.shift(); });
+window.addEventListener("unhandledrejection", (e) => { erroresPagina.push({ t: Date.now(), m: String((e.reason && e.reason.message) || e.reason || "promesa rechazada").slice(0, 200), d: "promesa" }); if (erroresPagina.length > 20) erroresPagina.shift(); });
+let saludProblemas = [], saludRevisando = false, saludUltima = 0;
+const irPanelAdmin = (vista) => () => { cerrarSalud(); try { mostrarVistaAdmin(vista); } catch (_) {} setTimeout(() => ($("admin-panel-section") || $("admin-vista-" + vista))?.scrollIntoView({ behavior: "smooth", block: "start" }), 120); };
+const textoMin = (min) => (min < 120 ? min + " min" : Math.floor(min / 60) + " h");
+
+async function saludReunir() {
+  const out = [];
+  // --- Órdenes
+  let ords = [];
+  try {
+    const cols = ["id", "estado", "envio_error", "n8n_http_status", "created_at", "updated_at", "id_jugador", "diamantes"];
+    let r = await conTimeout(supabase.from("ordenes_recarga").select(cols.join(",")).order("created_at", { ascending: false }).limit(60), 12000);
+    if (r.error) r = await conTimeout(supabase.from("ordenes_recarga").select("id,estado,created_at,updated_at,id_jugador,diamantes").order("created_at", { ascending: false }).limit(60), 12000);
+    if (r.error) throw r.error;
+    ords = r.data || [];
+  } catch (e) {
+    out.push({ id: "ord-lectura", nivel: "alto", icono: "📦", titulo: "No se pudo leer la lista de órdenes",
+      detalle: "La página no logró consultar las órdenes en Supabase: " + String((e && e.message) || e).slice(0, 160),
+      pasos: ["Recargá la página con Ctrl+F5 y volvé a entrar al modo administrador.", "Si sigue igual, entrá a supabase.com → tu proyecto → Table Editor → ordenes_recarga y fijate si abre. Si Supabase está caído, esperá unos minutos: no se pierde nada.", "Si abre pero la página no: Authentication → Policies → ordenes_recarga debe tener una política que te deje leer todo con tu mail de administrador (está en pines_y_compras.sql).", "Si nada de eso alcanza, copiá el informe (botón de abajo) y mandámelo."],
+      ir: irPanelAdmin("ordenes"), irTxt: "Ir a Órdenes" });
+  }
+  const ahora = Date.now();
+  const edad = (o) => Math.floor((ahora - new Date(o.updated_at || o.created_at).getTime()) / 60000);
+  const revisar = ords.filter((o) => o.estado === "pendiente" && /REVISAR A MANO/i.test(o.envio_error || ""));
+  if (revisar.length) out.push({ id: "ord-incierto", nivel: "alto", icono: "🔎", titulo: `${revisar.length} orden${revisar.length > 1 ? "es" : ""} para revisar a mano: ${revisar.map((o) => "#" + o.id).join(", ")}`,
+    detalle: "El robot de canje intentó cargar los diamantes pero NO pudo confirmar si salieron. Por seguridad no reintenta ni devuelve nada solo (podrían haberse entregado igual). Mensaje del robot: " + String(revisar[0].envio_error || "").replace(/^⚠\s*REVISAR A MANO\s*·?\s*/i, "").slice(0, 280),
+    pasos: ["NO toques «Reenviar» todavía: si el PIN ya se usó, reenviar lo gastaría de nuevo.", "Entrá a redeempins.com (tu cuenta de canje) y buscá el PIN de esa orden. ¿Figura como usado / canjeado?", "PIN usado → los diamantes salieron. Pedile al cliente que reinicie Free Fire y mirá que los tenga. En Órdenes tocá «✅ Ya se acreditó».", "PIN sin usar → no salió nada. En Órdenes tocá «🔁 Reenviar a n8n» (vuelve a intentar con el mismo PIN, sin cobrar de nuevo).", "Si el ID del cliente está mal o no hay forma de recargar → «✖ Cancelar y devolver»: le devuelve el saldo y el PIN vuelve a tu stock.", "Si pasa seguido: mirá en n8n → Ejecuciones la corrida de esa orden y abrí el nodo «Canjear en redeempins»: ahí está la respuesta exacta del robot (campo «mensaje» y «codigo»)."],
+    ir: irPanelAdmin("ordenes"), irTxt: "Ir a Órdenes" });
+  const errEnv = ords.filter((o) => o.estado === "error_envio");
+  if (errEnv.length) out.push({ id: "ord-envio", nivel: "alto", icono: "📡", titulo: `${errEnv.length} orden${errEnv.length > 1 ? "es" : ""} no llegó a n8n: ${errEnv.map((o) => "#" + o.id).join(", ")}`,
+    detalle: "La compra está cobrada y el PIN reservado, pero n8n no recibió el aviso. " + String(errEnv[0].envio_error || "").slice(0, 200),
+    pasos: ["Abrí n8n y fijate que el flujo «canje finalizado» esté Activo (interruptor arriba a la derecha, en verde).", "Fijate que Docker Desktop esté abierto y el contenedor de n8n corriendo (en Docker Desktop → Containers).", "Probá abrir https://n8n.almazarela.com en el navegador. Si no abre, el túnel/dominio está caído: reiniciá el túnel (Cloudflare) en tu PC.", "Con todo funcionando, andá a Órdenes y tocá «🔁 Reenviar a n8n» en cada una.", "Mientras tanto el cliente ve «En espera: se acredita apenas retomemos las recargas»: no pierde nada."],
+    ir: irPanelAdmin("ordenes"), irTxt: "Ir a Órdenes" });
+  const colgadas = ords.filter((o) => o.estado === "pendiente" && !/REVISAR A MANO/i.test(o.envio_error || "") && edad(o) >= 6);
+  if (colgadas.length) out.push({ id: "ord-colgada", nivel: "medio", icono: "⏳", titulo: `${colgadas.length} orden${colgadas.length > 1 ? "es" : ""} pendiente${colgadas.length > 1 ? "s" : ""} hace rato: ${colgadas.slice(0, 5).map((o) => "#" + o.id + " (" + textoMin(edad(o)) + ")").join(", ")}`,
+    detalle: "n8n recibió la orden pero todavía no avisó el resultado. Normalmente tarda menos de un minuto; si pasaron más de 5, algo se trabó (el robot, redeempins.com o tu PC).",
+    pasos: ["Abrí n8n → Ejecuciones y buscá la de esa orden: si está en rojo o todavía «Running», ahí está el problema.", "Revisá que Docker Desktop esté abierto y el servicio de canje (el robot, puerto 8080) corriendo. Si lo reiniciás, la orden queda marcada «para revisar a mano».", "Abrí redeempins.com a mano: si da error (por ejemplo «520»), el sitio está caído y hay que esperar.", "Antes de reenviar, verificá en redeempins.com si el PIN ya se usó (si se usó, tocá «✅ Ya se acreditó»; si no, «🔁 Reenviar a n8n»)."],
+    ir: irPanelAdmin("ordenes"), irTxt: "Ir a Órdenes" });
+  // --- Stock de PINs
+  try {
+    const { data, error } = await conTimeout(supabase.rpc("admin_stock_pines"), 12000);
+    if (error) throw error;
+    const sin = (data || []).filter((x) => Number(x.disponibles) === 0), pocos = (data || []).filter((x) => Number(x.disponibles) > 0 && Number(x.disponibles) <= 2);
+    if (sin.length) out.push({ id: "stock-cero", nivel: "alto", icono: "📉", titulo: `Sin PINs para: ${sin.map((x) => x.nombre || (x.diamantes + " 💎")).join(", ")}`,
+      detalle: "Si un cliente compra ese paquete, no hay PIN para entregarle.",
+      pasos: ["Comprá PINs en tu proveedor para esos paquetes.", "En el panel andá a Stock, elegí el paquete y pegá los códigos (uno por línea) con «Agregar PINs».", "Cuando haya stock vuelve a quedar todo en verde."],
+      ir: irPanelAdmin("stock"), irTxt: "Ir a Stock" });
+    else if (pocos.length) out.push({ id: "stock-poco", nivel: "bajo", icono: "📉", titulo: `Quedan muy pocos PINs: ${pocos.map((x) => (x.nombre || x.diamantes + " 💎") + " (" + x.disponibles + ")").join(", ")}`,
+      detalle: "Todavía alcanza, pero conviene reponer pronto.", pasos: ["Comprá PINs de esos paquetes.", "En Stock pegá los códigos con «Agregar PINs»."], ir: irPanelAdmin("stock"), irTxt: "Ir a Stock" });
+  } catch (e) {
+    const falta = /PGRST202|42883|admin_stock_pines/i.test(String((e && (e.code || e.message)) || ""));
+    out.push({ id: "stock-error", nivel: "medio", icono: "📉", titulo: falta ? "Falta activar el control de stock" : "No se pudo leer el stock de PINs",
+      detalle: falta ? "La función admin_stock_pines no existe en Supabase." : String((e && e.message) || e).slice(0, 160),
+      pasos: falta ? ["Abrí Supabase → SQL Editor.", "Pegá el contenido del archivo stock_pines_admin.sql y tocá Run."] : ["Recargá con Ctrl+F5.", "Si sigue, mirá en Supabase que la tabla pines_stock exista."], ir: irPanelAdmin("stock"), irTxt: "Ir a Stock" });
+  }
+  // --- Piezas de base de datos que faltan
+  if (ordenesColsEnvio === false || revisarEnviosDisponible === false) out.push({ id: "sql-envio", nivel: "medio", icono: "🧩", titulo: "Falta ejecutar n8n_envio_fix.sql",
+    detalle: "Sin esa pieza, el panel no puede confirmar qué respondió n8n a cada envío.", pasos: ["Supabase → SQL Editor.", "Pegá el contenido de n8n_envio_fix.sql y tocá Run (se puede repetir sin problema)."], ir: irPanelAdmin("ordenes"), irTxt: "Ir a Órdenes" });
+  // --- Estado del servicio
+  if ($("zt-estado")?.classList.contains("lento")) out.push({ id: "servicio-lento", nivel: "bajo", icono: "🐢", titulo: "La página muestra «Recargas demoradas»",
+    detalle: "Los clientes ven que las recargas están tardando más de lo normal (hay pedidos sin resolver hace rato).", pasos: ["Resolvé las órdenes pendientes de arriba: el aviso se apaga solo cuando no quedan.", "Si no hay ninguna pendiente, esperá 1–2 minutos y se actualiza."], ir: irPanelAdmin("ordenes"), irTxt: "Ir a Órdenes" });
+  // --- Errores de la propia página
+  const recientes = erroresPagina.filter((x) => ahora - x.t < 30 * 60000);
+  if (recientes.length) out.push({ id: "pag-errores", nivel: "bajo", icono: "🐞", titulo: `La página registró ${recientes.length} error${recientes.length > 1 ? "es" : ""} técnico${recientes.length > 1 ? "s" : ""}`,
+    detalle: "Último: " + recientes[recientes.length - 1].m + " (" + recientes[recientes.length - 1].d + "). Casi siempre es pasajero (mala señal, extensión del navegador).",
+    pasos: ["Recargá con Ctrl+F5 y mirá si vuelve a aparecer.", "Si vuelve, copiá el informe (botón de abajo) y mandámelo con lo que estabas haciendo."], ir: null });
+  const orden = { alto: 0, medio: 1, bajo: 2 };
+  return out.sort((a, b) => orden[a.nivel] - orden[b.nivel]);
+}
+async function saludRevisar() {
+  if (saludRevisando || !esAdminActual()) return;
+  saludRevisando = true;
+  try { saludProblemas = await saludReunir(); saludUltima = Date.now(); } catch (e) { console.warn("Revisión de salud:", e); }
+  finally { saludRevisando = false; }
+  pintarBotonSalud();
+  if (!$("salud-modal")?.hidden) pintarSalud();
+}
+function pintarBotonSalud() {
+  const b = $("btn-salud"); if (!b) return;
+  const n = saludProblemas.filter((p) => p.nivel !== "bajo").length, total = saludProblemas.length;
+  b.classList.toggle("mal", n > 0); b.classList.toggle("aviso", n === 0 && total > 0); b.classList.toggle("bien", total === 0);
+  b.querySelector("em").textContent = n ? String(n) : total ? "!" : "✓";
+  b.title = n ? `${n} cosa${n > 1 ? "s" : ""} para revisar` : total ? "Avisos menores" : "Todo en orden";
+}
+function pintarSalud() {
+  const lista = $("salud-lista"); if (!lista) return;
+  lista.replaceChildren();
+  if (!saludProblemas.length) {
+    const ok = document.createElement("div"); ok.className = "sl-ok"; ok.textContent = "✅ Todo en orden: no hay órdenes trabadas, hay PINs en stock y la página no registró errores.";
+    lista.appendChild(ok);
+  }
+  saludProblemas.forEach((p) => {
+    const card = document.createElement("div"); card.className = "sl-prob " + p.nivel;
+    const cab = document.createElement("div"); cab.className = "sl-cab";
+    const t = document.createElement("div"); t.className = "sl-tit"; t.textContent = p.icono + " " + p.titulo;
+    const q = document.createElement("button"); q.type = "button"; q.className = "sl-q"; q.textContent = "?"; q.title = "¿Cómo se arregla?"; q.setAttribute("aria-label", "Cómo se arregla"); q.setAttribute("aria-expanded", "false");
+    cab.append(t, q);
+    const d = document.createElement("p"); d.className = "sl-det"; d.textContent = p.detalle;
+    const pasos = document.createElement("div"); pasos.className = "sl-pasos"; pasos.hidden = true;
+    const h = document.createElement("b"); h.textContent = "Cómo arreglarlo, paso a paso:";
+    const ol = document.createElement("ol"); p.pasos.forEach((x) => { const li = document.createElement("li"); li.textContent = x; ol.appendChild(li); });
+    pasos.append(h, ol);
+    q.addEventListener("click", () => { pasos.hidden = !pasos.hidden; q.setAttribute("aria-expanded", String(!pasos.hidden)); q.classList.toggle("on", !pasos.hidden); });
+    card.append(cab, d, pasos);
+    if (p.ir) { const go = document.createElement("button"); go.type = "button"; go.className = "sl-ir"; go.textContent = "➜ " + p.irTxt; go.addEventListener("click", p.ir); card.appendChild(go); }
+    lista.appendChild(card);
+  });
+  const pie = $("salud-pie"); if (pie) pie.textContent = saludUltima ? "Última revisión: " + new Date(saludUltima).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "";
+}
+function abrirSalud() { const m = $("salud-modal"); if (!m) return; m.hidden = false; pintarSalud(); saludRevisar(); }
+function cerrarSalud() { const m = $("salud-modal"); if (m) m.hidden = true; }
+function copiarInformeSalud() {
+  const txt = ["INFORME DE SALUD · almazarela.com · " + new Date().toLocaleString("es-AR"), ""].concat(saludProblemas.length ? saludProblemas.map((p, i) => `${i + 1}. [${p.nivel}] ${p.titulo}\n   ${p.detalle}`) : ["Sin problemas detectados."]).join("\n");
+  const ok = () => mostrarAviso("Informe copiado: pegalo en el chat conmigo.", "ok");
+  try { navigator.clipboard.writeText(txt).then(ok, () => mostrarAviso("No se pudo copiar.", "error")); } catch (_) { mostrarAviso("No se pudo copiar.", "error"); }
+}
+Object.assign(window, { abrirSalud, cerrarSalud, copiarInformeSalud, saludRevisar });
+setInterval(() => { if (!document.hidden && esAdminActual() && document.body.classList.contains("modo-admin")) saludRevisar(); }, 60000);
+new MutationObserver(() => { if (document.body.classList.contains("modo-admin") && Date.now() - saludUltima > 15000) saludRevisar(); }).observe(document.body, { attributes: true, attributeFilter: ["class"] });

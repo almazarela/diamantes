@@ -549,6 +549,7 @@
   <button class="menu-toggle-btn" onclick="toggleMenu()" aria-label="Abrir Menú">
   <i class="fa-solid fa-bars"></i>
   </button>
+  <button type="button" id="btn-salud" class="btn-salud" onclick="abrirSalud()" aria-label="Estado del sistema: qué está fallando" title="Estado del sistema"><b>?</b><em>✓</em></button>
   <div class="logo">
   <span class="zl">Zarela</span> <span class="zl-flor" aria-hidden="true">✿</span>
   </div>
@@ -1018,10 +1019,21 @@
   <div class="chat-messages-area" id="chat-messages-container">
   <div class="chat-message admin-msg">¡Hola! 👋 ¿En qué te puedo ayudar hoy? Iniciá sesión con Google para guardar tu historial y enviar comprobantes.</div>
   </div>
+  <div class="chat-guia" id="chat-guia" hidden role="dialog" aria-label="Cómo recargar">
+  <button type="button" class="cg-x" onclick="chatGuia(false)" aria-label="Cerrar la guía">✕</button>
+  <div class="cg-t">💎 Cómo recargar</div>
+  <ol>
+  <li>Tocá <b>Cargar saldo</b> y elegí Mercado Pago o Binance.</li>
+  <li>Copiá el alias y hacé la transferencia.</li>
+  <li>Mandá la captura por acá con <b>🧾 Comprobante</b>.</li>
+  <li>Cuando te acreditemos el saldo: ingresá tu ID, elegí el paquete y tocá <b>Comprar</b>.</li>
+  </ol>
+  <div class="cg-acc"><button type="button" class="cg-go" onclick="chatGuia(false);abrirModalSeleccionCarga()">＋ Cargar saldo</button><button type="button" onclick="chatGuia(false);chatRapido('Tengo una duda para recargar')">💬 Consultar</button></div>
+  </div>
   <div class="chat-chips" aria-label="Preguntas rápidas">
-  <button type="button" onclick="chatRapido('Quiero hacer una recarga')">💎 Quiero recargar</button>
   <button type="button" onclick="document.getElementById('chat-file-input').click()">🧾 Comprobante</button>
-  <button type="button" onclick="chatRapido('Tengo un problema con mi pedido')">⚠️ Problema con pedido</button>
+  <button type="button" onclick="chatGuia()">💎 Quiero recargar</button>
+  <button type="button" onclick="chatRapido('Tengo un problema con mi pedido')">⚠️ Problema</button>
   </div>
   <div class="chat-input-area">
    <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarMensajeWebhook()">
@@ -1279,6 +1291,12 @@ function alternarChat(forzar){
   document.body.classList.toggle('chat-abierto',abrir);
   if(abrir){ var c=document.getElementById('chat-messages-container'); if(c) c.scrollTop=c.scrollHeight; if(window.marcarChatVisto) window.marcarChatVisto(); }
 }
+function chatGuia(f){
+  var g=document.getElementById('chat-guia'); if(!g) return;
+  var abrir = typeof f==='boolean' ? f : g.hidden;
+  g.hidden=!abrir;
+  var c=document.getElementById('chat-messages-container'); if(c&&abrir) c.scrollTop=c.scrollHeight;
+}
 function chatRapido(t){
   var i=document.getElementById('chat-user-input'); if(!i) return;
   i.value=t; i.focus();
@@ -1293,5 +1311,14 @@ function irAlChat(){
   var i=document.getElementById('chat-user-input'); if(i) setTimeout(function(){i.focus();},350);
 }
 </script>
+
+<div id="salud-modal" class="salud-modal" hidden role="dialog" aria-modal="true" aria-label="Qué está fallando">
+  <div class="salud-caja">
+    <div class="salud-cab"><b>🩺 Estado del sistema</b><button type="button" class="salud-x" onclick="cerrarSalud()" aria-label="Cerrar">✕</button></div>
+    <p class="salud-intro">Acá aparece todo lo que está fallando o necesita tu atención. Tocá el <span class="sl-q-demo">?</span> rojo de cada aviso para ver <b>cómo arreglarlo paso a paso</b>, y «➜ Ir a…» para llegar al lugar exacto.</p>
+    <div id="salud-lista" class="salud-lista"></div>
+    <div class="salud-acc"><button type="button" onclick="saludRevisar()">🔄 Revisar ahora</button><button type="button" onclick="copiarInformeSalud()">📋 Copiar informe</button><small id="salud-pie"></small></div>
+  </div>
+</div>
 </body>
 </html>
