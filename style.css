@@ -2441,3 +2441,65 @@ body.modo-admin #comments-list .op-av,body.modo-admin #comments-list .av{width:2
 .stock-buscar label{display:block;font-size:12px;color:#aebbd6;margin-bottom:6px}
 .sb-w{position:relative}.sb-w i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#7fd6ff;font-size:13px}
 .sb-w input{width:100%;padding:8px 12px 8px 34px;border-radius:99px;border:1px solid rgba(127,214,255,.4);background:rgba(127,214,255,.07);color:#fff;font-size:13px;outline:none}
+
+/* ===== v27: chat admin PC compacto, opinión compacta, paso 4 en celu, historial de notificaciones ===== */
+@media(min-width:801px){
+ #admin-msgs{gap:3px!important;padding:6px 9px!important}
+ #admin-msgs>div[data-mid]{padding:3px 9px!important;font-size:12.5px!important;line-height:1.25!important;border-radius:9px!important;max-width:78%!important}
+ #admin-msgs>div[data-mid] [data-hora]{font-size:9.5px!important;margin-top:0!important;line-height:1.1!important}
+ #admin-msgs>div[data-mid] .msg-quote{padding:2px 7px!important;margin:1px 0 2px!important;font-size:11px!important}
+ #admin-msgs>div[data-mid] img{max-height:120px!important;margin-top:3px!important}
+ #admin-msgs .wa-aud{min-width:190px;margin-top:0}
+ #admin-msgs .wa-play{width:32px;height:32px}
+ #admin-msgs .wa-wave{height:22px}
+}
+/* opinión: formulario compacto (en la página ≈ caja de las 4 estrellas) */
+.op-form{padding:8px 10px!important;margin-bottom:10px!important;border-radius:12px!important}
+.op-form-campos{display:grid;grid-template-columns:1fr auto;gap:5px 10px;align-items:center}
+.op-form-campos .op-form-tit{grid-column:1;margin:0;font-size:.8rem}
+.op-form-campos .op-pick{grid-column:2;grid-row:1;margin:0;gap:0}
+.op-form-campos .op-pick button{font-size:1.25rem;padding:0 1px}
+.op-form-campos #op-texto{grid-column:1;grid-row:2;min-height:36px;height:36px;max-height:90px;padding:7px 10px;font-size:16px;border-radius:9px;resize:none;overflow:hidden}
+.op-form-campos #op-texto:focus{height:64px;overflow:auto}
+.op-form-campos .op-form-pie{grid-column:2;grid-row:2;margin:0;gap:6px}
+.op-form-campos .op-form-pie small{display:none}
+.op-form-campos:focus-within .op-form-pie small{display:inline;font-size:.62rem;margin-right:2px}
+.op-form-campos .op-btn{padding:7px 12px;font-size:.78rem}
+.op-form-login{font-size:.8rem}
+.op-form-login .op-btn{padding:7px 12px;font-size:.78rem}
+body.modo-admin .op-form{padding:5px 8px!important;margin-bottom:6px!important}
+body.modo-admin .op-form-campos .op-form-tit{font-size:.72rem}
+body.modo-admin .op-form-campos .op-pick button{font-size:1.05rem}
+body.modo-admin .op-form-campos #op-texto{min-height:28px;height:28px;padding:4px 8px;font-size:14px}
+body.modo-admin .op-form-campos #op-texto:focus{height:50px}
+body.modo-admin .op-form-campos .op-btn{padding:5px 10px;font-size:.72rem}
+/* paso 4 del carrusel en celu */
+@container (max-width:470px){
+ .slide-ayuda .sa-in{gap:1.2cqh;padding:2.2cqh 3cqw}
+ .slide-ayuda .sa-h{font-size:max(13px,8cqh)}
+ .slide-ayuda .sa-paso p{font-size:max(11px,6.2cqh);line-height:1.22}
+ .slide-ayuda .sa-ill{width:max(88px,30cqw);min-height:max(52px,34cqh)}
+ .slide-ayuda .mk-pc{height:max(40px,20cqh)}
+}
+/* barra de avisos + historial */
+.camp-bar{position:absolute;right:16px;bottom:8px;z-index:25;display:flex;align-items:center;gap:6px}
+.camp-bar .camp-top{position:static}
+@media(max-width:600px){.camp-bar{right:10px;bottom:6px}}
+.nh-btn{position:relative;width:28px;height:28px;border-radius:50%;display:inline-grid;place-items:center;cursor:pointer;color:#dff6ff;border:1px solid rgba(127,214,255,.6);background:rgba(10,24,48,.65);backdrop-filter:blur(6px);box-shadow:0 0 10px rgba(127,214,255,.3);font-size:12px;padding:0}
+.nh-btn[hidden]{display:none}
+.nh-btn:hover{background:rgba(127,214,255,.22)}
+.nh-btn em{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:99px;background:#ff4d5e;color:#fff;font:800 10px/16px inherit;font-style:normal;text-align:center;padding:0 3px;box-shadow:0 0 8px rgba(255,77,94,.7)}
+.nh-btn em[hidden]{display:none}
+.nh-modal{position:fixed;inset:0;z-index:100000;background:rgba(2,6,16,.62);display:flex;align-items:flex-start;justify-content:center;padding:70px 14px 14px}
+.nh-modal[hidden]{display:none}
+.nh-card{width:min(420px,100%);max-height:min(78vh,620px);display:flex;flex-direction:column;border-radius:18px;border:1px solid rgba(127,214,255,.5);background:radial-gradient(120% 70% at 50% -10%,rgba(127,214,255,.2),transparent 62%),#0e1326;box-shadow:0 0 22px rgba(127,214,255,.25),0 14px 40px rgba(0,0,0,.7);color:#eaf6ff;overflow:hidden}
+.nh-cab{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid rgba(127,214,255,.2);font-size:14px}
+.nh-cab button{background:none;border:0;color:#cfe9ff;font-size:16px;cursor:pointer}
+.nh-lista{overflow:auto;padding:8px 10px;display:grid;gap:6px;scrollbar-width:thin}
+.nh-item{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);font-size:13px;line-height:1.3}
+.nh-item.nuevo{border-color:rgba(25,230,140,.55);background:rgba(25,230,140,.09)}
+.nh-ic{font-size:18px;line-height:1.1}
+.nh-item small{display:block;color:#8fa6c4;font-size:11px;margin-top:2px}
+.nh-vacio{color:#9db3cf;font-size:13px;padding:14px 6px;margin:0;text-align:center}
+.nh-pie{padding:8px 12px;border-top:1px solid rgba(127,214,255,.2);text-align:right}
+.nh-pie button{background:none;border:0;color:#8fa6c4;font-size:12px;cursor:pointer;text-decoration:underline}

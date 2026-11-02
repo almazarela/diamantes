@@ -5573,3 +5573,94 @@ document.addEventListener("DOMContentLoaded", () => {
     try { salirModoAdmin(); } catch (e) { console.warn("No se pudo salir del modo administrador:", e); document.body.classList.remove("modo-admin"); }
   });
 });
+
+// ---- Historial de notificaciones (todos los dispositivos): avisos vistos en este equipo + estado real de tus órdenes y saldo
+const nhK = (n) => "zarela_nh_" + n + "_" + (usuarioActual ? usuarioActual.id : "x");
+const nhLeer = (n, def) => { try { const v = JSON.parse(localStorage.getItem(nhK(n))); return v == null ? def : v; } catch (_) { return def; } };
+const nhGuardar = (n, v) => { try { localStorage.setItem(nhK(n), JSON.stringify(v)); } catch (_) {} };
+let nhMovs = [];   // movimientos de saldo traídos del servidor
+function anotarNotif(ic, txt, clave) {
+  if (!usuarioActual || !txt) return;
+  const lista = nhLeer("log", []);
+  const k = clave || ("t_" + txt);
+  if (lista.some((e) => e.k === k && (clave || Date.now() - e.t < 120000))) return;
+  lista.unshift({ t: Date.now(), ic, txt, k });
+  nhGuardar("log", lista.slice(0, 40));
+  nhBadge();
+}
+function nhEventos() {
+  const corte = nhLeer("corte", 0), ev = [], vistos = new Set();
+  nhLeer("log", []).forEach((e) => { vistos.add(e.k); ev.push(e); });
+  const add = (k, t, ic, txt) => { if (vistos.has(k) || !t || Number.isNaN(t)) return; vistos.add(k); ev.push({ k, t, ic, txt }); };
+  (comprasUsuario || []).slice(0, 10).forEach((o) => {
+    const t = new Date(o.created_at).getTime(), n = "#" + numCompra(o), idj = o.id_jugador ? " al ID " + o.id_jugador : "", dia = o.diamantes ? fmtNum(o.diamantes) + " 💎" : "diamantes";
+    add("o" + o.id + "_env", t, "📨", `Tu orden ${n} fue enviada${idj}.`);
+    if (o.estado === "pendiente" || o.estado === "error_envio") add("o" + o.id + "_pend", t + 1, "⏳", `Tu orden ${n} está en proceso (${dia}).`);
+    else if (o.estado === "completada") add("o" + o.id + "_completada", t + 2, "✅", `Se acreditaron ${dia}${idj} (orden ${n}).`);
+    else if (o.estado === "fallida") add("o" + o.id + "_fallida", t + 2, "↩️", `La orden ${n} no se pudo acreditar: tu saldo fue devuelto.`);
+  });
+  nhMovs.forEach((m) => {
+    const monto = Number(m.monto) || 0; if (monto <= 0) return;
+    const mon = m.moneda === "ARS" ? "ARS" : "USD";
+    add("m_" + m.created_at, new Date(m.created_at).getTime(), "💰", `Se acreditó saldo: +${formatoMoneda(mon, monto)} ${mon}.`);
+  });
+  return ev.filter((e) => e.t > corte).sort((a, b) => b.t - a.t).slice(0, 30);
+}
+function nhBadge() {
+  const b = $("nh-btn"), c = $("nh-badge"); if (!b) return;
+  b.hidden = !usuarioActual;
+  if (!usuarioActual) return;
+  const visto = nhLeer("visto", 0), n = nhEventos().filter((e) => e.t > visto).length;
+  c.hidden = n === 0; c.textContent = n > 9 ? "9+" : String(n);
+}
+async function nhTraerMovs() {
+  if (!usuarioActual) return;
+  try {
+    const { data, error } = await conTimeout(supabase.from("saldo_movimientos").select("created_at, moneda, monto").eq("user_id", usuarioActual.id).order("created_at", { ascending: false }).limit(10), 8000);
+    if (!error && Array.isArray(data)) nhMovs = data;
+  } catch (_) {}
+}
+function nhPintar() {
+  const cont = $("nh-lista"); cont.replaceChildren();
+  const ev = nhEventos(), visto = nhLeer("visto", 0);
+  if (!ev.length) { const p = document.createElement("p"); p.className = "nh-vacio"; p.textContent = "Todavía no tenés notificaciones. Acá vas a ver cuando se acredite tu saldo, cuando tu orden esté en proceso o se acredite, y más."; cont.appendChild(p); return; }
+  ev.forEach((e) => {
+    const f = document.createElement("div"); f.className = "nh-item" + (e.t > visto ? " nuevo" : "");
+    const i = document.createElement("span"); i.className = "nh-ic"; i.textContent = e.ic || "🔔";
+    const c = document.createElement("div"), t = document.createElement("div"), h = document.createElement("small");
+    t.textContent = e.txt; h.textContent = fechaHora(e.t) + " · " + hace(new Date(e.t).toISOString());
+    c.append(t, h); f.append(i, c); cont.appendChild(f);
+  });
+}
+async function abrirNotifs() {
+  if (!usuarioActual) return;
+  $("nh-modal").hidden = false; nhPintar();
+  await nhTraerMovs(); if (!$("nh-modal").hidden) nhPintar();
+  nhGuardar("visto", Date.now()); nhBadge();
+}
+const cerrarNotifs = () => { $("nh-modal").hidden = true; nhBadge(); };
+document.addEventListener("DOMContentLoaded", () => {
+  $("nh-btn")?.addEventListener("click", abrirNotifs);
+  $("nh-x")?.addEventListener("click", cerrarNotifs);
+  $("nh-modal")?.addEventListener("click", (e) => { if (e.target.id === "nh-modal") cerrarNotifs(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("nh-modal").hidden) cerrarNotifs(); });
+  $("nh-limpiar")?.addEventListener("click", () => { nhGuardar("corte", Date.now()); nhGuardar("log", []); nhPintar(); nhBadge(); });
+  setInterval(nhBadge, 8000);
+  setTimeout(() => { nhTraerMovs().then(nhBadge); }, 4000);
+});
+{
+  const a0 = avisar;
+  avisar = function (titulo, texto, o) { a0(titulo, texto, o); try { if (!esAdminActual()) { const m = String(titulo || "").match(/^(\S+)\s+(.*)$/su); anotarNotif(m ? m[1] : "🔔", (m ? m[2] : String(titulo || "")) + (texto ? " " + texto : "")); }; } catch (_) {} };
+  const b0 = avisarAcreditada;
+  avisarAcreditada = function (x) { b0(x); try { anotarNotif("✅", `¡Tus ${x.paquete || "diamantes"} ya están acreditados!`, "o" + x.id + "_completada"); } catch (_) {} };
+  const c0 = iniciarSeguimiento;
+  iniciarSeguimiento = function (id, paquete, estado, visto) {
+    c0(id, paquete, estado, visto);
+    try { if (estado === "pendiente" || estado === "error_envio") anotarNotif("📨", `Tu orden de ${paquete || "diamantes"} fue enviada y está en proceso.`, "o" + id + "_env"); } catch (_) {}
+  };
+  const d0 = consultarSeguimiento;
+  consultarSeguimiento = async function () {
+    const s = seg, antes = s && s.estado; await d0();
+    try { if (s && s.estado === "fallida" && antes !== "fallida") anotarNotif("↩️", `Tu orden de ${s.paquete || "diamantes"} no se pudo acreditar: tu saldo fue devuelto.`, "o" + s.id + "_fallida"); } catch (_) {}
+  };
+}

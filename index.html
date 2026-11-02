@@ -770,7 +770,7 @@
   <div class="sa-paso on"><div class="sa-ill"><div class="mk-head"><span class="mk-p mk-bn">USD</span><span class="mk-p mk-mp">ARS</span><span class="mk-cargar">＋ Cargar saldo</span><span class="mk-flecha">↗</span></div></div><p><b>1.</b> Arriba a la derecha tocá <b>Cargar saldo</b> y elegí Mercado Pago o Binance.</p></div>
   <div class="sa-paso"><div class="sa-ill"><span class="mk-alias js-alias">almazarela.com</span><span class="mk-copiar">⧉ Copiar</span></div><p><b>2.</b> Copiá el alias <b class="js-alias">almazarela.com</b> <small>(Binance: ID <span class="js-bn">1252553144</span>)</small></p></div>
   <div class="sa-paso"><div class="sa-ill"><div class="mk-transf"><small>Transferir a</small><b class="js-titular">Julian Pereyra</b></div></div><p><b>3.</b> Hacé la transferencia <b>a nombre de <span class="js-titular">Julian Pereyra</span></b>.</p></div>
-  <div class="sa-paso"><div class="sa-ill sa-pc"><div class="mk-pc"><i></i><div class="mk-chatp">💬 Chat</div></div></div><div class="sa-ill sa-cel"><span class="mk-fab">💬 Chat</span></div><p><b>4.</b> Mandá la <b>captura</b> por el chat <span class="sa-pc">(panel de la derecha)</span><span class="sa-cel">(botón verde, abajo a la derecha)</span>. ¡Te acreditamos el saldo!</p></div>
+  <div class="sa-paso"><div class="sa-ill sa-pc"><div class="mk-pc"><i></i><div class="mk-chatp">💬 Chat</div></div></div><div class="sa-ill sa-cel"><span class="mk-fab">💬 Chat</span></div><p><b>4.</b> Mandá la <b>captura</b> por el chat <span class="sa-pc">(panel de la derecha)</span><span class="sa-cel">(botón verde 💬)</span>. ¡Te acreditamos el saldo!</p></div>
   </div>
   <div class="sa-ctrl"><button type="button" class="sa-nav" onclick="guiaPaso(-1)" aria-label="Paso anterior">‹</button><div class="sa-puntos"><i class="on"></i><i></i><i></i><i></i></div><button type="button" class="sa-nav" onclick="guiaPaso(1)" aria-label="Paso siguiente">›</button><button type="button" class="sa-pausa" onclick="alternarPausa()">⏸ Pausar</button></div>
   </div>
@@ -786,7 +786,7 @@
   </button>
   </div>
   
-  <button type="button" id="camp-top" class="camp-top off" title="Activar avisos" aria-label="Activar avisos"><i class="fa-solid fa-bell-slash"></i><span>Activar</span></button>
+  <div class="camp-bar"><button type="button" id="nh-btn" class="nh-btn" title="Historial de notificaciones" aria-label="Historial de notificaciones" hidden><i class="fa-solid fa-clock-rotate-left"></i><em id="nh-badge" hidden>0</em></button><button type="button" id="camp-top" class="camp-top off" title="Activar avisos" aria-label="Activar avisos"><i class="fa-solid fa-bell-slash"></i><span>Activar</span></button></div>
   <div class="carousel-dots" id="carousel-dots">
   <span class="dot" onclick="irASlide(0)"></span>
   <span class="dot active" onclick="irASlide(1)"></span>
@@ -1265,7 +1265,7 @@
   <div class="op-form-campos" id="op-form-campos" hidden>
   <div class="op-form-tit" id="op-form-tit">Dejá tu opinión</div>
   <div class="op-pick" id="op-pick" role="radiogroup" aria-label="Tu puntuación"></div>
-  <textarea id="op-texto" maxlength="300" rows="3" placeholder="¿Cómo fue tu recarga? ¿Llegaron rápido los diamantes?"></textarea>
+  <textarea id="op-texto" maxlength="300" rows="3" placeholder="Contanos cómo te fue…"></textarea>
   <div class="op-form-pie">
   <small id="op-cont">0/300</small>
   <button type="button" class="op-btn op-btn-sec" id="op-cancelar" hidden onclick="cancelarEdicionOpinion()">Cancelar</button>
@@ -1330,5 +1330,11 @@ function irAlChat(){
     <div class="salud-acc"><button type="button" onclick="saludRevisar()">🔄 Revisar ahora</button><button type="button" onclick="copiarInformeSalud()">📋 Copiar informe</button><small id="salud-pie"></small></div>
   </div>
 </div>
+<div class="nh-modal" id="nh-modal" hidden role="dialog" aria-modal="true" aria-label="Historial de notificaciones">
+<div class="nh-card">
+<div class="nh-cab"><b>🔔 Historial de notificaciones</b><button type="button" id="nh-x" aria-label="Cerrar">✕</button></div>
+<div class="nh-lista" id="nh-lista"></div>
+<div class="nh-pie"><button type="button" id="nh-limpiar">Borrar historial</button></div>
+</div></div>
 </body>
 </html>
