@@ -605,7 +605,12 @@ async function cargarHistorialCliente(forzar) {
       div.appendChild(t);
     }
     if (f[MSG.archivoCol] && esAudioRuta(f[MSG.archivoCol])) {
-      resolverArchivo(f[MSG.archivoCol]).then((u) => { if (u) div.appendChild(nodoAudio(u, cont)); else div.appendChild(Object.assign(document.createElement("span"), { textContent: "🎤 Audio" })); });
+      resolverArchivo(f[MSG.archivoCol]).then((u) => {
+        const nodo = u ? nodoAudio(u, cont) : Object.assign(document.createElement("span"), { textContent: "🎤 Audio" });
+        const tk = div.querySelector(":scope > .msg-tk-w"), meta = nodo.querySelector && nodo.querySelector(".wa-meta");
+        if (tk && meta) { meta.appendChild(tk); div.appendChild(nodo); }   // las palomitas van abajo a la derecha del audio, junto a la duración (sin renglón extra)
+        else div.insertBefore(nodo, tk || null);
+      });
     } else if (f[MSG.archivoCol]) {
       const img = document.createElement("img");
       img.alt = "Comprobante";
@@ -1975,6 +1980,17 @@ function renderOrdenesAdmin() {
       card.appendChild(e);
     }
 
+    // Orden "pendiente" hace rato y n8n nunca avisó el resultado: se dice claro qué pasa y qué hacer (sin reenviar a ciegas)
+    if (o.estado === "pendiente" && o.n8n_http_status && o.created_at) {
+      const min = Math.floor((Date.now() - new Date(o.updated_at || o.created_at).getTime()) / 60000);
+      if (min >= 4) {
+        const av = document.createElement("div");
+        av.className = "ord-aviso";
+        av.textContent = `⏳ Hace ${min < 120 ? min + " min" : Math.floor(min / 60) + " h"} que n8n recibió la orden y todavía no avisó el resultado. Antes de reenviar: mirá en n8n → Ejecuciones qué pasó y en redeempins.com si el PIN ya se usó. Si el PIN sigue sin usar, reenviá; si se usó, la recarga ya salió.`;
+        card.appendChild(av);
+      }
+    }
+
     const acciones = document.createElement("div");
     acciones.className = "ord-acciones";
     if (REENVIABLES.has(o.estado)) {
@@ -2481,7 +2497,12 @@ async function refrescarMensajes(forzar) {
     const archivo = f[MSG.archivoCol];
     if (archivo) {
       const conectar = (u) => {
-        if (esAudioRuta(archivo)) { burbuja.appendChild(nodoAudio(u, cont)); return; }
+        const pie = () => burbuja.querySelector(":scope > [data-hora], :scope > .msg-tk-w");   // hora y palomitas: siempre quedan al final
+        if (esAudioRuta(archivo)) {
+          const n = nodoAudio(u, cont), h = pie(), m = n.querySelector(".wa-meta");
+          if (h && m) { h.style.margin = "0"; m.appendChild(h); burbuja.appendChild(n); } else burbuja.insertBefore(n, h || null);
+          return;
+        }
         const img = document.createElement("img");
         img.alt = "Comprobante";
         img.addEventListener("load", () => seguirAbajo(cont));
@@ -2496,7 +2517,7 @@ async function refrescarMensajes(forzar) {
           img.replaceWith(a);
         });
         img.src = u;
-        burbuja.appendChild(img);
+        burbuja.insertBefore(img, pie() || null);
       };
       const url = urlSegura(archivo);
       if (url) conectar(url);
@@ -4055,6 +4076,7 @@ function textoPaso(estado) {
   if (estado === "completada") return ["¡Listo! Tus diamantes ya están en tu cuenta. Reiniciá el juego para verlos.", 4];
   if (estado === "fallida") return ["No se pudo acreditar. Tu saldo fue devuelto.", -1];
   if (estado === "error_envio") return ["En espera: se acredita apenas retomemos las recargas.", 2];
+  if (seg && seg.desde && Date.now() - seg.desde > 6 * 60000) return ["Tu pedido está en revisión: lo estamos verificando a mano. Tu pago está registrado y no se pierde. Te avisamos apenas se resuelva.", 2];
   return ["Cargando tus diamantes… suele tardar menos de un minuto.", 2];
 }
 function pintarSeguimiento() {
@@ -4099,7 +4121,7 @@ async function consultarSeguimiento() {
 }
 function iniciarSeguimiento(id, paquete, estado = "pendiente", visto = true) {
   if (!id) return;
-  seg = { id, paquete, estado, visto, num: null };
+  seg = { id, paquete, estado, visto, num: null, desde: Date.now() };
   const miSeg = seg;
   numeroDeCompra(id).then((n) => { if (seg === miSeg) { seg.num = n; pintarSeguimiento(); } });
   pintarSeguimiento();
@@ -4117,6 +4139,7 @@ async function buscarPedidoReciente() {
     let cerrada = false; try { cerrada = sessionStorage.getItem(claveCerrada()) === String(o.id); } catch (_) {}
     if (cerrada || (!activa && edadMin > 10)) return;
     iniciarSeguimiento(o.id, o.diamantes ? fmtNum(o.diamantes) + " 💎" : "", o.estado, true);
+    if (seg && seg.id === o.id) { seg.desde = new Date(o.created_at).getTime(); pintarSeguimiento(); }
   } catch (_) {}
 }
 

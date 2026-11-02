@@ -2282,3 +2282,16 @@ body.chat-con-fondo .chat-v2>*,body.chat-con-fondo #admin-chat-view>*{position:r
   .carousel-slide.prev{transform:translateX(-38%) scale(.8)}
   .carousel-slide.next{transform:translateX(38%) scale(.8)}
 }
+
+/* ===== v23: botón de pausa separado de la flecha, títulos 1 y 2 en blanco cristal en todos los dispositivos, palomitas del chat sin renglón extra ===== */
+.car-pausa{right:14px!important;top:58px!important}
+@media(min-width:801px){.car-pausa{top:58px!important}}
+@media(max-width:800px){.car-pausa{top:19px!important}}
+.h3-cristal{background:linear-gradient(180deg,#ffffff 15%,#bfe4ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent!important;text-shadow:none;filter:drop-shadow(0 0 6px rgba(150,215,255,.35))}
+@media(max-width:600px){.step-title .h3-cristal{font-size:.98rem!important;white-space:nowrap;min-width:0}}
+.chat-message{display:flow-root}
+.chat-message>.msg-tk-w{float:right;margin:4px 0 -4px 10px;height:13px;line-height:13px}
+.wa-meta .msg-tk-w,.wa-meta [data-hora]{float:none;margin:0;height:auto;line-height:1}
+.wa-meta .msg-tk{margin-left:0}
+.ord-aviso{margin-top:6px;padding:7px 10px;border-radius:10px;font-size:12px;line-height:1.35;color:#ffd9a0;background:rgba(255,160,40,.12);border:1px solid rgba(255,160,40,.45)}
+.chat-message>div:has(+ .msg-tk-w){display:inline}
