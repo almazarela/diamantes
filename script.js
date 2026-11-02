@@ -3677,7 +3677,8 @@ Object.assign(window, {
 // ------------------------- FONDO SAKURA (solo PC) ----------------------
 // Pétalos 3D que caen con el viento (el scroll los empuja).
 (function sakura() {
-  if (!window.matchMedia("(min-width: 801px)").matches || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cel = window.matchMedia("(max-width: 800px)").matches;   // celu/tablet: menos pétalos y más chicos para no estorbar
   const cv = document.createElement("canvas");
   cv.id = "sakura-fx"; cv.setAttribute("aria-hidden", "true");
   document.body.appendChild(cv);
@@ -3709,7 +3710,7 @@ Object.assign(window, {
     const z = 0.35 + Math.random() * 0.9;   // profundidad: más grande y rápido = más cerca
     return {
       x: Math.random() * W, y: arriba ? -30 - Math.random() * 100 : Math.random() * H, z,
-      s: (10 + Math.random() * 12) * z, vy: (0.35 + Math.random() * 0.55) * (0.5 + z),
+      s: (10 + Math.random() * 12) * z * (cel ? 0.75 : 1), vy: (0.35 + Math.random() * 0.55) * (0.5 + z),
       ph: Math.random() * 6.28, vph: 0.012 + Math.random() * 0.02,
       rot: Math.random() * 6.28, vrot: (Math.random() - 0.5) * 0.04,
       voltea: Math.random() * 6.28, vvolt: 0.02 + Math.random() * 0.035,
@@ -3720,7 +3721,7 @@ Object.assign(window, {
     W = innerWidth; H = innerHeight;
     cv.width = W * dpr; cv.height = H * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const n = Math.round(Math.min(46, Math.max(24, W / 32)));
+    const n = cel ? Math.round(Math.min(18, Math.max(12, W / 40))) : Math.round(Math.min(46, Math.max(24, W / 32)));
     while (petalos.length < n) petalos.push(nuevoPetalo(false));
     petalos.length = n;
   }
