@@ -5754,6 +5754,27 @@ async function actualizarBadgeHoy() {
   const d = await hoyDatos(), b = $("hoy-n"); if (!b) return;
   const n = hoyTotal(d); b.hidden = n === 0; b.textContent = n > 99 ? "99+" : String(n);
 }
+const nombresId = new Map();
+async function nombreDeId(id) {
+  if (nombresId.has(id)) return nombresId.get(id);
+  try {
+    const res = await postWebhook({ tipo_evento: "VERIFICAR_JUGADOR", id_jugador: id, playerId: id, region: "SAC" }, 12000);
+    if (!res.ok) return null;
+    const info = normalizarJugador(await conTimeout(res.json(), 8000));
+    const n = info && info.nombre ? String(info.nombre) : null;
+    if (n) nombresId.set(id, n);
+    return n;
+  } catch (_) { return null; }
+}
+// cuenta regresiva de cada pedido en espera (cada segundo, sin consultar nada)
+setInterval(() => {
+  document.querySelectorAll(".hoy-esp-fila").forEach((f) => {
+    const seg = Math.max(0, Math.ceil((Number(f.dataset.hasta) - Date.now()) / 1000));
+    const cd = f.querySelector(".hoy-cd"); if (cd) { cd.textContent = Math.floor(seg / 60) + ":" + String(seg % 60).padStart(2, "0"); cd.classList.toggle("urge", seg <= 20); }
+    const bar = f.querySelector(".hoy-barra i"); if (bar) bar.style.width = Math.min(100, (seg / 90) * 100) + "%";
+    if (seg <= 0 && !f.dataset.fin) { f.dataset.fin = "1"; f.classList.add("vencida"); setTimeout(() => { if (vistaAdmin === "hoy") pintarHoy(); }, 2500); }
+  });
+}, 1000);
 let hoySeq = 0, promoModo = false, promoVistas = new Set();
 async function pintarHoy() {
   const c = $("hoy-cont"); if (!c) return;
@@ -5779,11 +5800,11 @@ async function pintarHoy() {
   caja.innerHTML = `<div class="hoy-promo-t"><b>💸 Compras con descuento (Pago Store)</b><label class="hoy-sw"><input type="checkbox"><span></span></label></div><p class="hoy-promo-d"></p>`;
   const chk = caja.querySelector("input"); chk.checked = !!d.modo;
   caja.querySelector(".hoy-promo-d").textContent = d.modo
-    ? "ESTÁS DISPONIBLE: cada pedido nuevo espera hasta 3 minutos acá. Si lo comprás vos con descuento, apretá «Ya la cargué». Si no hacés nada, sale solo con tu PIN."
+    ? "ESTÁS DISPONIBLE: cada pedido nuevo espera hasta 1 minuto y medio acá (cada uno con su propio reloj). Si lo comprás vos con descuento, apretá «Ya la cargué». Si no hacés nada, sale solo con tu PIN."
     : "Apagado: todos los pedidos salen al instante con tus PIN. Prendelo cuando estés frente a la compu y quieras aprovechar el 50 %.";
   chk.addEventListener("change", async () => {
     chk.disabled = true;
-    try { const { data, error } = await supabase.rpc("admin_promo_modo", { p_activo: chk.checked }); if (error) throw error; promoModo = !!data; mostrarAviso(promoModo ? "Disponible: los pedidos esperan hasta 3 min por vos." : "Apagado: todo sale con PIN al instante.", "ok"); }
+    try { const { data, error } = await supabase.rpc("admin_promo_modo", { p_activo: chk.checked }); if (error) throw error; promoModo = !!data; mostrarAviso(promoModo ? "Disponible: los pedidos esperan hasta 1:30 por vos." : "Apagado: todo sale con PIN al instante.", "ok"); }
     catch (e) { chk.checked = !chk.checked; mostrarAviso(/PGRST202|does not exist/i.test(String(e.message || e.code)) ? "Falta ejecutar novedades_clientes_v20.sql en Supabase." : "No se pudo cambiar.", "error"); }
     pintarHoy();
   });
@@ -5792,11 +5813,12 @@ async function pintarHoy() {
     const w = document.createElement("div"); w.className = "hoy-espera";
     d.espera.forEach((o) => {
       const f = document.createElement("div"); f.className = "hoy-esp-fila";
-      const seg = Math.max(0, Math.round((new Date(o.promo_hasta).getTime() - Date.now()) / 1000));
-      f.innerHTML = `<div class="hoy-esp-i"><b></b><small></small></div><button type="button" class="hoy-ok">✅ Ya la cargué</button><button type="button" class="hoy-pin">🚀 Mandar con PIN</button>`;
-      f.querySelector("b").textContent = `Orden #${o.id} · ${o.diamantes || "?"} 💎 · ID ${o.id_jugador}`;
-      f.querySelector("small").textContent = `Pago Store → República Dominicana → ese ID → ${o.diamantes} → PayPal.  Sale solo con PIN en ${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, "0")}`;
-      f.querySelector("b").addEventListener("click", () => { try { navigator.clipboard.writeText(String(o.id_jugador)); mostrarAviso("ID copiado.", "ok"); } catch (_) {} });
+      f.dataset.hasta = new Date(o.promo_hasta).getTime();
+      f.innerHTML = `<div class="hoy-esp-i"><div class="hoy-esp-id"><b></b><button type="button" class="hoy-copiar" title="Copiar el ID" aria-label="Copiar el ID">📋</button><span class="hoy-nom"></span></div><small></small><div class="hoy-barra"><i></i></div></div><div class="hoy-cd"></div><button type="button" class="hoy-ok">✅ Ya la cargué</button><button type="button" class="hoy-pin">❌ Sin descuento → PIN</button>`;
+      f.querySelector("b").textContent = `#${o.id} · ${o.diamantes || "?"} 💎 · ID ${o.id_jugador}`;
+      f.querySelector("small").textContent = `Pago Store → República Dominicana → ese ID → ${o.diamantes} → PayPal. Si no tiene descuento, tocá «Sin descuento».`;
+      f.querySelector(".hoy-copiar").addEventListener("click", async () => { try { await navigator.clipboard.writeText(String(o.id_jugador)); mostrarAviso("ID copiado: " + o.id_jugador, "ok"); } catch (_) { mostrarAviso("No se pudo copiar.", "error"); } });
+      nombreDeId(o.id_jugador).then((n) => { const e = f.querySelector(".hoy-nom"); if (e && n) e.textContent = "· " + n; });
       f.querySelector(".hoy-ok").addEventListener("click", async () => { const { error } = await supabase.rpc("admin_promo_cargada", { p_orden_id: o.id }); mostrarAviso(error ? "No se pudo cerrar (¿ya salió con PIN?)." : "Listo: orden acreditada y el PIN volvió a tu stock.", error ? "error" : "ok"); pintarHoy(); });
       f.querySelector(".hoy-pin").addEventListener("click", async () => { const { error } = await supabase.rpc("admin_promo_mandar_pin", { p_orden_id: o.id }); mostrarAviso(error ? "No se pudo enviar." : "Enviada con PIN.", error ? "error" : "ok"); pintarHoy(); });
       w.appendChild(f);

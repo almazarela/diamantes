@@ -2618,3 +2618,13 @@ body.modo-admin .op-form-campos .op-btn{padding:5px 10px;font-size:.72rem}
 .hoy-ok,.hoy-pin{border:0;border-radius:9px;padding:7px 11px;font:800 12px/1.1 inherit;cursor:pointer}
 .hoy-ok{background:linear-gradient(135deg,#9dffc9,#19e68c);color:#04210f}
 .hoy-pin{background:#1d2740;color:#7dd3fc;border:1px solid #3f557f}
+.hoy-esp-id{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.hoy-esp-id b{cursor:default}
+.hoy-copiar{border:1px solid #3f557f;background:#1d2740;border-radius:8px;padding:2px 7px;font-size:13px;cursor:pointer;line-height:1.3}
+.hoy-copiar:hover{border-color:#7fd6ff}
+.hoy-nom{color:#9dffc9;font-weight:700;font-size:12.5px}
+.hoy-barra{height:4px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:3px}
+.hoy-barra i{display:block;height:100%;background:linear-gradient(90deg,#19e68c,#f3ba2f);transition:width 1s linear}
+.hoy-cd{font-weight:800;font-size:20px;line-height:1;color:#ffe28a;min-width:52px;text-align:center}
+.hoy-cd.urge{color:#ff6b7a;animation:demPulso 1s ease-in-out infinite}
+.hoy-esp-fila.vencida{opacity:.55}
