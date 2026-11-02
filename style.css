@@ -2506,7 +2506,7 @@ body.modo-admin .op-form-campos .op-btn{padding:5px 10px;font-size:.72rem}
 
 /* ===== v28: carrusel más grande en celu + botón "Mis avisos" ===== */
 @media(max-width:600px){
- .carousel-track-container{height:min(232px,29vh)!important;min-height:205px}
+ .carousel-track-container{height:200px!important;min-height:0}
  .carousel-slide{width:78%}
  .carousel-slide.prev{transform:translateX(-46%) scale(.82)}
  .carousel-slide.next{transform:translateX(46%) scale(.82)}
@@ -2530,3 +2530,53 @@ body.modo-admin .op-form-campos .op-btn{padding:5px 10px;font-size:.72rem}
 .nh-btn span{white-space:nowrap}
 .nh-btn i{font-size:13px}
 @media(max-width:600px){.nh-btn{padding:4px 8px!important;font-size:11px!important}}
+
+/* ===== v29: lupa junto al pin, acreditar saldo claro, pendientes, guía animada ===== */
+.adm-lupa{font-size:14px}
+.sc-fila{display:flex;gap:6px;flex-wrap:wrap;align-items:center;width:100%;margin-bottom:6px}
+.sc-seg{display:inline-flex;border:1px solid #2b3544;border-radius:10px;overflow:hidden;background:#0e0f16}
+.sc-seg button{border:0;background:transparent;color:#9fb0c8;padding:6px 10px;font:700 12px/1 inherit;cursor:pointer;white-space:nowrap}
+.sc-seg button.on{background:rgba(127,214,255,.2);color:#fff;box-shadow:inset 0 0 0 1px #7fd6ff}
+.sc-rap{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px}
+.sc-rap button{border:1px solid #2b3544;background:#161d2c;color:#cfe9ff;border-radius:99px;padding:3px 9px;font:700 11px/1.2 inherit;cursor:pointer}
+.sc-rap button:hover{border-color:#7fd6ff}
+.adm-rail .rt-rojo{background:#ff4d5e!important}
+.hoy-cont{display:flex;flex-direction:column;gap:8px}
+.hoy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}
+.hoy-card{border:1px solid #2b3544;background:#101523;border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;font-size:12px;color:#dfe8f5}
+.hoy-card.alto{border-color:#ff6b7a;box-shadow:0 0 10px rgba(255,77,94,.25)}
+.hoy-card.aviso{border-color:#f3ba2f}
+.hoy-card.ok{border-color:#1f6b46}
+.hoy-cab{display:flex;align-items:center;gap:6px;font-size:13px}
+.hoy-cab b{flex:1}
+.hoy-cab em{font-style:normal;min-width:20px;text-align:center;border-radius:99px;padding:1px 7px;font-weight:800;font-size:11px;background:#f3ba2f;color:#201500}
+.hoy-card.alto .hoy-cab em{background:#ff4d5e;color:#fff}
+.hoy-card.ok .hoy-cab em{background:#1f9d62;color:#fff}
+.hoy-vacio,.hoy-mas{margin:0;color:#8fa0b8;font-size:11px}
+.hoy-fila{display:flex;justify-content:space-between;gap:8px;text-align:left;border:0;background:rgba(255,255,255,.05);color:inherit;border-radius:8px;padding:5px 8px;cursor:pointer;font:inherit}
+.hoy-fila:hover{background:rgba(127,214,255,.14)}
+.hoy-fila small{color:#9db3cf;white-space:nowrap}
+.hoy-ir{align-self:flex-start;margin-top:2px;border:1px solid #3f557f;background:#1d2740;color:#7dd3fc;border-radius:8px;padding:4px 9px;font:700 11px/1.2 inherit;cursor:pointer}
+.hoy-num{margin:2px 0;font-size:14px;font-weight:800;color:#7dffb0}
+.hoy-todo{margin:0;text-align:center;color:#7dffb0;font-weight:800;font-size:13px}
+.hoy-refrescar{align-self:flex-end;border:0;background:none;color:#8fa6c4;font-size:11px;cursor:pointer;text-decoration:underline}
+/* guía de bienvenida */
+.tour{position:fixed;inset:0;z-index:100001}
+.tour[hidden]{display:none}
+.tour-foco{position:fixed;border-radius:14px;box-shadow:0 0 0 9999px rgba(3,8,20,.78),0 0 0 3px #7fd6ff,0 0 22px 4px rgba(127,214,255,.7);transition:all .35s ease;animation:tourPulso 1.6s ease-in-out infinite;pointer-events:none}
+@keyframes tourPulso{50%{box-shadow:0 0 0 9999px rgba(3,8,20,.78),0 0 0 6px rgba(127,214,255,.55),0 0 30px 8px rgba(127,214,255,.5)}}
+.tour-mano{position:fixed;font-size:28px;line-height:1;pointer-events:none;animation:tourMano 1s ease-in-out infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.6))}
+@keyframes tourMano{50%{transform:translateY(7px)}}
+.tour-card{position:fixed;max-width:340px;padding:14px 16px;border-radius:18px;border:1px solid rgba(127,214,255,.6);background:radial-gradient(120% 70% at 50% -10%,rgba(127,214,255,.22),transparent 62%),#0e1326;box-shadow:0 0 22px rgba(127,214,255,.3),0 14px 40px rgba(0,0,0,.7);color:#eaf6ff;animation:tourEntra .35s ease}
+@keyframes tourEntra{from{opacity:0;scale:.94}}
+.tour-t{font-size:16px;font-weight:800;margin-bottom:4px}
+.tour-d{margin:0 0 10px;font-size:13.5px;line-height:1.4;color:#cfe3f7}
+.tour-pie{display:flex;align-items:center;gap:8px}
+.tour-pts{flex:1;display:flex;gap:5px;justify-content:center}
+.tour-pts i{width:7px;height:7px;border-radius:50%;background:#3b4a6b}
+.tour-pts i.on{background:#7fd6ff;box-shadow:0 0 8px #7fd6ff}
+.tour-saltar{background:none;border:0;color:#8fa6c4;font-size:12px;cursor:pointer;text-decoration:underline}
+.tour-atras{width:30px;height:30px;border-radius:50%;border:1px solid #3f557f;background:#1d2740;color:#cfe9ff;font-size:18px;cursor:pointer}
+.tour-sig{padding:8px 16px;border:0;border-radius:99px;font:800 13px/1 inherit;cursor:pointer;color:#04210f;background:linear-gradient(135deg,#9dffc9,#19e68c);box-shadow:0 0 12px rgba(25,230,140,.5)}
+@media(prefers-reduced-motion:reduce){.tour-foco,.tour-mano,.tour-card{animation:none}}
+.hoy-fila span{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

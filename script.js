@@ -1690,17 +1690,18 @@ const fechaCorta = (v) => {
 
 const VISTAS_CHAT = ["clientes", "archivados", "sala1", "sala2", "sala3"];
 const VISTAS_COBRO = ["cobro", "precios", "niveles"];
-const TODAS_VISTAS = [...VISTAS_CHAT, "ordenes", "stock", "todas", "jugadores", ...VISTAS_COBRO];
+const TODAS_VISTAS = ["hoy", ...VISTAS_CHAT, "ordenes", "stock", "todas", "jugadores", ...VISTAS_COBRO];
 function mostrarVistaAdmin(vista) {
   if (!TODAS_VISTAS.includes(vista)) vista = "clientes";
   const esCobro = VISTAS_COBRO.includes(vista), esChat = VISTAS_CHAT.includes(vista);
   vistaAdmin = vista;
   vistaChats = vista === "clientes" ? "normal" : esChat ? vista : vistaChats;
   const mostrar = (id, ok) => { const e = $(id); if (e) e.hidden = !ok; };
-  mostrar("admin-vista-clientes", esChat); mostrar("admin-vista-ordenes", vista === "ordenes"); mostrar("admin-vista-stock", vista === "stock");
+  mostrar("admin-vista-hoy", vista === "hoy"); mostrar("admin-vista-clientes", esChat); mostrar("admin-vista-ordenes", vista === "ordenes"); mostrar("admin-vista-stock", vista === "stock");
   mostrar("admin-vista-salas", vista === "todas"); mostrar("admin-vista-jugadores", vista === "jugadores"); mostrar("admin-vista-cobro", esCobro);
   TODAS_VISTAS.forEach((v) => { const t = $("admin-tab-" + v); if (t) { t.classList.toggle("activa", v === vista); t.setAttribute("aria-selected", String(v === vista)); } });
   document.querySelectorAll("#admin-vista-cobro .cobro-sec").forEach((d) => { d.hidden = d.dataset.pane !== vista; d.open = true; });
+  if (vista === "hoy") pintarHoy();
   if (vista === "ordenes") cargarOrdenesAdmin(false);
   if (vista === "stock") cargarStockPines();
   if (esCobro) rellenarCobro();
@@ -2437,7 +2438,7 @@ function construirVistaCliente() {
 
     const tiles = document.createElement("div");
     tiles.style.cssText = "display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;";
-    [["USD", "Saldo USD", "#2ecc71"], ["ARS", "Saldo ARS", "#38bdf8"]].forEach(([m, titulo, color]) => {
+    [["ARS", "Saldo ARS (pesos)", "#38bdf8"], ["USD", "Saldo USD (dólares)", "#2ecc71"]].forEach(([m, titulo, color]) => {
       const t = document.createElement("div");
       t.id = "admin-tile-" + m;
       t.style.cssText = "background:#0e0f16;border:1px solid #2b3544;border-radius:8px;padding:8px 10px;";
@@ -2458,7 +2459,7 @@ function construirVistaCliente() {
     moneda.id = "admin-moneda";
     moneda.setAttribute("aria-label", "Moneda a modificar");
     moneda.style.cssText = ESTILO_INPUT + "font-weight:700;";
-    [["USD", "USD (dólares)"], ["ARS", "ARS (pesos)"]].forEach(([v, t]) => {
+    [["ARS", "ARS (pesos)"], ["USD", "USD (dólares)"]].forEach(([v, t]) => {
       const o = document.createElement("option"); o.value = v; o.textContent = t;
       if (v === "ARS" && !saldoArsDisponible) o.disabled = true;
       moneda.appendChild(o);
@@ -2471,7 +2472,7 @@ function construirVistaCliente() {
       const o = document.createElement("option"); o.value = v; o.textContent = t; modo.appendChild(o);
     });
     const monto = document.createElement("input");
-    monto.id = "admin-monto"; monto.type = "number"; monto.step = "0.01"; monto.placeholder = "Monto USD";
+    monto.id = "admin-monto"; monto.type = "number"; monto.step = "0.01"; monto.placeholder = "Monto ARS";
     monto.setAttribute("aria-label", "Monto");
     monto.style.cssText = ESTILO_INPUT + "width:120px;";
     const nota = document.createElement("input");
@@ -2490,7 +2491,25 @@ function construirVistaCliente() {
       });
     };
     moneda.addEventListener("change", resaltar);
-    fila.append(moneda, modo, monto, nota, ok);
+    // controles claros: pesos/dólares, qué hacer, y montos rápidos
+    const grupo = (opciones, alElegir, inicial) => {
+      const g = document.createElement("div"); g.className = "sc-seg";
+      opciones.forEach(([v, t]) => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.dataset.v = v; b.addEventListener("click", () => { [...g.children].forEach((x) => x.classList.toggle("on", x === b)); alElegir(v); }); if (v === inicial) b.classList.add("on"); g.appendChild(b); });
+      return g;
+    };
+    const rapidos = document.createElement("div"); rapidos.className = "sc-rap";
+    const pintarRapidos = () => {
+      rapidos.replaceChildren();
+      (moneda.value === "ARS" ? [1000, 2000, 5000, 10000, 20000] : [1, 2, 5, 10, 20]).forEach((n) => { const b = document.createElement("button"); b.type = "button"; b.textContent = n.toLocaleString("es-AR"); b.addEventListener("click", () => { monto.value = n; monto.focus(); }); rapidos.appendChild(b); });
+    };
+    const gMon = grupo([["ARS", "🇦🇷 Pesos"], ["USD", "💵 Dólares"]], (v) => { moneda.value = v; resaltar(); pintarRapidos(); }, "ARS");
+    const gAcc = grupo([["sumar", "➕ Sumar"], ["restar", "➖ Restar"], ["establecer", "🎯 Fijar total"]], (v) => { modo.dataset.restar = v === "restar" ? "1" : ""; modo.value = v === "establecer" ? "establecer" : "sumar"; ok.textContent = v === "restar" ? "Descontar saldo" : v === "establecer" ? "Fijar saldo total" : "Acreditar saldo"; }, "sumar");
+    moneda.style.display = "none"; modo.style.display = "none";
+    monto.style.width = "130px"; ok.textContent = "Acreditar saldo";
+    const fSeg = document.createElement("div"); fSeg.className = "sc-fila"; fSeg.append(gMon, gAcc);
+    const fMonto = document.createElement("div"); fMonto.className = "sc-fila"; fMonto.append(monto, nota, ok);
+    fila.replaceChildren(moneda, modo, fSeg, rapidos, fMonto);
+    pintarRapidos();
     caja.append(tiles, fila);
     caja.hidden = true;
     caja.id = "admin-caja-saldo";
@@ -2507,7 +2526,7 @@ function construirVistaCliente() {
     tog.append(txt, flecha);
     const resumen = () => {
       const u = $("admin-saldo-USD")?.textContent || "", a = $("admin-saldo-ARS")?.textContent || "";
-      txt.textContent = `💰 Saldos y acreditar · ${u} · ${a}`;
+      txt.textContent = `💰 Saldos y acreditar · ${a} · ${u}`;
     };
     tog.addEventListener("click", () => {
       const abrir = caja.hidden;
@@ -2723,7 +2742,8 @@ async function ajustarSaldoCliente() {
   if (!sel || !btn) return;
   const moneda = $("admin-moneda").value === "ARS" ? "ARS" : "USD";
   const modo = $("admin-modo").value;
-  const monto = Math.round(parseFloat($("admin-monto").value) * 100) / 100;
+  let monto = Math.round(parseFloat($("admin-monto").value) * 100) / 100;
+  if ($("admin-modo").dataset.restar === "1" && Number.isFinite(monto)) monto = -Math.abs(monto);
   const nota = $("admin-nota").value.trim();
   const limite = moneda === "ARS" ? 100000000 : 100000;
 
@@ -2763,6 +2783,11 @@ async function ajustarSaldoCliente() {
     if (usuarioActual && usuarioActual.id === sel.id) pintarSaldo(nuevo, moneda);
     $("admin-monto").value = ""; $("admin-nota").value = "";
     mostrarAviso(`Saldo ${moneda} actualizado: ${formatoMoneda(moneda, nuevo)}`, "ok");
+    if (monto > 0 && modo === "sumar") {   // aviso automático dentro del chat del cliente (le suena al instante)
+      const txtMsg = `💰 ¡Te acreditamos saldo! +${formatoMoneda(moneda, monto)} ${moneda}. Ya podés usarlo para recargar tus diamantes. 💎`;
+      supabase.from(MSG.tabla).insert({ [MSG.userCol]: sel.id, [MSG.senderCol]: usuarioActual.id, [MSG.textoCol]: txtMsg, [MSG.leidoCol]: false })
+        .then(({ error: e2 }) => { if (!e2 && clienteSel === sel) refrescarMensajes(true); }, () => {});
+    }
   } catch (err) {
     console.error("Error al ajustar saldo:", err);
     mostrarAviso(
@@ -3677,7 +3702,7 @@ Object.assign(window, {
 // ------------------------- FONDO SAKURA (solo PC) ----------------------
 // Pétalos 3D que caen con el viento (el scroll los empuja).
 (function sakura() {
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || window.matchMedia("(max-width: 600px)").matches) return;   // en celu no: que la página vuele
   const cel = window.matchMedia("(max-width: 800px)").matches;   // celu/tablet: menos pétalos y más chicos para no estorbar
   const cv = document.createElement("canvas");
   cv.id = "sakura-fx"; cv.setAttribute("aria-hidden", "true");
@@ -4447,7 +4472,7 @@ Object.assign(window, { abrirModalConvertir, cerrarModalConvertir, convMonto, co
     const v = c && !c.hidden ? c.textContent : "";
     if (n) { n.textContent = v; n.hidden = !v; }
   };
-  setInterval(sync, 1000);
+  setInterval(() => { if (!document.hidden) sync(); }, 1500);
   document.addEventListener("DOMContentLoaded", () => { sync(); cargarCobro(); });
 })();
 
@@ -4999,9 +5024,10 @@ function sonidoZarela(forzar) {
 }
 function avisar(titulo, texto, { toast = true, tipo = "ok" } = {}) {
   sonidoZarela();
+  try { navigator.vibrate && navigator.vibrate([220, 90, 220, 90, 320]); } catch (_) {}
   if (toast && !document.hidden) mostrarAviso(titulo + (texto ? " " + texto : ""), tipo);
   if (document.hidden && avisosOn()) {
-    try { if (!pushActivo && "Notification" in window && Notification.permission === "granted") new Notification(titulo, { body: texto || "", tag: "zarela-aviso" }); } catch (_) {}
+    try { if (!pushActivo && "Notification" in window && Notification.permission === "granted") new Notification(titulo, { body: texto || "", tag: "zarela-aviso", vibrate: [220, 90, 220, 90, 320], renotify: true }); } catch (_) {}
   }
 }
 // botón del menú lateral
@@ -5050,6 +5076,7 @@ function avisoMensajeNuevo(nuevos, ultimo) {
   if (ultimoAvisoMsg === null) { ultimoAvisoMsg = ts; return; }   // la primera lectura no suena
   if (!nuevos || ts === ultimoAvisoMsg) return;
   ultimoAvisoMsg = ts;
+  if (ultimo && /^💰 ¡Te acreditamos saldo/.test(String(ultimo[MSG.textoCol] || ""))) return;   // ese ya lo avisa el saldo (una sola notificación)
   const t = ultimo && ultimo[MSG.textoCol] ? String(ultimo[MSG.textoCol]).slice(0, 80) : "Te mandó un mensaje";
   avisar("💬 Soporte Zarela:", t, { tipo: "info" });
 }
@@ -5078,7 +5105,9 @@ let saldoBase = null, saldoBaseUid = null;
       saldoBase = { ...saldos };
     } catch (_) {}
   };
-  setInterval(() => { if (usuarioActual && !esAdminActual()) cargarSaldo(usuarioActual); }, 30000);
+  setInterval(() => { if (!document.hidden && usuarioActual && !esAdminActual()) cargarSaldo(usuarioActual); }, 7000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && usuarioActual && !esAdminActual()) cargarSaldo(usuarioActual); });
+  addEventListener("focus", () => { if (usuarioActual && !esAdminActual()) cargarSaldo(usuarioActual); });
 }
 
 // ---- Lista de chats del panel: se ven 8 y el resto con scroll
@@ -5128,6 +5157,14 @@ function armarMenuChat() {
     if (abrirYa && enfocar) setTimeout(() => enfocar.focus(), 50);
   };
   item("✖️", "Cerrar chat", () => cerrarChatActual());
+  const bArch = item("🗄️", "", () => { const m = metaDe(uid); guardarMeta(uid, { archivado: !m.archivado }); if (!m.archivado) cerrarChatActual(); });
+  actualizadores.push(() => { bArch.querySelector("b").textContent = metaDe(uid).archivado ? "Sacar de archivados" : "Archivar chat"; bArch.firstElementChild.textContent = metaDe(uid).archivado ? "📤" : "🗄️"; });
+  [1, 2, 3].forEach((n) => {
+    const b = item("🎮", "", () => { const m = metaDe(uid); const sa = m.salas.includes(n) ? m.salas.filter((x) => x !== n) : [...m.salas, n].sort(); guardarMeta(uid, { salas: sa }); mostrarAviso(sa.includes(n) ? `Agregado a la Sala ${n}.` : `Quitado de la Sala ${n}.`, "ok"); });
+    actualizadores.push(() => { const en = metaDe(uid).salas.includes(n); b.querySelector("b").textContent = (en ? "Quitar de Sala " : "Mandar a Sala ") + n; b.classList.toggle("en-sala", en); });
+  });
+  sep();
+  if (caja) item("💰", "Saldos y acreditar", () => verPanel([caja]));
   if (verOrdenes) { verOrdenes.innerHTML = "<span>🧾</span><b>Ver sus órdenes</b>"; item("", "", () => {}, verOrdenes); }
   if (btnBloq) {
     item("", "", () => {}, btnBloq);
@@ -5135,20 +5172,13 @@ function armarMenuChat() {
     pint(); new MutationObserver(() => { if (btnBloq.firstElementChild?.tagName !== "SPAN") pint(); }).observe(btnBloq, { childList: true, characterData: true, subtree: false });
   }
   if (det) item("📒", "Movimientos de saldo", () => verPanel([det]));
-  if (caja) item("💰", "Saldos y acreditar", () => verPanel([caja]));
-  if (buscar) item("🔍", "Buscar en la conversación", () => verPanel([buscar], buscar.querySelector("input")));
-  sep();
-  const bArch = item("🗄️", "", () => { const m = metaDe(uid); guardarMeta(uid, { archivado: !m.archivado }); if (!m.archivado) cerrarChatActual(); });
-  actualizadores.push(() => { bArch.querySelector("b").textContent = metaDe(uid).archivado ? "Sacar de archivados" : "Archivar chat"; bArch.firstElementChild.textContent = metaDe(uid).archivado ? "📤" : "🗄️"; });
-  [1, 2, 3].forEach((n) => {
-    const b = item("🎮", "", () => { const m = metaDe(uid); const sa = m.salas.includes(n) ? m.salas.filter((x) => x !== n) : [...m.salas, n].sort(); guardarMeta(uid, { salas: sa }); mostrarAviso(sa.includes(n) ? `Agregado a la Sala ${n}.` : `Quitado de la Sala ${n}.`, "ok"); });
-    actualizadores.push(() => { const en = metaDe(uid).salas.includes(n); b.querySelector("b").textContent = (en ? "Quitar de Sala " : "Mandar a Sala ") + n; b.classList.toggle("en-sala", en); });
-  });
+  const lupa = document.createElement("button"); lupa.type = "button"; lupa.className = "adm-puntos adm-lupa"; lupa.textContent = "🔍"; lupa.title = "Buscar en la conversación"; lupa.setAttribute("aria-label", "Buscar en la conversación");
+  lupa.addEventListener("click", (e) => { e.stopPropagation(); if (buscar) verPanel([buscar], buscar.querySelector("input")); });
   const refrescar = () => actualizadores.forEach((f) => f());
   refrescar();
   puntos.addEventListener("click", (e) => { e.stopPropagation(); refrescar(); menu.hidden = !menu.hidden; });
   document.addEventListener("click", (e) => { if (!menu.hidden && !menu.contains(e.target)) menu.hidden = true; });
-  cab.replaceChildren(...[atras, titulo, pin, puntos, menu].filter(Boolean));
+  cab.replaceChildren(...[atras, titulo, lupa, pin, puntos, menu].filter(Boolean));
   cab.classList.add("adm-cab-v2");
 }
 
@@ -5407,7 +5437,7 @@ aplicarFondoChat();
     const menu = $("admin-chat-view")?.querySelector(".adm-menu"); if (!menu || menu.querySelector(".adm-fondo")) return;
     const b = document.createElement("button"); b.type = "button"; b.className = "adm-mi adm-fondo"; b.innerHTML = "<span>🖼️</span><b>Fondo del chat</b>";
     b.addEventListener("click", () => { menu.hidden = true; abrirSelectorFondo(); });
-    menu.insertBefore(b, menu.querySelector(".adm-sep") || null);
+    menu.appendChild(b);
   };
 }
 
@@ -5591,7 +5621,11 @@ function anotarNotif(ic, txt, clave) {
 }
 function nhEventos() {
   const corte = nhLeer("corte", 0), ev = [], vistos = new Set();
-  nhLeer("log", []).forEach((e) => { vistos.add(e.k); ev.push(e); });
+  const movT = nhMovs.filter((m) => Number(m.monto) > 0).map((m) => new Date(m.created_at).getTime());
+  nhLeer("log", []).forEach((e) => {
+    if (/^saldo_/.test(e.k || "") && movT.some((t) => Math.abs(t - e.t) < 15 * 60000)) return;   // el movimiento real ya lo cuenta: una sola vez
+    vistos.add(e.k); ev.push(e);
+  });
   const add = (k, t, ic, txt) => { if (vistos.has(k) || !t || Number.isNaN(t)) return; vistos.add(k); ev.push({ k, t, ic, txt }); };
   (comprasUsuario || []).slice(0, 10).forEach((o) => {
     const t = new Date(o.created_at).getTime(), n = "#" + numCompra(o), idj = o.id_jugador ? " al ID " + o.id_jugador : "", dia = o.diamantes ? fmtNum(o.diamantes) + " 💎" : "diamantes";
@@ -5651,7 +5685,11 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 {
   const a0 = avisar;
-  avisar = function (titulo, texto, o) { a0(titulo, texto, o); try { if (!esAdminActual()) { const m = String(titulo || "").match(/^(\S+)\s+(.*)$/su); anotarNotif(m ? m[1] : "🔔", (m ? m[2] : String(titulo || "")) + (texto ? " " + texto : "")); }; } catch (_) {} };
+  avisar = function (titulo, texto, o) { a0(titulo, texto, o); try { if (!esAdminActual()) {
+      const todo = String(titulo || "") + " " + String(texto || "");
+      if (/acreditamos saldo/i.test(todo)) anotarNotif("💰", "Se acreditó saldo: " + String(texto || "").replace(/\s*·\s*/g, " y "), "saldo_" + Math.floor(Date.now() / 600000));
+      else { const m = String(titulo || "").match(/^(\S+)\s+(.*)$/su); anotarNotif(m ? m[1] : "🔔", (m ? m[2] : String(titulo || "")) + (texto ? " " + texto : "")); }
+    }; } catch (_) {} };
   const b0 = avisarAcreditada;
   avisarAcreditada = function (x) { b0(x); try { anotarNotif("✅", `¡Tus ${x.paquete || "diamantes"} ya están acreditados!`, "o" + x.id + "_completada"); } catch (_) {} };
   const c0 = iniciarSeguimiento;
@@ -5665,3 +5703,141 @@ document.addEventListener("DOMContentLoaded", () => {
     try { if (s && s.estado === "fallida" && antes !== "fallida") anotarNotif("↩️", `Tu orden de ${s.paquete || "diamantes"} no se pudo acreditar: tu saldo fue devuelto.`, "o" + s.id + "_fallida"); } catch (_) {}
   };
 }
+
+// =====================================================================
+// v29: "Pendientes" del administrador + guía animada para clientes nuevos
+// =====================================================================
+async function hoyDatos() {
+  const d = { chats: [], ords: [], stock: [], hoyOk: 0, hoyDia: 0, err: [] };
+  resumenAdmin.forEach((r, id) => { if (r.noLeidos > 0) d.chats.push({ id, n: r.noLeidos, ultima: r.ultima }); });
+  d.chats.sort((a, b) => b.ultima - a.ultima);
+  try {
+    const r = await conTimeout(supabase.from("ordenes_recarga").select("id,estado,envio_error,created_at,id_jugador,diamantes").order("created_at", { ascending: false }).limit(60), 10000);
+    if (r.error) throw r.error;
+    const inicio = new Date(); inicio.setHours(0, 0, 0, 0);
+    (r.data || []).forEach((o) => {
+      if (o.estado === "pendiente" || o.estado === "error_envio") d.ords.push(o);
+      if (o.estado === "completada" && new Date(o.created_at) >= inicio) { d.hoyOk++; d.hoyDia += Number(o.diamantes) || 0; }
+    });
+  } catch (_) { d.err.push("órdenes"); }
+  try {
+    const r = await conTimeout(supabase.rpc("admin_stock_pines"), 10000);
+    if (r.error) throw r.error;
+    stockPaquetes = Array.isArray(r.data) ? r.data : stockPaquetes;
+    d.stock = stockPaquetes.filter((p) => ETIQUETA_STOCK[p.paquete_id] && (Number(p.disponibles) || 0) < 5).map((p) => ({ nombre: ETIQUETA_STOCK[p.paquete_id], n: Number(p.disponibles) || 0 }));
+  } catch (_) { d.err.push("stock"); }
+  return d;
+}
+const hoyTotal = (d) => d.chats.length + d.ords.length + d.stock.length;
+async function actualizarBadgeHoy() {
+  if (!esAdminActual() || !document.body.classList.contains("modo-admin") || document.hidden) return;
+  const d = await hoyDatos(), b = $("hoy-n"); if (!b) return;
+  const n = hoyTotal(d); b.hidden = n === 0; b.textContent = n > 99 ? "99+" : String(n);
+}
+let hoySeq = 0;
+async function pintarHoy() {
+  const c = $("hoy-cont"); if (!c) return;
+  const mi = ++hoySeq;
+  const d = await hoyDatos(); if (mi !== hoySeq || vistaAdmin !== "hoy") return;
+  const b = $("hoy-n"); if (b) { const n = hoyTotal(d); b.hidden = n === 0; b.textContent = String(n); }
+  c.replaceChildren();
+  const tarjeta = (ico, titulo, n, tono, filas, vacio, irA) => {
+    const t = document.createElement("div"); t.className = "hoy-card " + (n ? tono : "ok");
+    const cab = document.createElement("div"); cab.className = "hoy-cab";
+    cab.innerHTML = `<span>${ico}</span><b></b><em></em>`; cab.querySelector("b").textContent = titulo; cab.querySelector("em").textContent = n ? String(n) : "✓";
+    t.appendChild(cab);
+    if (!n) { const p = document.createElement("p"); p.className = "hoy-vacio"; p.textContent = vacio; t.appendChild(p); }
+    filas.slice(0, 5).forEach(([txt, sub, fn]) => { const f = document.createElement("button"); f.type = "button"; f.className = "hoy-fila"; f.innerHTML = "<span></span><small></small>"; f.firstChild.textContent = txt; f.lastChild.textContent = sub; f.addEventListener("click", fn); t.appendChild(f); });
+    if (filas.length > 5) { const m = document.createElement("small"); m.className = "hoy-mas"; m.textContent = `y ${filas.length - 5} más…`; t.appendChild(m); }
+    if (n && irA) { const g = document.createElement("button"); g.type = "button"; g.className = "hoy-ir"; g.textContent = irA[0]; g.addEventListener("click", irA[1]); t.appendChild(g); }
+    return t;
+  };
+  const abrirChat = (id) => { mostrarVistaAdmin("clientes"); const f = clientesAdmin.find((x) => x[CONFIG.COL_ID] === id); if (f) seleccionarCliente(f, etiquetaCliente(id)); };
+  const minOrd = (o) => { const m = Math.max(0, Math.round((Date.now() - new Date(o.created_at).getTime()) / 60000)); return m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`; };
+  const grid = document.createElement("div"); grid.className = "hoy-grid";
+  grid.append(
+    tarjeta("💬", "Chats sin leer", d.chats.length, "aviso", d.chats.map((x) => [etiquetaCliente(x.id), `${x.n} sin leer · ${tiempoRelativo(x.ultima)}`, () => abrirChat(x.id)]), "No hay mensajes sin leer.", ["Ir a Chats", () => mostrarVistaAdmin("clientes")]),
+    tarjeta("🧾", "Órdenes por atender", d.ords.length, "alto", d.ords.map((o) => [`#${o.id} · ${o.diamantes || "?"} 💎 · ID ${o.id_jugador || "-"}`, (/REVISAR A MANO/i.test(o.envio_error || "") ? "⚠ revisar a mano · " : o.estado === "error_envio" ? "no llegó a n8n · " : "") + minOrd(o), () => mostrarVistaAdmin("ordenes")]), "Todas las órdenes están al día.", ["Ir a Órdenes", () => mostrarVistaAdmin("ordenes")]),
+    tarjeta("📦", "Stock de PIN bajo", d.stock.length, "aviso", d.stock.map((p) => [`Paquete ${p.nombre} 💎`, p.n === 0 ? "sin PIN" : `quedan ${p.n}`, () => mostrarVistaAdmin("stock")]), "Hay PIN suficientes en todos los paquetes.", ["Ir a Stock", () => mostrarVistaAdmin("stock")]),
+  );
+  const hoy = document.createElement("div"); hoy.className = "hoy-card info";
+  hoy.innerHTML = `<div class="hoy-cab"><span>📈</span><b>Hoy</b></div><p class="hoy-num"></p><small class="hoy-mas">Contado sobre tus últimas 60 órdenes.</small><button type="button" class="hoy-ir">🩺 Revisar errores y cómo arreglarlos</button>`;
+  hoy.querySelector(".hoy-num").textContent = `${d.hoyOk} recarga${d.hoyOk === 1 ? "" : "s"} acreditada${d.hoyOk === 1 ? "" : "s"} · ${fmtNum(d.hoyDia)} 💎`;
+  hoy.querySelector(".hoy-ir").addEventListener("click", () => { try { abrirSalud(); } catch (_) {} });
+  grid.appendChild(hoy);
+  c.appendChild(grid);
+  if (d.err.length) { const p = document.createElement("p"); p.className = "hoy-mas"; p.textContent = "No se pudo leer: " + d.err.join(", ") + ". Tocá 🔄 para reintentar."; c.appendChild(p); }
+  if (!hoyTotal(d) && !d.err.length) { const ok = document.createElement("p"); ok.className = "hoy-todo"; ok.textContent = "✅ Todo al día. No tenés nada pendiente."; c.prepend(ok); }
+  const r = document.createElement("button"); r.type = "button"; r.className = "hoy-refrescar"; r.textContent = "🔄 Actualizar"; r.addEventListener("click", pintarHoy); c.appendChild(r);
+}
+setInterval(() => { if (vistaAdmin === "hoy" && !document.hidden) pintarHoy(); else actualizarBadgeHoy(); }, 30000);
+document.addEventListener("DOMContentLoaded", () => setTimeout(actualizarBadgeHoy, 6000));
+
+// ---- Guía animada de bienvenida
+(function guiaBienvenida() {
+  const K = "zarela_tour_visto";
+  const sec2 = () => document.querySelectorAll("section.card.cristal")[1] || null;
+  const PASOS = [
+    { t: "¡Bienvenido a Zarela! 💎", d: "Te mostramos lo básico en 30 segundos. Después seguís vos solo." },
+    { t: "Tu saldo", d: "Acá ves tu saldo en pesos y en dólares. Con él comprás tus diamantes.", sel: () => document.querySelector(".saldo-badges") },
+    { t: "Cargá saldo", d: "Tocá «Cargar saldo», elegí Mercado Pago o Binance, pagá y mandá la captura por el chat.", sel: () => document.querySelector(".btn-cargar-saldo") },
+    { t: "1 · Tu ID de Free Fire", d: "Escribí tu ID y tocá Verificar: te mostramos tu nombre para que no te equivoques.", sel: () => $("player-id")?.closest(".card") },
+    { t: "2 · Elegí tu paquete", d: "Elegí cómo pagar, tocá el paquete que querés y listo: los diamantes llegan a tu cuenta.", sel: () => document.querySelector(".bonoxs-card")?.parentElement || sec2() },
+    { t: "¿Dudas? Escribinos", d: "Desde este botón nos escribís, mandás tu comprobante y te respondemos.", sel: () => $("chat-fab") },
+  ];
+  let i = 0, abierto = false, raf = 0;
+  const E = (id) => document.getElementById(id);
+  const marcar = () => { try { localStorage.setItem(K, "1"); } catch (_) {} };
+  function posicionar() {
+    if (!abierto) return;
+    const p = PASOS[i], el = p.sel && p.sel(), foco = E("tour-foco"), mano = E("tour-mano"), card = E("tour-card");
+    const r = el && el.getBoundingClientRect();
+    if (!r || r.width < 4 || r.height < 4) {
+      foco.style.cssText = "left:50%;top:50%;width:0;height:0"; mano.style.display = "none";
+      card.style.cssText = "left:50%;top:50%;transform:translate(-50%,-50%)";
+    } else {
+      const m = 6;
+      foco.style.cssText = `left:${r.left - m}px;top:${r.top - m}px;width:${r.width + m * 2}px;height:${r.height + m * 2}px`;
+      const abajo = r.top + r.height / 2 < innerHeight * 0.55;
+      const ch = card.offsetHeight || 150, ancho = Math.min(340, innerWidth - 24);
+      let top = abajo ? r.bottom + 58 : r.top - ch - 58;
+      top = Math.max(12, Math.min(innerHeight - ch - 12, top));
+      const left = Math.max(12, Math.min(innerWidth - ancho - 12, r.left + r.width / 2 - ancho / 2));
+      card.style.cssText = `left:${left}px;top:${top}px;width:${ancho}px;transform:none`;
+      mano.style.display = "block"; mano.textContent = abajo ? "👆" : "👇";
+      mano.style.left = Math.max(8, Math.min(innerWidth - 40, r.left + r.width / 2 - 14)) + "px";
+      mano.style.top = (abajo ? r.bottom + 8 : r.top - 44) + "px";
+    }
+  }
+  const loop = () => { posicionar(); raf = abierto ? requestAnimationFrame(loop) : 0; };
+  function mostrar() {
+    const p = PASOS[i], el = p.sel && p.sel();
+    if (el && el.scrollIntoView) { try { const r = el.getBoundingClientRect(); if (r.top < 70 || r.bottom > innerHeight - 70) el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (_) {} }
+    E("tour-t").textContent = p.t; E("tour-d").textContent = p.d;
+    E("tour-sig").textContent = i === PASOS.length - 1 ? "¡Listo!" : "Siguiente";
+    E("tour-atras").style.visibility = i === 0 ? "hidden" : "visible";
+    E("tour-saltar").style.visibility = i === PASOS.length - 1 ? "hidden" : "visible";
+    E("tour-pts").innerHTML = PASOS.map((_, k) => `<i class="${k === i ? "on" : ""}"></i>`).join("");
+  }
+  function abrir() {
+    if (abierto) return;
+    try { cerrarTodosLosModales && cerrarTodosLosModales(); if ($("sidebar-menu")?.classList.contains("open")) toggleMenu(); } catch (_) {}
+    i = 0; abierto = true; E("tour").hidden = false; document.body.classList.add("tour-on"); mostrar();
+    if (!raf) raf = requestAnimationFrame(loop);
+  }
+  function cerrar() { abierto = false; E("tour").hidden = true; document.body.classList.remove("tour-on"); marcar(); }
+  window.abrirTutorial = abrir;
+  document.addEventListener("DOMContentLoaded", () => {
+    E("tour-sig")?.addEventListener("click", () => { if (i >= PASOS.length - 1) cerrar(); else { i++; mostrar(); } });
+    E("tour-atras")?.addEventListener("click", () => { if (i > 0) { i--; mostrar(); } });
+    E("tour-saltar")?.addEventListener("click", cerrar);
+    document.addEventListener("keydown", (e) => { if (abierto && e.key === "Escape") cerrar(); });
+    E("sb-tutorial")?.addEventListener("click", () => setTimeout(abrir, 250));
+    // primera visita: se muestra sola una vez (no a la administradora)
+    setTimeout(() => {
+      let visto = false; try { visto = localStorage.getItem(K) === "1"; } catch (_) {}
+      if (visto || document.body.classList.contains("modo-admin") || esAdminActual() || location.hash.includes("access_token")) return;
+      abrir();
+    }, 2500);
+  });
+})();

@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Centro de Recargas - Free Fire</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0a1430">
@@ -718,6 +721,11 @@
   <span class="sb-txt"><b>Avisos con sonido</b><small></small></span>
   </button>
 
+  <button type="button" id="sb-tutorial" class="sb-accion sb-avisos">
+  <span class="sb-ico">🎓</span>
+  <span class="sb-txt"><b>Ver tutorial</b><small>Repasá cómo funciona la página en 30 segundos.</small></span>
+  </button>
+
   <button type="button" id="sb-instalar" class="sb-accion sb-avisos">
   <span class="sb-ico">📲</span>
   <span class="sb-txt"><b>Descargar app</b><small>Instalala en tu celular o PC, sin ocupar casi espacio.</small></span>
@@ -1099,6 +1107,7 @@
 
   <div class="adm-layout">
   <nav class="adm-rail" role="tablist" aria-label="Secciones del panel">
+  <button type="button" id="admin-tab-hoy" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-hoy" onclick="mostrarVistaAdmin('hoy')" title="Lo que tenés que atender hoy"><span class="rt-i">📋</span><span class="rt-t">Pendientes</span><span class="rt-n rt-rojo" id="hoy-n" hidden>0</span></button>
   <button type="button" id="admin-tab-clientes" class="admin-tab activa" role="tab" aria-selected="true" aria-controls="admin-vista-clientes" onclick="mostrarVistaAdmin('clientes')" title="Mensajes y saldos de clientes"><span class="rt-i">💬</span><span class="rt-t">Chats</span></button>
   
   <button type="button" id="admin-tab-stock" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-stock" onclick="mostrarVistaAdmin('stock')" title="Stock de PINs"><span class="rt-i">📦</span><span class="rt-t">Stock</span></button>
@@ -1116,6 +1125,7 @@
   </nav>
   <div class="adm-contenido">
 
+  <div id="admin-vista-hoy" role="tabpanel" hidden><div id="hoy-cont" class="hoy-cont"><p class="adm-vacio">Cargando pendientes…</p></div></div>
   <div id="admin-vista-clientes" role="tabpanel">
   <p class="adm-ayuda" id="adm-ayuda-chats">Tocá un cliente para ver su chat y acreditarle saldo.</p>
   <div style="display: flex; gap: 15px; flex-wrap: wrap;">
@@ -1330,6 +1340,7 @@ function irAlChat(){
     <div class="salud-acc"><button type="button" onclick="saludRevisar()">🔄 Revisar ahora</button><button type="button" onclick="copiarInformeSalud()">📋 Copiar informe</button><small id="salud-pie"></small></div>
   </div>
 </div>
+<div class="tour" id="tour" hidden><div class="tour-foco" id="tour-foco"></div><div class="tour-mano" id="tour-mano">👆</div><div class="tour-card" id="tour-card" role="dialog" aria-modal="true" aria-label="Guía de bienvenida"><div class="tour-t" id="tour-t"></div><p class="tour-d" id="tour-d"></p><div class="tour-pie"><button type="button" class="tour-saltar" id="tour-saltar">Saltar</button><span class="tour-pts" id="tour-pts"></span><button type="button" class="tour-atras" id="tour-atras" aria-label="Anterior">‹</button><button type="button" class="tour-sig" id="tour-sig">Siguiente</button></div></div></div>
 <div class="nh-modal" id="nh-modal" hidden role="dialog" aria-modal="true" aria-label="Historial de notificaciones">
 <div class="nh-card">
 <div class="nh-cab"><b>🔔 Historial de notificaciones</b><button type="button" id="nh-x" aria-label="Cerrar">✕</button></div>
