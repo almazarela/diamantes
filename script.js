@@ -2384,14 +2384,14 @@ function construirVistaCliente() {
   resp.className = "adm-resp";
   resp.style.cssText = "display:flex;gap:6px;";
   const inp = document.createElement("input");
-  inp.id = "admin-respuesta"; inp.type = "text"; inp.placeholder = "Responder al cliente…"; inp.maxLength = 1000;
+  inp.id = "admin-respuesta"; inp.type = "text"; inp.placeholder = "Responder al cliente… (escribí / para tus respuestas rápidas)"; inp.maxLength = 1000;
   inp.style.cssText = ESTILO_INPUT + "flex:1;";
   const env = creaBoton("Enviar", "background:linear-gradient(135deg,#2f6bff,#1b3fa8);color:#fff;border:1px solid rgba(127,214,255,.55);");
   env.id = "admin-btn-responder";
   const enviar = () => responderCliente();
   env.addEventListener("click", enviar);
   inp.addEventListener("keydown", (e) => { if (e.key === "Enter") enviar(); });
-  resp.append(inp, env);
+  resp.append(rrBoton(inp), inp, env);
   vista.appendChild(resp);
 }
 
@@ -3784,6 +3784,176 @@ async function cargarTopMes() {
     sec.hidden = false;
   } catch (_) { sec.hidden = true; }
 }
+
+// =====================================================================
+// Respuestas rápidas (solo administradora): botón ⚡ y atajo "/" en los chats, "Todas las salas" y "Jugadores"
+// =====================================================================
+const RR_LS = "zarela_resp_rapidas";
+let rrLista = [], rrTabla = true, rrCargada = false, rrCampo = null, rrSel = 0, rrFiltro = "";
+const rrLeerLocal = () => { try { const v = JSON.parse(localStorage.getItem(RR_LS) || "[]"); return Array.isArray(v) ? v : []; } catch (_) { return []; } };
+const rrGuardarLocal = () => { try { localStorage.setItem(RR_LS, JSON.stringify(rrLista)); } catch (_) {} };
+async function rrCargar() {
+  if (rrCargada) return rrLista;
+  rrCargada = true;
+  try {
+    const { data, error } = await conTimeout(supabase.from("respuestas_rapidas").select("id, titulo, texto").order("orden", { ascending: true }).order("id", { ascending: true }), 8000);
+    if (error) throw error;
+    rrLista = data || [];
+    const local = rrLeerLocal();
+    if (!rrLista.length && local.length) {   // las que ya tenías en este navegador pasan al servidor
+      for (const r of local) { const { data: n, error: e2 } = await supabase.from("respuestas_rapidas").insert({ titulo: r.titulo, texto: r.texto, orden: rrLista.length }).select("id, titulo, texto").single(); if (!e2 && n) rrLista.push(n); }
+    }
+  } catch (_) { rrTabla = false; rrLista = rrLeerLocal(); }
+  return rrLista;
+}
+async function rrGuardar(item) {
+  if (rrTabla) {
+    try {
+      if (item.id) {
+        const { error } = await supabase.from("respuestas_rapidas").update({ titulo: item.titulo, texto: item.texto }).eq("id", item.id);
+        if (error) throw error;
+        const x = rrLista.find((r) => r.id === item.id); if (x) Object.assign(x, item);
+      } else {
+        const { data, error } = await supabase.from("respuestas_rapidas").insert({ titulo: item.titulo, texto: item.texto, orden: rrLista.length }).select("id, titulo, texto").single();
+        if (error) throw error;
+        rrLista.push(data);
+      }
+      return;
+    } catch (_) { rrTabla = false; mostrarAviso("No se pudo guardar en el servidor: queda guardada solo en este navegador.", "error"); }
+  }
+  if (item.id) { const x = rrLista.find((r) => r.id === item.id); if (x) Object.assign(x, item); }
+  else rrLista.push({ id: "l" + Date.now(), titulo: item.titulo, texto: item.texto });
+  rrGuardarLocal();
+}
+async function rrBorrar(id) {
+  if (rrTabla && !String(id).startsWith("l")) {
+    try { const { error } = await supabase.from("respuestas_rapidas").delete().eq("id", id); if (error) throw error; }
+    catch (_) { mostrarAviso("No se pudo borrar. Probá de nuevo.", "error"); return; }
+  }
+  rrLista = rrLista.filter((r) => r.id !== id);
+  if (!rrTabla) rrGuardarLocal();
+}
+function rrBoton(campo) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "rr-btn"; b.title = "Respuestas rápidas (también podés escribir /)"; b.setAttribute("aria-label", "Respuestas rápidas"); b.textContent = "⚡";
+  b.addEventListener("click", (e) => { e.preventDefault(); rrAbrir(campo, "", true); });
+  return b;
+}
+function rrCerrar() { $("rr-pop")?.remove(); rrCampo = null; }
+function rrVisibles() {
+  const q = rrFiltro.toLowerCase();
+  return rrLista.filter((r) => !q || (r.titulo + " " + r.texto).toLowerCase().includes(q));
+}
+async function rrAbrir(campo, filtro, manual) {
+  rrCampo = campo; rrFiltro = filtro || ""; rrSel = 0;
+  await rrCargar();
+  if (rrCampo !== campo) return;
+  rrPintar(manual);
+}
+function rrPintar() {
+  const campo = rrCampo; if (!campo) return;
+  $("rr-pop")?.remove();
+  const pop = document.createElement("div"); pop.id = "rr-pop"; pop.setAttribute("role", "listbox");
+  const cab = document.createElement("div"); cab.className = "rr-cab"; cab.textContent = "⚡ Respuestas rápidas";
+  const lista = document.createElement("div"); lista.className = "rr-lista";
+  const vis = rrVisibles();
+  if (rrSel >= vis.length) rrSel = Math.max(0, vis.length - 1);
+  if (!vis.length) {
+    const v = document.createElement("p"); v.className = "rr-vacio";
+    v.textContent = rrLista.length ? "No hay respuestas que coincidan." : "Todavía no tenés respuestas. Tocá “＋ Nueva” para crear la primera.";
+    lista.appendChild(v);
+  }
+  vis.forEach((r, i) => {
+    const it = document.createElement("button"); it.type = "button"; it.className = "rr-it" + (i === rrSel ? " on" : "");
+    const t = document.createElement("b"); t.textContent = r.titulo; const x = document.createElement("span"); x.textContent = r.texto;
+    it.append(t, x);
+    it.addEventListener("mousedown", (e) => e.preventDefault());
+    it.addEventListener("click", () => rrInsertar(r.texto));
+    lista.appendChild(it);
+  });
+  const pie = document.createElement("div"); pie.className = "rr-pie";
+  const nueva = document.createElement("button"); nueva.type = "button"; nueva.textContent = "＋ Nueva"; nueva.addEventListener("mousedown", (e) => e.preventDefault()); nueva.addEventListener("click", () => rrEditor(null));
+  const adm = document.createElement("button"); adm.type = "button"; adm.textContent = "✏️ Editar"; adm.addEventListener("mousedown", (e) => e.preventDefault()); adm.addEventListener("click", () => rrEditor("lista"));
+  pie.append(nueva, adm);
+  pop.append(cab, lista, pie);
+  document.body.appendChild(pop);
+  const r = campo.getBoundingClientRect(), ancho = Math.min(Math.max(r.width, 300), innerWidth - 16);
+  pop.style.width = ancho + "px"; pop.style.left = Math.max(8, Math.min(r.left, innerWidth - ancho - 8)) + "px";
+  if (r.top > 250) pop.style.bottom = (innerHeight - r.top + 6) + "px"; else pop.style.top = (r.bottom + 6) + "px";
+  lista.querySelector(".rr-it.on")?.scrollIntoView({ block: "nearest" });
+}
+function rrInsertar(texto) {
+  const c = rrCampo; if (!c) return;
+  let v = c.value || "";
+  v = /^\/\S*$/.test(v) ? texto : (v ? v.replace(/\s*$/, " ") + texto : texto);
+  if (c.maxLength > 0) v = v.slice(0, c.maxLength);
+  c.value = v;
+  c.dispatchEvent(new Event("input", { bubbles: true }));
+  rrCerrar(); c.focus(); try { c.setSelectionRange(v.length, v.length); } catch (_) {}
+}
+function rrEditor(modo) {   // modo null = nueva, "lista" = administrar, objeto = editar esa
+  rrCerrar(); $("rr-modal")?.remove();
+  const fondo = document.createElement("div"); fondo.id = "rr-modal"; fondo.className = "rr-modal";
+  const caja = document.createElement("div"); caja.className = "rr-caja";
+  const cerrar = () => fondo.remove();
+  fondo.addEventListener("click", (e) => { if (e.target === fondo) cerrar(); });
+  const h = document.createElement("h3"); h.textContent = "⚡ Respuestas rápidas";
+  caja.appendChild(h);
+  const form = document.createElement("div"); form.className = "rr-form";
+  const ti = document.createElement("input"); ti.type = "text"; ti.maxLength = 60; ti.placeholder = "Título corto (ej: Datos de pago)";
+  const tx = document.createElement("textarea"); tx.rows = 4; tx.maxLength = 1000; tx.placeholder = "El mensaje que querés mandar…";
+  const nota = document.createElement("small"); nota.textContent = "Para avisos a salas y jugadores entran los primeros 300 caracteres.";
+  const bGuardar = document.createElement("button"); bGuardar.type = "button"; bGuardar.className = "rr-ok"; bGuardar.textContent = "Guardar";
+  let editando = null;
+  const pintarLista = () => {
+    lista.replaceChildren();
+    if (!rrLista.length) { const v = document.createElement("p"); v.className = "rr-vacio"; v.textContent = "Todavía no hay respuestas."; lista.appendChild(v); }
+    rrLista.forEach((r) => {
+      const f = document.createElement("div"); f.className = "rr-fila";
+      const t = document.createElement("div"); t.className = "rr-ft"; const b = document.createElement("b"); b.textContent = r.titulo; const sp = document.createElement("span"); sp.textContent = r.texto; t.append(b, sp);
+      const e = document.createElement("button"); e.type = "button"; e.textContent = "✏️"; e.title = "Editar"; e.addEventListener("click", () => { editando = r; ti.value = r.titulo; tx.value = r.texto; bGuardar.textContent = "Guardar cambios"; ti.focus(); });
+      const d = document.createElement("button"); d.type = "button"; d.textContent = "🗑"; d.title = "Borrar"; d.addEventListener("click", async () => { if (!confirm("¿Borrar la respuesta “" + r.titulo + "”?")) return; await rrBorrar(r.id); pintarLista(); });
+      f.append(t, e, d); lista.appendChild(f);
+    });
+  };
+  const lista = document.createElement("div"); lista.className = "rr-filas";
+  bGuardar.addEventListener("click", async () => {
+    const titulo = ti.value.trim(), texto = tx.value.trim();
+    if (!titulo || !texto) { mostrarAviso("Poné un título y el mensaje.", "error"); return; }
+    bGuardar.disabled = true;
+    await rrGuardar({ id: editando ? editando.id : undefined, titulo, texto });
+    bGuardar.disabled = false; editando = null; ti.value = ""; tx.value = ""; bGuardar.textContent = "Guardar"; pintarLista();
+    mostrarAviso("Respuesta guardada.", "ok");
+  });
+  form.append(ti, tx, nota, bGuardar);
+  const bCerrar = document.createElement("button"); bCerrar.type = "button"; bCerrar.className = "rr-cerrar"; bCerrar.textContent = "Listo"; bCerrar.addEventListener("click", cerrar);
+  caja.append(form, lista, bCerrar); fondo.appendChild(caja); document.body.appendChild(fondo);
+  pintarLista(); rrCargar().then(pintarLista);
+  setTimeout(() => ti.focus(), 50);
+}
+const RR_CAMPOS = ["admin-respuesta", "sl-texto", "jg-texto"];
+document.addEventListener("input", (e) => {
+  const c = e.target; if (!c || !RR_CAMPOS.includes(c.id)) return;
+  if (/^\/\S*$/.test(c.value || "")) { if (rrCampo === c) { rrFiltro = c.value.slice(1); rrSel = 0; rrPintar(); } else rrAbrir(c, c.value.slice(1)); }
+  else if (rrCampo === c) rrCerrar();
+});
+document.addEventListener("keydown", (e) => {
+  if (!rrCampo || !$("rr-pop")) return;
+  const vis = rrVisibles();
+  if (e.key === "Escape") { e.preventDefault(); rrCerrar(); }
+  else if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); if (vis.length) { rrSel = (rrSel + (e.key === "ArrowDown" ? 1 : vis.length - 1)) % vis.length; rrPintar(); } }
+  else if ((e.key === "Enter" || e.key === "Tab") && vis.length && e.target === rrCampo) { e.preventDefault(); e.stopImmediatePropagation(); rrInsertar(vis[rrSel].texto); }
+}, true);
+document.addEventListener("pointerdown", (e) => { if (rrCampo && !e.target.closest("#rr-pop") && !e.target.closest(".rr-btn") && e.target !== rrCampo) rrCerrar(); });
+document.addEventListener("DOMContentLoaded", () => {
+  ["sl-texto", "jg-texto"].forEach((id) => {
+    const t = $(id); if (!t || t.dataset.rr) return; t.dataset.rr = "1";
+    const barra = document.createElement("div"); barra.className = "rr-barra";
+    const tip = document.createElement("small"); tip.textContent = "Tip: escribí / para ver tus respuestas rápidas";
+    barra.append(rrBoton(t), tip); t.parentNode.insertBefore(barra, t);
+  });
+});
+Object.assign(window, { rrEditor });
 
 // ---- Estado del servicio (cinta + menú lateral)
 async function actualizarEstadoServicio() {
