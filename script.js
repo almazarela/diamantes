@@ -5361,12 +5361,16 @@ async function saludReunir() {
   try {
     const { data, error } = await conTimeout(supabase.rpc("admin_stock_pines"), 12000);
     if (error) throw error;
-    const sin = (data || []).filter((x) => Number(x.disponibles) === 0), pocos = (data || []).filter((x) => Number(x.disponibles) > 0 && Number(x.disponibles) <= 2);
-    if (sin.length) out.push({ id: "stock-cero", nivel: "alto", icono: "📉", titulo: `Sin PINs para: ${sin.map((x) => x.nombre || (x.diamantes + " 💎")).join(", ")}`,
+    // Solo los paquetes que de verdad se venden con stock (los mismos que muestra la pestaña Stock); el resto no cuenta
+    const reales = (data || []).filter((x) => ETIQUETA_STOCK[x.paquete_id]);
+    const lista = reales.length ? reales : (data || []);
+    const nom = (x) => (ETIQUETA_STOCK[x.paquete_id] ? ETIQUETA_STOCK[x.paquete_id] + " 💎" : x.nombre || x.diamantes + " 💎");
+    const sin = lista.filter((x) => Number(x.disponibles) === 0), pocos = lista.filter((x) => Number(x.disponibles) > 0 && Number(x.disponibles) <= 2);
+    if (sin.length) out.push({ id: "stock-cero", nivel: "alto", icono: "📉", titulo: `Sin PINs para: ${sin.map(nom).join(", ")}`,
       detalle: "Si un cliente compra ese paquete, no hay PIN para entregarle.",
       pasos: ["Comprá PINs en tu proveedor para esos paquetes.", "En el panel andá a Stock, elegí el paquete y pegá los códigos (uno por línea) con «Agregar PINs».", "Cuando haya stock vuelve a quedar todo en verde."],
       ir: irPanelAdmin("stock"), irTxt: "Ir a Stock" });
-    else if (pocos.length) out.push({ id: "stock-poco", nivel: "bajo", icono: "📉", titulo: `Quedan muy pocos PINs: ${pocos.map((x) => (x.nombre || x.diamantes + " 💎") + " (" + x.disponibles + ")").join(", ")}`,
+    else if (pocos.length) out.push({ id: "stock-poco", nivel: "bajo", icono: "📉", titulo: `Quedan muy pocos PINs: ${pocos.map((x) => nom(x) + " (" + x.disponibles + ")").join(", ")}`,
       detalle: "Todavía alcanza, pero conviene reponer pronto.", pasos: ["Comprá PINs de esos paquetes.", "En Stock pegá los códigos con «Agregar PINs»."], ir: irPanelAdmin("stock"), irTxt: "Ir a Stock" });
   } catch (e) {
     const falta = /PGRST202|42883|admin_stock_pines/i.test(String((e && (e.code || e.message)) || ""));
