@@ -1229,7 +1229,17 @@
   <span id="stock-contador" class="stock-contador" aria-live="polite">0 PIN detectados</span>
   <button type="button" id="stock-agregar" class="stock-btn" onclick="agregarPinesStock()">Agregar al stock</button>
   </div>
+  <div id="stock-revision" class="stock-revision" aria-live="polite" hidden></div>
   <p id="stock-resultado" class="stock-resultado" aria-live="polite"></p>
+  </div>
+  <details id="stock-ultimos" class="stock-det">
+  <summary>🕘 Últimos PIN subidos <small>(los 10 más recientes)</small></summary>
+  <div id="stock-ultimos-lista" class="stock-ult-lista"><p class="stock-vacio">Tocá para cargar…</p></div>
+  </details>
+  <div class="stock-buscar">
+  <label for="stock-buscar-in">🔍 ¿Este PIN ya está cargado? Pegalo (o un pedazo) y te digo dónde está</label>
+  <div class="sb-w"><i class="fa-solid fa-magnifying-glass"></i><input id="stock-buscar-in" type="search" autocomplete="off" spellcheck="false" placeholder="Pegá un PIN o sus últimos caracteres…"></div>
+  <div id="stock-buscar-res" class="stock-ult-lista"></div>
   </div>
   </div>
   </div>

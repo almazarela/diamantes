@@ -2417,3 +2417,27 @@ body.modo-admin #comments-list .op-card p{margin:2px 0 0;font-size:12px;line-hei
 body.modo-admin #comments-list .op-cab{gap:6px;font-size:12px}
 body.modo-admin #comments-list .op-reacs{margin-top:3px;transform-origin:left;transform:scale(.85)}
 body.modo-admin #comments-list .op-av,body.modo-admin #comments-list .av{width:28px!important;height:28px!important}
+
+/* ===== v26: stock más fácil (revisión de repetidos, últimos 10 subidos, buscador de PIN) ===== */
+.stock-revision{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 10px;border-radius:12px;background:rgba(127,214,255,.07);border:1px solid rgba(127,214,255,.3);font-size:12px}
+.stock-revision[hidden]{display:none}
+.rv{padding:3px 10px;border-radius:99px;font-weight:700;background:rgba(255,255,255,.08)}
+.rv.ok{background:rgba(25,230,140,.16);color:#bff7dc}.rv.mal{background:rgba(255,154,61,.18);color:#ffd9a0}
+.rv-det{flex:1 0 100%;color:#c8d3ec;line-height:1.35}
+.stock-det{margin-top:12px;border:1px solid rgba(127,214,255,.35);border-radius:14px;background:rgba(127,214,255,.05);padding:2px 10px}
+.stock-det summary{cursor:pointer;padding:9px 2px;font-weight:700;color:#d6f1ff;list-style:none}
+.stock-det summary::-webkit-details-marker{display:none}
+.stock-det summary::before{content:"▸ ";color:#7fd6ff}.stock-det[open] summary::before{content:"▾ "}
+.stock-det summary small{opacity:.6;font-weight:400}
+.stock-ult-lista{display:grid;gap:5px;padding:2px 0 10px}
+.pin-fila{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 10px;border-radius:10px;background:#171c32;border:1px solid #2c3558;font-size:12px}
+.pin-fila code{font:700 12px/1 ui-monospace,Consolas,monospace;color:#fff;letter-spacing:.5px}
+.pin-fila .pf-paq{color:#ffe08a;font-weight:700}
+.pin-fila .pf-est{padding:2px 8px;border-radius:99px;font-weight:700;background:rgba(25,230,140,.16);color:#bff7dc}
+.pin-fila.usado .pf-est{background:rgba(255,154,61,.18);color:#ffd9a0}
+.pin-fila small{margin-left:auto;opacity:.6}
+.stock-vacio{font-size:12px;color:#8fa0c4;margin:4px 0}
+.stock-buscar{margin-top:12px}
+.stock-buscar label{display:block;font-size:12px;color:#aebbd6;margin-bottom:6px}
+.sb-w{position:relative}.sb-w i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#7fd6ff;font-size:13px}
+.sb-w input{width:100%;padding:8px 12px 8px 34px;border-radius:99px;border:1px solid rgba(127,214,255,.4);background:rgba(127,214,255,.07);color:#fff;font-size:13px;outline:none}

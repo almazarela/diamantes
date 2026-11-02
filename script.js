@@ -1723,14 +1723,15 @@ let guardandoStock = false;
 function pinesDetectados(texto) {
   const lista = [...new Set(String(texto || "").split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean))];
   const validos = lista.filter((p) => PIN_VALIDO.test(p));
-  return { total: lista.length, validos: validos.length, invalidos: lista.length - validos.length };
+  const todos = String(texto || "").split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean);
+  return { total: lista.length, validos: validos.length, invalidos: lista.length - validos.length, repetidos: todos.length - lista.length };
 }
 
 function actualizarContadorStock() {
   const c = $("stock-contador"), btn = $("stock-agregar");
   if (!c) return;
   const r = pinesDetectados($("stock-texto") && $("stock-texto").value);
-  c.textContent = r.total === 0 ? "0 PIN detectados" : `${r.validos} PIN válido${r.validos === 1 ? "" : "s"}` + (r.invalidos ? ` · ${r.invalidos} con formato raro` : "");
+  c.textContent = r.total === 0 ? "0 PIN detectados" : `${r.validos} PIN válido${r.validos === 1 ? "" : "s"}` + (r.invalidos ? ` · ${r.invalidos} con formato raro` : "") + (r.repetidos ? ` · ${r.repetidos} repetido${r.repetidos === 1 ? "" : "s"} en lo que pegaste` : "");
   if (btn) btn.disabled = guardandoStock || r.validos === 0;
 }
 
@@ -1808,7 +1809,11 @@ async function agregarPinesStock() {
   if (r.validos === 0) { res.className = "stock-resultado error"; res.textContent = "Pegá al menos un PIN con formato válido."; return; }
   const p = stockPaquetes.find((x) => x.paquete_id === sel.value);
   const etiqueta = ETIQUETA_STOCK[sel.value] || sel.value;
-  if (!window.confirm(`¿Agregar ${r.validos} PIN al paquete de ${etiqueta}${p ? " (" + p.diamantes + " 💎)" : ""}?`)) return;
+  await revisarPinesStock(true);   // revisión fresca contra la base antes de confirmar
+  const rv = revisionStock;
+  if (rv && rv.nuevos === 0) { res.className = "stock-resultado error"; res.textContent = "Todos esos PIN ya estaban cargados: no hay nada nuevo para agregar."; return; }
+  const resumen = rv ? `${rv.nuevos} nuevo${rv.nuevos === 1 ? "" : "s"}` + (rv.ya_cargados ? ` (se saltean ${rv.ya_cargados} que ya estaban cargados)` : "") : `${r.validos} PIN`;
+  if (!window.confirm(`¿Agregar ${resumen} al paquete de ${etiqueta}${p ? " (" + p.diamantes + " 💎)" : ""}?`)) return;
   guardandoStock = true;
   if (btn) { btn.disabled = true; btn.textContent = "Guardando…"; }
   res.className = "stock-resultado"; res.textContent = "";
@@ -1822,6 +1827,9 @@ async function agregarPinesStock() {
     res.textContent = partes.join(" · ");
     if (data.agregados > 0 && !data.invalidos) area.value = "";
     await cargarStockPines();
+    const det = $("stock-ultimos"); if (det) det.open = true;
+    cargarUltimosPines(true);
+    revisionStock = null; $("stock-revision") && ($("stock-revision").hidden = true);
   } catch (e) {
     console.error("Agregar PIN:", e);
     res.className = "stock-resultado error";
@@ -1834,6 +1842,82 @@ async function agregarPinesStock() {
 }
 
 document.addEventListener("input", (ev) => { if (ev.target && ev.target.id === "stock-texto") actualizarContadorStock(); });
+// ---- Stock más fácil (v18): revisión de repetidos antes de cargar, últimos 10 subidos y buscador de PIN
+let revisionStock = null, revisionT = null, revisionSeq = 0, avisoV18 = false;
+const etiquetaPaq = (id) => (ETIQUETA_STOCK[id] ? ETIQUETA_STOCK[id] + " 💎" : id || "?");
+function faltaV18(e) { return /PGRST202|42883|admin_(revisar_pines|ultimos_pines|buscar_pin)/i.test(String((e && (e.code + " " + e.message)) || e || "")); }
+async function revisarPinesStock(ahora) {
+  const area = $("stock-texto"), box = $("stock-revision"), sel = $("stock-paquete");
+  if (!area || !box || !sel) return;
+  const local = pinesDetectados(area.value);
+  if (!local.validos) { revisionStock = null; box.hidden = true; const b0 = $("stock-agregar"); if (b0 && !guardandoStock) b0.textContent = "Agregar al stock"; return; }
+  const mi = ++revisionSeq;
+  try {
+    const { data, error } = await conTimeout(supabase.rpc("admin_revisar_pines", { p_paquete_id: sel.value, p_pines: area.value }), 12000);
+    if (error) throw error;
+    if (mi !== revisionSeq) return;
+    revisionStock = data;
+    const partes = [];
+    partes.push(`<span class="rv ok">✅ ${data.nuevos} nuevo${data.nuevos === 1 ? "" : "s"}</span>`);
+    if (data.ya_cargados) partes.push(`<span class="rv mal">⚠️ ${data.ya_cargados} ya estaba${data.ya_cargados === 1 ? "" : "n"} cargado${data.ya_cargados === 1 ? "" : "s"}</span>`);
+    if (data.repetidos_pegado) partes.push(`<span class="rv mal">🔁 ${data.repetidos_pegado} repetido${data.repetidos_pegado === 1 ? "" : "s"} en lo que pegaste</span>`);
+    if (data.invalidos) partes.push(`<span class="rv mal">❌ ${data.invalidos} con formato raro</span>`);
+    let detalle = "";
+    const otros = (data.ya_ejemplos || []).filter((x) => x.paquete_id !== sel.value);
+    if (otros.length) detalle += `<div class="rv-det">Ojo: ${otros.length === 1 ? "uno de ellos está" : "algunos están"} en OTRO paquete (…${esc(otros[0].fin)} → ${esc(etiquetaPaq(otros[0].paquete_id))}). ¿Elegiste bien el paquete?</div>`;
+    const usados = (data.ya_ejemplos || []).filter((x) => x.usado);
+    if (usados.length) detalle += `<div class="rv-det">${usados.length === 1 ? "Uno ya figura" : "Algunos ya figuran"} como USADO${usados.length === 1 ? "" : "S"} (…${esc(usados[0].fin)}): no se vuelven a cargar.</div>`;
+    if (data.ya_cargados) detalle += `<div class="rv-det">Los repetidos se saltean solos: solo se cargan los nuevos.</div>`;
+    box.innerHTML = partes.join(" ") + detalle; box.hidden = false;
+    const btn = $("stock-agregar"); if (btn && !guardandoStock) { btn.disabled = data.nuevos === 0; btn.textContent = data.nuevos ? `Agregar ${data.nuevos} nuevo${data.nuevos === 1 ? "" : "s"}` : "Nada nuevo para agregar"; }
+  } catch (e) {
+    revisionStock = null; box.hidden = true;
+    if (faltaV18(e) && !avisoV18) { avisoV18 = true; mostrarAviso("Para ver los PIN repetidos antes de cargar, ejecutá novedades_clientes_v18.sql en Supabase.", "info"); }
+  }
+}
+const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function filaPin(x) {
+  const d = document.createElement("div"); d.className = "pin-fila " + (x.usado ? "usado" : "libre");
+  const cod = document.createElement("code"); cod.textContent = "…" + x.fin;
+  const pq = document.createElement("span"); pq.className = "pf-paq"; pq.textContent = etiquetaPaq(x.paquete_id);
+  const es = document.createElement("span"); es.className = "pf-est"; es.textContent = x.usado ? "Usado" + (x.orden_id ? " · orden #" + x.orden_id : "") : "Libre";
+  const t = document.createElement("small"); t.textContent = x.creado ? "subido " + hace(x.creado) : "";
+  d.append(cod, pq, es, t); return d;
+}
+async function cargarUltimosPines(forzar) {
+  const lista = $("stock-ultimos-lista"); if (!lista) return;
+  if (!forzar && lista.dataset.listo === "1") return;
+  try {
+    const { data, error } = await conTimeout(supabase.rpc("admin_ultimos_pines", { p_limite: 10 }), 12000);
+    if (error) throw error;
+    lista.replaceChildren();
+    if (!data || !data.length) lista.appendChild(Object.assign(document.createElement("p"), { className: "stock-vacio", textContent: "Todavía no subiste ningún PIN." }));
+    (data || []).slice(0, 10).forEach((x) => lista.appendChild(filaPin(x)));
+    lista.dataset.listo = "1";
+  } catch (e) {
+    lista.replaceChildren(Object.assign(document.createElement("p"), { className: "stock-vacio", textContent: faltaV18(e) ? "Falta ejecutar novedades_clientes_v18.sql en Supabase." : "No se pudo cargar. Probá de nuevo." }));
+  }
+}
+let buscarPinT = null;
+async function buscarPinStock() {
+  const q = ($("stock-buscar-in")?.value || "").trim(), res = $("stock-buscar-res"); if (!res) return;
+  if (q.length < 4) { res.replaceChildren(); return; }
+  try {
+    const { data, error } = await conTimeout(supabase.rpc("admin_buscar_pin", { p_texto: q }), 12000);
+    if (error) throw error;
+    res.replaceChildren();
+    if (!data || !data.length) res.appendChild(Object.assign(document.createElement("p"), { className: "stock-vacio", textContent: "✅ Ese PIN NO está cargado (se puede agregar)." }));
+    (data || []).forEach((x) => res.appendChild(filaPin(x)));
+  } catch (e) { res.replaceChildren(Object.assign(document.createElement("p"), { className: "stock-vacio", textContent: faltaV18(e) ? "Falta ejecutar novedades_clientes_v18.sql en Supabase." : "No se pudo buscar." })); }
+}
+document.addEventListener("input", (ev) => {
+  const id = ev.target && ev.target.id;
+  if (id === "stock-texto") { clearTimeout(revisionT); revisionT = setTimeout(() => revisarPinesStock(), 500); }
+  if (id === "stock-buscar-in") { clearTimeout(buscarPinT); buscarPinT = setTimeout(buscarPinStock, 400); }
+});
+document.addEventListener("change", (ev) => { if (ev.target && ev.target.id === "stock-paquete") revisarPinesStock(); });
+document.addEventListener("toggle", (ev) => { if (ev.target && ev.target.id === "stock-ultimos" && ev.target.open) cargarUltimosPines(); }, true);
+
 
 function actualizarAlertaOrdenes() {
   const n = ordenesAdmin.filter((o) => o.estado === "error_envio").length;
