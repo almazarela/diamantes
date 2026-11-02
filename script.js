@@ -369,7 +369,8 @@ async function verificarJugador() {
 
     const info = normalizarJugador(crudo);
     if (info.noEncontrado) {   // n8n avisó explícitamente que el ID no existe
-      estadoVerificacion("Jugador no encontrado. Revisá el ID.", "error");
+      jugadorVerificado = { id, nombre: null, validado: false, noEncontrado: true };
+      estadoVerificacion("ID no encontrado. Revisá que esté bien escrito: si es de otra región (no Latinoamérica), no se puede recargar.", "error");
       return;
     }
     if (!tieneEvidencia(info)) return modoManual("el webhook no devolvió datos del jugador");
@@ -793,6 +794,7 @@ async function cargarOpiniones() {
 }
 function esAdminActual() { return !!usuarioActual && (usuarioActual.email || "").toLowerCase() === CONFIG.ADMIN_EMAIL.toLowerCase(); }
 
+let opBusca = "";
 function renderOpiniones() {
   const lista = $("comments-list");
   if (!lista) return;
@@ -825,13 +827,22 @@ function renderOpiniones() {
 
   lista.replaceChildren();
   if (!opCargadas) return;
+  if (!$("op-buscar")) {   // lupa: solo se ve en modo administrador
+    const w = document.createElement("div"); w.className = "op-buscar-w";
+    w.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i><input id="op-buscar" type="search" placeholder="Buscar una opinión (nombre o texto)…" autocomplete="off" aria-label="Buscar una opinión">';
+    lista.parentNode.insertBefore(w, lista);
+    w.querySelector("input").addEventListener("input", (e) => { opBusca = e.target.value.trim().toLowerCase(); renderOpiniones(); });
+  }
+  const enAdmin = document.body.classList.contains("modo-admin") && esAdminActual();
+  const visibles = enAdmin && opBusca ? opiniones.filter((o) => (String(o.nombre || "") + " " + String(o.texto || "")).toLowerCase().includes(opBusca)) : opiniones;
+  if (enAdmin && opBusca && !visibles.length) { const p = document.createElement("p"); p.className = "op-vacio"; p.textContent = "No hay opiniones que coincidan."; lista.appendChild(p); }
   if (!opiniones.length) {
     const p = document.createElement("p"); p.className = "op-vacio";
     p.textContent = "Todavía no hay opiniones. ¡Sé el primero en contar tu experiencia! 💎";
     lista.appendChild(p);
   }
-  opiniones.slice(0, opLimite).forEach((o) => lista.appendChild(tarjetaOpinion(o)));
-  if ($("op-mas")) $("op-mas").hidden = opiniones.length <= opLimite;
+  visibles.slice(0, enAdmin ? Math.max(opLimite, 30) : opLimite).forEach((o) => lista.appendChild(tarjetaOpinion(o)));
+  if ($("op-mas")) $("op-mas").hidden = visibles.length <= (enAdmin ? Math.max(opLimite, 30) : opLimite);
 }
 
 function tarjetaOpinion(o) {
@@ -3381,6 +3392,11 @@ async function comprarPaquete(ev, paqueteId, moneda = "USD") {
     return;
   }
   const id = ($("player-id")?.value || "").trim();
+  if (jugadorVerificado && jugadorVerificado.id === id && jugadorVerificado.noEncontrado) {
+    mostrarAviso("ID no encontrado: puede estar mal escrito o ser de otra región. Con ese ID no se puede recargar.", "error");
+    $("player-id")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
   if (!/^\d{5,15}$/.test(id)) {
     mostrarAviso("Primero ingresá tu ID de jugador de Free Fire.", "error");
     $("player-id")?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -3823,8 +3839,9 @@ function pintarTopLista(data) {
       if (nv >= 0) { const ic = document.createElement("span"); ic.className = "nvb-ico"; ic.textContent = NIVELES[nv].ico; cajaN.appendChild(ic); const tt = document.createElement("span"); tt.className = "nvb-t"; tt.textContent = NIVELES[nv].n; cajaN.appendChild(tt); }
       if (r.es_soporte) { const b = document.createElement("span"); b.className = "op-badge"; b.textContent = "Soporte"; n.appendChild(b); }
       const d = document.createElement("span"); d.className = "dia"; d.textContent = fmtNum(r.diamantes) + " 💎";
-      const nvT = nivelDe(r.diamantes);
-      li.append(p, av, n, d); return li;
+      if (nv >= 0) { av.classList.add("av-en-nvb"); cajaN.insertBefore(av, cajaN.firstChild); li.append(p, n, d); }   // la insignia envuelve también la foto
+      else li.append(p, av, n, d);
+      return li;
     });
     if (data.length > 5) {
       const mas = document.createElement("li"); mas.className = "top-mas";
@@ -5131,6 +5148,7 @@ function cerrarChatActual() {
 // ---- Todas las salas (los que están ahora) y Jugadores (historial permanente): lista sin repetir y aviso masivo
 const filtroSalas = { sl: "todas", jg: "todas" };
 function pintarTodasSalas() { pintarListaSalas("sl", "salas"); pintarListaSalas("jg", "jugadores"); }
+const busquedaSalas = { sl: "", jg: "" };
 function pintarListaSalas(pref, modo) {
   const chips = $(pref + "-chips"), lista = $(pref + "-lista"); if (!chips || !lista) return;
   const enSalas = (m) => (modo === "salas" ? m.salas : m.hist);
@@ -5139,7 +5157,14 @@ function pintarListaSalas(pref, modo) {
   const cuenta = (n) => miembros.filter((x) => enSalas(x.m).includes(n)).length;
   const defs = [["todas", "Todas", miembros.length], ["1", "Sala 1", cuenta(1)], ["2", "Sala 2", cuenta(2)], ["3", "Sala 3", cuenta(3)]];
   chips.replaceChildren(...defs.map(([k, t, n]) => { const b = document.createElement("button"); b.type = "button"; b.className = "sl-chip" + (filtroSalas[pref] === k ? " on" : ""); b.innerHTML = `${t} <b>${n}</b>`; b.addEventListener("click", () => { filtroSalas[pref] = k; pintarListaSalas(pref, modo); }); return b; }));
-  const vis = miembros.filter((x) => filtroSalas[pref] === "todas" || enSalas(x.m).includes(Number(filtroSalas[pref])));
+  if (!$(pref + "-buscar")) {   // lupa para encontrar a un jugador
+    const w = document.createElement("div"); w.className = "sl-buscar";
+    w.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i><input id="' + pref + '-buscar" type="search" placeholder="Buscar un jugador (nombre o mail)…" autocomplete="off" aria-label="Buscar un jugador">';
+    chips.parentNode.insertBefore(w, chips);
+    w.querySelector("input").addEventListener("input", (e) => { busquedaSalas[pref] = e.target.value.trim().toLowerCase(); pintarListaSalas(pref, modo); });
+  }
+  const q = busquedaSalas[pref] || "";
+  const vis = miembros.filter((x) => (filtroSalas[pref] === "todas" || enSalas(x.m).includes(Number(filtroSalas[pref]))) && (!q || ((x.f[CONFIG.COL_NOMBRE] || "") + " " + (x.f[CONFIG.COL_EMAIL] || "")).toLowerCase().includes(q)));
   lista.replaceChildren();
   if (!vis.length) lista.appendChild(Object.assign(document.createElement("p"), { className: "adm-vacio", textContent: modo === "salas" ? "Todavía no anotaste a nadie. Desde el menú ⋮ de un chat tocá “Mandar a Sala 1/2/3”." : "Todavía no hay jugadores guardados. Cada persona que mandes a una sala queda acá para siempre." }));
   vis.forEach(({ f, m }) => {
@@ -5154,6 +5179,18 @@ function pintarListaSalas(pref, modo) {
       const q = document.createElement("button"); q.type = "button"; q.className = "sl-quitar"; q.title = "Quitar de las salas (sigue en Jugadores)"; q.textContent = "✕";
       q.addEventListener("click", () => guardarMeta(f[CONFIG.COL_ID], { salas: filtroSalas[pref] === "todas" ? [] : m.salas.filter((x) => x !== Number(filtroSalas[pref])) }));
       r.appendChild(q);
+    }
+    if (modo === "jugadores") {
+      const q2 = document.createElement("button"); q2.type = "button"; q2.className = "sl-quitar"; q2.title = "Sacar de la lista: no recibirá más avisos ni mails"; q2.textContent = "✕";
+      q2.addEventListener("click", async () => {
+        const nombre = f[CONFIG.COL_NOMBRE] || f[CONFIG.COL_EMAIL] || "este jugador";
+        const ok = await mostrarConfirmacion({ tono: "warn", icono: "🚫", titulo: "Sacar de la lista", texto: `${nombre} dejará de recibir tus avisos (chat y mail) hasta que lo vuelvas a mandar a una sala. Sus compras y su chat no se tocan.`, confirmar: "Sí, sacarlo", cancelar: "No, volver" });
+        if (!ok) return;
+        const f2 = filtroSalas[pref], n2 = Number(f2);
+        guardarMeta(f[CONFIG.COL_ID], f2 === "todas" ? { salas: [], hist: [] } : { salas: m.salas.filter((x) => x !== n2), hist: m.hist.filter((x) => x !== n2) });
+        mostrarAviso(`${nombre} salió de la lista.`, "ok");
+      });
+      r.appendChild(q2);
     }
     lista.appendChild(r);
   });
@@ -5442,3 +5479,13 @@ function copiarInformeSalud() {
 Object.assign(window, { abrirSalud, cerrarSalud, copiarInformeSalud, saludRevisar });
 setInterval(() => { if (!document.hidden && esAdminActual() && document.body.classList.contains("modo-admin")) saludRevisar(); }, 60000);
 new MutationObserver(() => { if (document.body.classList.contains("modo-admin") && Date.now() - saludUltima > 15000) saludRevisar(); }).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+
+// Tocar "Zarela" (arriba a la izquierda) en modo administrador: vuelve a la página normal
+document.addEventListener("DOMContentLoaded", () => {
+  const logo = document.querySelector(".nav-left .logo"); if (!logo) return;
+  logo.addEventListener("click", () => {
+    if (!document.body.classList.contains("modo-admin")) return;
+    try { cerrarSalud(); } catch (_) {}
+    try { salirModoAdmin(); } catch (e) { console.warn("No se pudo salir del modo administrador:", e); document.body.classList.remove("modo-admin"); }
+  });
+});

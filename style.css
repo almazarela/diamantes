@@ -2380,3 +2380,40 @@ body.modo-admin .btn-salud{display:inline-flex}
 
 .chat-guia{font-size:.76rem;max-height:56%}
 .chat-guia ol{gap:2px}
+
+/* ===== v25: azul cristal en más cajas y en la barra de arriba, Top con la foto dentro de la insignia, chat PC compacto, lupas del administrador ===== */
+.card.cristal{background:radial-gradient(120% 70% at 50% -10%,rgba(127,214,255,.2),transparent 62%),radial-gradient(80% 50% at 100% 100%,rgba(25,230,140,.1),transparent 60%),#0e1326!important;border:1px solid rgba(127,214,255,.4)!important;box-shadow:0 0 34px rgba(60,140,255,.2),inset 0 0 40px rgba(127,214,255,.05)}
+.navbar{background:radial-gradient(120% 220% at 50% -60%,rgba(127,214,255,.3),transparent 65%),radial-gradient(60% 120% at 100% 100%,rgba(25,230,140,.1),transparent 60%),linear-gradient(180deg,#0f1c3d,#0a1228)!important;box-shadow:0 2px 24px rgba(60,140,255,.25)}
+body.modo-admin .navbar .logo{cursor:pointer}
+
+/* Top de recargas: la insignia envuelve la foto; fotos alineadas */
+.top-lista li .pos{width:34px;flex:none;text-align:center}
+.top-lista li .av{width:44px;height:44px}
+.top-lista li .nvb{padding:4px 13px 4px 4px;gap:8px;border-radius:16px;align-items:center}
+.top-lista li .nvb .av-en-nvb{flex:none;margin:0}
+.top-lista li.pod{padding:10px 16px}
+.top-lista li.pod .av{width:44px;height:44px}
+.top-lista li .pos{margin-right:6px}
+@media(max-width:600px){.top-lista li .pos{width:26px;margin-right:2px}.top-lista li .av,.top-lista li.pod .av{width:38px;height:38px}.top-lista li .nvb{padding:3px 9px 3px 3px;gap:6px}}
+
+/* Chat de clientes en PC: sin «Problema» y mensajes más compactos (el celular queda igual) */
+@media(min-width:801px){
+  .chat-chips button:nth-child(3){display:none}
+  .chat-v2 .chat-message{font-size:.8rem;line-height:1.25;padding:4px 10px;border-radius:12px;max-width:90%}
+  .chat-v2 .chat-messages-area{gap:3px;padding:8px}
+}
+
+/* Lupas (solo administrador) */
+.op-buscar-w,.sl-buscar{position:relative;display:none;margin:0 0 8px}
+body.modo-admin .op-buscar-w{display:block}
+.sl-buscar{display:block}
+.op-buscar-w i,.sl-buscar i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#7fd6ff;font-size:13px;pointer-events:none}
+.op-buscar-w input,.sl-buscar input{width:100%;padding:8px 12px 8px 34px;border-radius:99px;border:1px solid rgba(127,214,255,.4);background:rgba(127,214,255,.07);color:#fff;font-size:13px;outline:none}
+.op-buscar-w input:focus,.sl-buscar input:focus{border-color:#7fd6ff;box-shadow:0 0 0 3px rgba(127,214,255,.2)}
+/* Opiniones más compactas SOLO dentro del modo administrador */
+body.modo-admin #comments-list{display:grid;gap:5px;max-height:68vh;overflow:auto;padding-right:2px}
+body.modo-admin #comments-list .op-card{padding:6px 10px;gap:8px;margin:0;border-radius:12px}
+body.modo-admin #comments-list .op-card p{margin:2px 0 0;font-size:12px;line-height:1.3}
+body.modo-admin #comments-list .op-cab{gap:6px;font-size:12px}
+body.modo-admin #comments-list .op-reacs{margin-top:3px;transform-origin:left;transform:scale(.85)}
+body.modo-admin #comments-list .op-av,body.modo-admin #comments-list .av{width:28px!important;height:28px!important}
