@@ -1677,6 +1677,7 @@ let revisarEnviosDisponible = true; // false si falta la función admin_revisar_
 let cargandoOrdenes = false;
 let ultimaCargaOrdenes = 0;
 let vistaAdmin = "clientes";
+let hoySeq = 0, promoModo = false, promoSeg = 90, promoSegBorrador = 90, promoCambioTs = 0, promoOcupado = false, promoUltModo = null, promoVistas = new Set();
 let vistaChats = "normal";
 let chatFijado = null;   // id del cliente cuyo chat queda abierto aunque cambies de sala
 let filtroOrdenesInicial = true;    // la primera vez muestra "Requieren atención" solo si hay alguna
@@ -1693,6 +1694,7 @@ const VISTAS_COBRO = ["cobro", "precios", "niveles"];
 const TODAS_VISTAS = ["hoy", ...VISTAS_CHAT, "ordenes", "stock", "todas", "jugadores", ...VISTAS_COBRO];
 function mostrarVistaAdmin(vista) {
   if (!TODAS_VISTAS.includes(vista)) vista = "clientes";
+  if (vista !== "hoy" && promoModo) promoApagarAuto();   // saliste de Pendientes: nada queda esperando
   const esCobro = VISTAS_COBRO.includes(vista), esChat = VISTAS_CHAT.includes(vista);
   vistaAdmin = vista;
   vistaChats = vista === "clientes" ? "normal" : esChat ? vista : vistaChats;
@@ -4656,6 +4658,7 @@ function entrarModoAdmin() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 function salirModoAdmin() {
+  if (promoModo) promoApagarAuto();
   document.body.classList.remove("modo-admin");
   try { sessionStorage.removeItem(CLAVE_MODO_ADMIN); } catch (_) {}
   if (opCargadas) renderOpiniones();
@@ -5535,12 +5538,12 @@ async function saludReunir() {
     const reales = (data || []).filter((x) => ETIQUETA_STOCK[x.paquete_id]);
     const lista = reales.length ? reales : (data || []);
     const nom = (x) => (ETIQUETA_STOCK[x.paquete_id] ? ETIQUETA_STOCK[x.paquete_id] + " 💎" : x.nombre || x.diamantes + " 💎");
-    const sin = lista.filter((x) => Number(x.disponibles) === 0), pocos = lista.filter((x) => Number(x.disponibles) > 0 && Number(x.disponibles) <= 2);
+    const sin = lista.filter((x) => Number(x.disponibles) === 0), pocos = lista.filter((x) => Number(x.disponibles) > 0 && Number(x.disponibles) < 5);
     if (sin.length) out.push({ id: "stock-cero", nivel: "alto", icono: "📉", titulo: `Sin PINs para: ${sin.map(nom).join(", ")}`,
       detalle: "Si un cliente compra ese paquete, no hay PIN para entregarle.",
       pasos: ["Comprá PINs en tu proveedor para esos paquetes.", "En el panel andá a Stock, elegí el paquete y pegá los códigos (uno por línea) con «Agregar PINs».", "Cuando haya stock vuelve a quedar todo en verde."],
       ir: irPanelAdmin("stock"), irTxt: "Ir a Stock" });
-    else if (pocos.length) out.push({ id: "stock-poco", nivel: "bajo", icono: "📉", titulo: `Quedan muy pocos PINs: ${pocos.map((x) => nom(x) + " (" + x.disponibles + ")").join(", ")}`,
+    if (pocos.length) out.push({ id: "stock-poco", nivel: "bajo", icono: "📉", titulo: `Quedan muy pocos PINs: ${pocos.map((x) => nom(x) + " (" + x.disponibles + ")").join(", ")}`,
       detalle: "Todavía alcanza, pero conviene reponer pronto.", pasos: ["Comprá PINs de esos paquetes.", "En Stock pegá los códigos con «Agregar PINs»."], ir: irPanelAdmin("stock"), irTxt: "Ir a Stock" });
   } catch (e) {
     const falta = /PGRST202|42883|admin_stock_pines/i.test(String((e && (e.code || e.message)) || ""));
@@ -5726,7 +5729,8 @@ document.addEventListener("DOMContentLoaded", () => {
 // v29: "Pendientes" del administrador + guía animada para clientes nuevos
 // =====================================================================
 async function hoyDatos() {
-  const d = { chats: [], ords: [], stock: [], espera: [], modo: promoModo, hoyOk: 0, hoyDia: 0, err: [] };
+  const d = { chats: [], ords: [], stock: [], espera: [], modo: promoModo, segundos: promoSeg, hoyOk: 0, hoyDia: 0, err: [] };
+  { const cfg = await promoConfig(null, null, true); if (cfg) { d.modo = !!cfg.activo; d.segundos = Number(cfg.segundos) || 90; } }
   resumenAdmin.forEach((r, id) => { if (r.noLeidos > 0) d.chats.push({ id, n: r.noLeidos, ultima: r.ultima }); });
   d.chats.sort((a, b) => b.ultima - a.ultima);
   try {
@@ -5766,21 +5770,50 @@ async function nombreDeId(id) {
     return n;
   } catch (_) { return null; }
 }
-// cuenta regresiva de cada pedido en espera (cada segundo, sin consultar nada)
-setInterval(() => {
+const fmtSeg = (n) => (n >= 60 ? Math.floor(n / 60) + " min" + (n % 60 ? " " + (n % 60) + " s" : "") : n + " s");
+// Estado real del modo (viene del servidor). Si una respuesta quedó vieja por un cambio reciente, se ignora.
+async function promoConfig(activo = null, segundos = null, latido = false) {
+  const t0 = Date.now();
+  try {
+    const { data, error } = await supabase.rpc("admin_promo_config", { p_activo: activo, p_segundos: segundos, p_latido: latido });
+    if (error) throw error;
+    if (activo === null && t0 < promoCambioTs) return null;
+    promoModo = !!(data && data.activo); promoSeg = Number(data && data.segundos) || 90;
+    return data;
+  } catch (e) { if (activo !== null) throw e; return null; }
+}
+// Si salís de Pendientes o apagás: lo que esperaba sale al instante con tu PIN
+async function promoApagarAuto() {
+  if (!promoModo) return;
+  promoModo = false; promoCambioTs = Date.now();
+  try { await promoConfig(false); mostrarAviso("Modo disponible apagado: los pedidos que esperaban salieron con tu PIN.", "info"); }
+  catch (_) { promoModo = true; mostrarAviso("No pude apagar el modo disponible. Volvé a Pendientes y apagalo.", "error"); }
+  promoCambioTs = Date.now();
+}
+// reloj de cada pedido en espera (cada segundo, sin consultar nada): barra y número cambian de verde a rojo
+function promoTick() {
   document.querySelectorAll(".hoy-esp-fila").forEach((f) => {
-    const seg = Math.max(0, Math.ceil((Number(f.dataset.hasta) - Date.now()) / 1000));
-    const cd = f.querySelector(".hoy-cd"); if (cd) { cd.textContent = Math.floor(seg / 60) + ":" + String(seg % 60).padStart(2, "0"); cd.classList.toggle("urge", seg <= 20); }
-    const bar = f.querySelector(".hoy-barra i"); if (bar) bar.style.width = Math.min(100, (seg / 90) * 100) + "%";
-    if (seg <= 0 && !f.dataset.fin) { f.dataset.fin = "1"; f.classList.add("vencida"); setTimeout(() => { if (vistaAdmin === "hoy") pintarHoy(); }, 2500); }
+    const hasta = Number(f.dataset.hasta), total = Math.max(1000, Number(f.dataset.total) || 90000);
+    const ms = Math.max(0, hasta - Date.now()), seg = Math.ceil(ms / 1000), frac = Math.min(1, ms / total);
+    const color = `hsl(${Math.round(125 * frac)} ${Math.round(72 + 28 * (1 - frac))}% ${frac < 0.3 ? 56 : 48}%)`;
+    const cd = f.querySelector(".hoy-cd"), bar = f.querySelector(".hoy-barra i");
+    if (cd) { cd.textContent = seg > 0 ? Math.floor(seg / 60) + ":" + String(seg % 60).padStart(2, "0") : "Enviando…"; cd.style.color = color; cd.classList.toggle("urge", frac < 0.22); }
+    if (bar) { bar.style.width = (frac * 100).toFixed(1) + "%"; bar.style.background = color; bar.style.boxShadow = `0 0 ${Math.round((1 - frac) * 10)}px ${color}`; }
+    if (ms <= 0 && !f.dataset.fin) {
+      f.dataset.fin = "1"; f.classList.add("vencida");
+      Promise.resolve(supabase.rpc("admin_promo_liberar")).catch(() => {}).then(() => setTimeout(() => { if (vistaAdmin === "hoy") pintarHoy(); }, 1500));
+    }
   });
-}, 1000);
-let hoySeq = 0, promoModo = false, promoVistas = new Set();
+}
+setInterval(promoTick, 1000);
 async function pintarHoy() {
   const c = $("hoy-cont"); if (!c) return;
   const mi = ++hoySeq;
   const d = await hoyDatos(); if (mi !== hoySeq || vistaAdmin !== "hoy") return;
   const b = $("hoy-n"); if (b) { const n = hoyTotal(d); b.hidden = n === 0; b.textContent = String(n); }
+  if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains("hoy-seg-in")) return;   // no te saco del casillero mientras escribís
+  const filasPrevias = new Map([...c.querySelectorAll(".hoy-esp-fila")].map((f) => [f.dataset.id, f]));   // se reutilizan: la barra no parpadea
+  promoUltModo = d.modo;
   c.replaceChildren();
   const tarjeta = (ico, titulo, n, tono, filas, vacio, irA) => {
     const t = document.createElement("div"); t.className = "hoy-card " + (n ? tono : "ok");
@@ -5797,23 +5830,37 @@ async function pintarHoy() {
   const minOrd = (o) => { const m = Math.max(0, Math.round((Date.now() - new Date(o.created_at).getTime()) / 60000)); return m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`; };
   // --- modo "Estoy disponible" (compra manual con descuento)
   const caja = document.createElement("div"); caja.className = "hoy-promo" + (d.modo ? " on" : "");
-  caja.innerHTML = `<div class="hoy-promo-t"><b>💸 Compras con descuento (Pago Store)</b><label class="hoy-sw"><input type="checkbox"><span></span></label></div><p class="hoy-promo-d"></p>`;
-  const chk = caja.querySelector("input"); chk.checked = !!d.modo;
+  caja.innerHTML = `<div class="hoy-promo-t"><b>💸 Compras con descuento (Pago Store)</b><label class="hoy-sw"><input type="checkbox" class="hoy-sw-in"><span></span></label></div><p class="hoy-promo-d"></p><label class="hoy-seg">⏱ Segundos que espera cada pedido <input type="number" class="hoy-seg-in" min="15" max="600" step="5" inputmode="numeric"> <small></small></label>`;
+  const chk = caja.querySelector(".hoy-sw-in"); chk.checked = !!d.modo;
+  const segInp = caja.querySelector(".hoy-seg-in");
+  segInp.value = d.modo ? d.segundos : promoSegBorrador; segInp.disabled = !!d.modo;
+  segInp.addEventListener("input", () => { const v = parseInt(segInp.value, 10); if (v > 0) promoSegBorrador = v; });
+  caja.querySelector(".hoy-seg small").textContent = d.modo ? "Fijo mientras esté prendido. Para cambiarlo, apagá y volvé a prender." : "Elegilo antes de prender (15 a 600).";
   caja.querySelector(".hoy-promo-d").textContent = d.modo
-    ? "ESTÁS DISPONIBLE: cada pedido nuevo espera hasta 1 minuto y medio acá (cada uno con su propio reloj). Si lo comprás vos con descuento, apretá «Ya la cargué». Si no hacés nada, sale solo con tu PIN."
+    ? `ESTÁS DISPONIBLE: cada pedido nuevo espera hasta ${fmtSeg(d.segundos)} acá (cada uno con su propio reloj). Si lo comprás vos con descuento, apretá «Ya la cargué». Si no hacés nada, sale solo con tu PIN. Si apagás o salís de Pendientes, lo que esté esperando sale con PIN al instante.`
     : "Apagado: todos los pedidos salen al instante con tus PIN. Prendelo cuando estés frente a la compu y quieras aprovechar el 50 %.";
   chk.addEventListener("change", async () => {
-    chk.disabled = true;
-    try { const { data, error } = await supabase.rpc("admin_promo_modo", { p_activo: chk.checked }); if (error) throw error; promoModo = !!data; mostrarAviso(promoModo ? "Disponible: los pedidos esperan hasta 1:30 por vos." : "Apagado: todo sale con PIN al instante.", "ok"); }
-    catch (e) { chk.checked = !chk.checked; mostrarAviso(/PGRST202|does not exist/i.test(String(e.message || e.code)) ? "Falta ejecutar novedades_clientes_v20.sql en Supabase." : "No se pudo cambiar.", "error"); }
+    const quiere = chk.checked;
+    chk.disabled = true; segInp.disabled = true;
+    promoCambioTs = Date.now();
+    try {
+      const seg = Math.max(15, Math.min(600, parseInt(segInp.value, 10) || 90));
+      promoSegBorrador = seg;
+      await promoConfig(quiere, quiere ? seg : null);
+      mostrarAviso(quiere ? `Disponible: cada pedido espera ${fmtSeg(seg)} por vos.` : "Apagado: lo que esperaba salió con PIN y todo sale al instante.", "ok");
+    } catch (e) { chk.checked = !quiere; mostrarAviso(/PGRST202|does not exist|42883/i.test(String(e.message || e.code)) ? "Falta ejecutar novedades_clientes_v22.sql en Supabase." : "No se pudo cambiar.", "error"); }
+    promoCambioTs = Date.now();
     pintarHoy();
   });
   c.appendChild(caja);
   if (d.espera.length) {
     const w = document.createElement("div"); w.className = "hoy-espera";
     d.espera.forEach((o) => {
-      const f = document.createElement("div"); f.className = "hoy-esp-fila";
+      const previa = filasPrevias.get(String(o.id));
+      if (previa) { previa.dataset.hasta = new Date(o.promo_hasta).getTime(); w.appendChild(previa); return; }
+      const f = document.createElement("div"); f.className = "hoy-esp-fila"; f.dataset.id = o.id;
       f.dataset.hasta = new Date(o.promo_hasta).getTime();
+      f.dataset.total = Math.max(1000, new Date(o.promo_hasta).getTime() - new Date(o.created_at || Date.now()).getTime());
       f.innerHTML = `<div class="hoy-esp-i"><div class="hoy-esp-id"><b></b><button type="button" class="hoy-copiar" title="Copiar el ID" aria-label="Copiar el ID">📋</button><span class="hoy-nom"></span></div><small></small><div class="hoy-barra"><i></i></div></div><div class="hoy-cd"></div><button type="button" class="hoy-ok">✅ Ya la cargué</button><button type="button" class="hoy-pin">❌ Sin descuento → PIN</button>`;
       f.querySelector("b").textContent = `#${o.id} · ${o.diamantes || "?"} 💎 · ID ${o.id_jugador}`;
       f.querySelector("small").textContent = `Pago Store → República Dominicana → ese ID → ${o.diamantes} → PayPal. Si no tiene descuento, tocá «Sin descuento».`;
@@ -5839,6 +5886,7 @@ async function pintarHoy() {
   c.appendChild(grid);
   if (d.err.length) { const p = document.createElement("p"); p.className = "hoy-mas"; p.textContent = "No se pudo leer: " + d.err.join(", ") + ". Tocá 🔄 para reintentar."; c.appendChild(p); }
   if (!hoyTotal(d) && !d.err.length) { const ok = document.createElement("p"); ok.className = "hoy-todo"; ok.textContent = "✅ Todo al día. No tenés nada pendiente."; c.prepend(ok); }
+  promoTick();
   const r = document.createElement("button"); r.type = "button"; r.className = "hoy-refrescar"; r.textContent = "🔄 Actualizar"; r.addEventListener("click", pintarHoy); c.appendChild(r);
 }
 setInterval(() => { if (vistaAdmin === "hoy" && !document.hidden) pintarHoy(); else actualizarBadgeHoy(); }, 30000);
@@ -5967,17 +6015,109 @@ setInterval(iniciarTiempoReal, 4000);   // se (re)conecta solo cuando cambia la 
 
 // ---- vigilante del modo "Estoy disponible": avisa con sonido cuando entra un pedido que espera tu compra
 async function promoVigilar() {
-  if (!esAdminActual() || document.hidden || !document.body.classList.contains("modo-admin")) return;
+  if (!esAdminActual() || !document.body.classList.contains("modo-admin") || promoOcupado) return;
+  promoOcupado = true;
   try {
-    const m = await supabase.rpc("admin_promo_modo");
-    if (m.error) return; promoModo = !!m.data;
+    const cfg = await promoConfig(null, null, true);   // también es el "latido": avisa que tu panel sigue abierto
+    if (!cfg) return;
+    if (promoUltModo !== null && promoUltModo !== promoModo && vistaAdmin === "hoy") { pintarHoy(); }
     if (!promoModo) return;
     const r = await supabase.from("ordenes_recarga").select("id,id_jugador,diamantes,promo_hasta").eq("promo_estado", "esperando").eq("estado", "pendiente");
     if (r.error) return;
     const nuevas = (r.data || []).filter((o) => !promoVistas.has(o.id));
     nuevas.forEach((o) => promoVistas.add(o.id));
     if (nuevas.length) { avisar("💸 Pedido esperando tu compra:", `${nuevas[0].diamantes} 💎 · ID ${nuevas[0].id_jugador}`, { tipo: "info" }); if (vistaAdmin !== "hoy") { const b = $("hoy-n"); if (b) { b.hidden = false; b.textContent = String((r.data || []).length); } } }
-    if (vistaAdmin === "hoy" && (r.data || []).length) pintarHoy();
-  } catch (_) {}
+    if (vistaAdmin === "hoy") {   // solo se vuelve a dibujar si cambió la lista de pedidos esperando
+      const enPantalla = [...document.querySelectorAll(".hoy-esp-fila")].map((f) => f.dataset.id).sort().join(",");
+      const enServidor = (r.data || []).map((o) => String(o.id)).sort().join(",");
+      if (enPantalla !== enServidor) pintarHoy();
+    }
+  } catch (_) {} finally { promoOcupado = false; }
 }
 setInterval(promoVigilar, 5000);
+
+
+// =====================================================================
+// v33: "escribiendo…" (como WhatsApp) y estado de soporte (en línea / desconectada / oculto)
+// =====================================================================
+let tipCanal = null, tipNombre = null, tipUlt = 0, tipTimer = null;
+const tipYo = () => (esAdminActual() && document.body.classList.contains("modo-admin") ? "admin" : "cliente");
+function tipIndicador() {
+  const admin = tipYo() === "admin";
+  let el = $("tip-ind"); if (el && el.dataset.lado === (admin ? "a" : "c") && el.isConnected) return el;
+  if (el) el.remove();
+  const ancla = admin ? document.querySelector("#admin-chat-view .adm-resp") : document.querySelector("#chat-widget .chat-input-area");
+  if (!ancla || !ancla.parentNode) return null;
+  el = document.createElement("div"); el.id = "tip-ind"; el.className = "tip-ind"; el.hidden = true; el.dataset.lado = admin ? "a" : "c";
+  el.innerHTML = '<span class="tip-quien"></span><span class="tip-pts"><i></i><i></i><i></i></span>';
+  ancla.parentNode.insertBefore(el, ancla);
+  return el;
+}
+function tipMostrar(on) {
+  const el = tipIndicador(); if (!el) return;
+  clearTimeout(tipTimer);
+  if (!on) { el.hidden = true; return; }
+  el.querySelector(".tip-quien").textContent = tipYo() === "admin" ? ((clienteSel && clienteSel.etiqueta) || "El cliente") + " está escribiendo" : "Alma Zarela está escribiendo";
+  el.hidden = false;
+  const cont = tipYo() === "admin" ? $("admin-msgs") : $("chat-messages-container"); if (cont) { try { cont.scrollTop = cont.scrollHeight; } catch (_) {} }
+  tipTimer = setTimeout(() => { el.hidden = true; }, 4500);
+}
+function tipSincronizar() {
+  try {
+    if (typeof supabase.channel !== "function") return;
+    const admin = tipYo() === "admin";
+    const id = admin ? (clienteSel && clienteSel.id) : (usuarioActual && usuarioActual.id);
+    const nombre = id ? "typ-" + id : null;
+    if (nombre === tipNombre) return;
+    if (tipCanal) { try { supabase.removeChannel(tipCanal); } catch (_) {} tipCanal = null; }
+    tipNombre = nombre; tipMostrar(false);
+    if (!nombre) return;
+    tipCanal = supabase.channel(nombre, { config: { broadcast: { self: false } } })
+      .on("broadcast", { event: "tip" }, ({ payload }) => { if (payload && payload.de && payload.de !== tipYo()) tipMostrar(payload.s === 1); })
+      .subscribe();
+  } catch (e) { /* sin tiempo real: simplemente no se ve el "escribiendo" */ }
+}
+function tipEnviar(s) {
+  try { if (tipCanal) tipCanal.send({ type: "broadcast", event: "tip", payload: { de: tipYo(), s } }); } catch (_) {}
+}
+setInterval(tipSincronizar, 1500);
+document.addEventListener("input", (e) => {
+  const t = e.target; if (!t || (t.id !== "chat-user-input" && t.id !== "admin-respuesta")) return;
+  if (!t.value.trim()) { tipUlt = 0; tipEnviar(0); return; }
+  if (Date.now() - tipUlt > 2500) { tipUlt = Date.now(); tipEnviar(1); }
+});
+const tipFin = () => { tipUlt = 0; tipEnviar(0); };
+document.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target && (e.target.id === "chat-user-input" || e.target.id === "admin-respuesta")) tipFin(); }, true);
+document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest(".btn-send, #admin-btn-responder")) tipFin(); }, true);
+
+let soporteEstado = "en_linea", soporteCanal = null;
+const SOPORTE_TXT = { en_linea: "En línea · Soporte", desconectada: "Desconectada · Soporte", oculto: "" };
+function pintarSoporte(e) {
+  if (!Object.prototype.hasOwnProperty.call(SOPORTE_TXT, e)) e = "en_linea";
+  soporteEstado = e;
+  const w = $("chat-widget"); if (w) w.dataset.soporte = e;
+  const t = $("chat-soporte-txt"); if (t) { t.textContent = SOPORTE_TXT[e]; t.hidden = e === "oculto"; }
+  const sel = $("adm-soporte"); if (sel && sel.value !== e && document.activeElement !== sel) sel.value = e;
+}
+async function leerSoporte() { try { const { data, error } = await supabase.rpc("soporte_estado"); if (!error && data) pintarSoporte(String(data)); } catch (_) {} }
+function soporteConectar() {
+  try {
+    if (soporteCanal || typeof supabase.channel !== "function") return;
+    soporteCanal = supabase.channel("soporte-estado", { config: { broadcast: { self: true } } })
+      .on("broadcast", { event: "e" }, ({ payload }) => { if (payload && typeof payload.e === "string") pintarSoporte(payload.e); })
+      .subscribe();
+  } catch (_) {}
+}
+document.addEventListener("change", async (ev) => {
+  if (!ev.target || ev.target.id !== "adm-soporte") return;
+  const e = ev.target.value;
+  try {
+    const { error } = await supabase.rpc("admin_soporte_estado", { p_estado: e });
+    if (error) throw error;
+    pintarSoporte(e);
+    try { if (soporteCanal) soporteCanal.send({ type: "broadcast", event: "e", payload: { e } }); } catch (_) {}
+    mostrarAviso(e === "en_linea" ? "Tus clientes te ven en línea." : e === "desconectada" ? "Tus clientes te ven desconectada." : "Tus clientes no ven ningún estado.", "ok");
+  } catch (err) { mostrarAviso(/PGRST202|does not exist|42883/i.test(String(err.message || err.code)) ? "Falta ejecutar novedades_clientes_v22.sql en Supabase." : "No se pudo cambiar el estado.", "error"); leerSoporte(); }
+});
+setTimeout(() => { soporteConectar(); leerSoporte(); }, 2500);
+setInterval(leerSoporte, 30000);

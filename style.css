@@ -2628,3 +2628,22 @@ body.modo-admin .op-form-campos .op-btn{padding:5px 10px;font-size:.72rem}
 .hoy-cd{font-weight:800;font-size:20px;line-height:1;color:#ffe28a;min-width:52px;text-align:center}
 .hoy-cd.urge{color:#ff6b7a;animation:demPulso 1s ease-in-out infinite}
 .hoy-esp-fila.vencida{opacity:.55}
+
+/* v33 */
+.hoy-seg{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:12px;font-weight:700;color:#bfe9ff}
+.hoy-seg-in{width:72px;border:1px solid #3f557f;background:#0e1424;color:#fff;border-radius:8px;padding:4px 8px;font-size:13px;font-weight:700}
+.hoy-seg-in:disabled{opacity:.55}
+.hoy-seg small{font-weight:500;color:#8fa0bd;font-size:11px}
+.hoy-barra i{background:#19e68c;transition:width 1s linear,background-color .8s,box-shadow .8s}
+.hoy-cd{min-width:64px;font-size:18px;line-height:1;font-weight:800;white-space:nowrap}
+.adm-soporte{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#9fb3d6;margin-left:auto}
+.adm-soporte select{border:1px solid #3f557f;background:#0e1424;color:#fff;border-radius:8px;padding:4px 6px;font-size:12px;font-weight:700}
+@media(max-width:600px){.adm-soporte span{display:none}.adm-top{flex-wrap:wrap}}
+.tip-ind{display:flex;align-items:center;gap:8px;font-size:12px;color:#9fb3d6;padding:2px 8px 6px}
+.tip-ind[hidden]{display:none}
+.tip-pts{display:inline-flex;gap:3px;background:#1d2740;border-radius:12px;padding:6px 9px}
+.tip-pts i{width:6px;height:6px;border-radius:50%;background:#7fd6ff;animation:tipSalto 1.1s infinite ease-in-out}
+.tip-pts i:nth-child(2){animation-delay:.15s}.tip-pts i:nth-child(3){animation-delay:.3s}
+@keyframes tipSalto{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-4px);opacity:1}}
+#chat-widget[data-soporte="desconectada"] .chat-status-dot{background:#8a93a6;box-shadow:none}
+#chat-widget[data-soporte="oculto"] .chat-status-dot{display:none}
