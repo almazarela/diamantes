@@ -4353,7 +4353,8 @@ function montarAyudaPagos() {
     cargarUltimas(); cargarTopMes(); montarAyudaPagos();
     actualizarEstadoServicio();
     setInterval(actualizarEstadoServicio, 180000);
-    setInterval(() => { if (!document.hidden) cargarUltimas(); }, 20000);
+    setInterval(() => { if (!document.hidden) cargarUltimas(); }, 5000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) cargarUltimas(); });
     $("player-id")?.addEventListener("input", pintarIdsGuardados);
     $("zi-guardar")?.addEventListener("click", guardarIdActual);
     $("seg-x")?.addEventListener("click", () => { try { sessionStorage.setItem(claveCerrada(), String(seg?.id)); } catch (_) {} seg = null; clearInterval(segTimer); pintarSeguimiento(); });
@@ -5105,7 +5106,7 @@ let saldoBase = null, saldoBaseUid = null;
       saldoBase = { ...saldos };
     } catch (_) {}
   };
-  setInterval(() => { if (!document.hidden && usuarioActual && !esAdminActual()) cargarSaldo(usuarioActual); }, 7000);
+  setInterval(() => { if (!document.hidden && usuarioActual && !esAdminActual()) cargarSaldo(usuarioActual); }, 5000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden && usuarioActual && !esAdminActual()) cargarSaldo(usuarioActual); });
   addEventListener("focus", () => { if (usuarioActual && !esAdminActual()) cargarSaldo(usuarioActual); });
 }
@@ -5241,9 +5242,25 @@ function textoVacioChats() {
 }
 function pintarAyudaChats() {
   const e = $("adm-ayuda-chats"); if (!e) return;
+  let btn = $("adm-sacar-todos");
+  if (!btn) { btn = document.createElement("button"); btn.type = "button"; btn.id = "adm-sacar-todos"; btn.className = "adm-sacar"; e.insertAdjacentElement("afterend", btn); btn.addEventListener("click", sacarATodosDeSala); }
+  const nSala = vistaChats.startsWith("sala") ? Number(vistaChats.slice(4)) : 0;
+  btn.hidden = !nSala;
+  if (nSala) { const k = [...chatMeta.values()].filter((m) => (m.salas || []).includes(nSala) && !m.archivado).length; btn.textContent = `🧹 Sacar a todos de la Sala ${nSala} (${k})`; btn.disabled = !k; }
   e.textContent = vistaChats === "archivados" ? "Chats archivados. Tocá uno para verlo; desde ⋮ podés sacarlo de archivados."
     : vistaChats.startsWith("sala") ? `Clientes de la Sala ${vistaChats.slice(4)}. También siguen en Chats.`
     : "Tocá un cliente para ver su chat y acreditarle saldo.";
+}
+async function sacarATodosDeSala() {
+  const n = vistaChats.startsWith("sala") ? Number(vistaChats.slice(4)) : 0; if (!n) return;
+  const uids = [...chatMeta.entries()].filter(([, m]) => (m.salas || []).includes(n)).map(([id]) => id);
+  if (!uids.length) return mostrarAviso(`La Sala ${n} ya está vacía.`, "info");
+  const ok = await mostrarConfirmacion({ tono: "warn", icono: "🧹", titulo: `Vaciar la Sala ${n}`, texto: "Se los saca de esta sala. Siguen en Chats y en Jugadores (el historial no se borra).", filas: [["Clientes que salen", String(uids.length)]], confirmar: "Sacar a todos" });
+  if (!ok) return;
+  await Promise.all(uids.map((id) => guardarMeta(id, { salas: metaDe(id).salas.filter((x) => x !== n) })));
+  try { if (clienteSel && chatFijado !== clienteSel.id && !pasaFiltroChats(clienteSel.id)) cerrarChatActual(); } catch (_) {}
+  pintarAyudaChats(); renderListaClientes();
+  mostrarAviso(`Sala ${n} vaciada: salieron ${uids.length}.`, "ok");
 }
 function pintarContadoresSalas() {
   const cuentas = { archivados: 0, sala1: 0, sala2: 0, sala3: 0, jugadores: 0 };
@@ -5783,7 +5800,7 @@ document.addEventListener("DOMContentLoaded", () => setTimeout(actualizarBadgeHo
     { t: "Cargá saldo", d: "Tocá «Cargar saldo», elegí Mercado Pago o Binance, pagá y mandá la captura por el chat.", sel: () => document.querySelector(".btn-cargar-saldo") },
     { t: "1 · Tu ID de Free Fire", d: "Escribí tu ID y tocá Verificar: te mostramos tu nombre para que no te equivoques.", sel: () => $("player-id")?.closest(".card") },
     { t: "2 · Elegí tu paquete", d: "Elegí cómo pagar, tocá el paquete que querés y listo: los diamantes llegan a tu cuenta.", sel: () => document.querySelector(".bonoxs-card")?.parentElement || sec2() },
-    { t: "¿Dudas? Escribinos", d: "Desde este botón nos escribís, mandás tu comprobante y te respondemos.", sel: () => $("chat-fab") },
+    { t: "¿Dudas? Escribinos", d: "Desde este botón nos escribís, mandás tu comprobante y te respondemos.", sel: () => { const f = $("chat-fab"); if (f && f.getClientRects().length && getComputedStyle(f).display !== "none") return f; const m = $("chat-messages-container"); return (m && (m.closest(".chat-v2") || m.parentElement)) || null; } },
   ];
   let i = 0, abierto = false, raf = 0;
   const E = (id) => document.getElementById(id);
@@ -5825,13 +5842,37 @@ document.addEventListener("DOMContentLoaded", () => setTimeout(actualizarBadgeHo
     i = 0; abierto = true; E("tour").hidden = false; document.body.classList.add("tour-on"); mostrar();
     if (!raf) raf = requestAnimationFrame(loop);
   }
-  function cerrar() { abierto = false; E("tour").hidden = true; document.body.classList.remove("tour-on"); marcar(); }
+  function pista(el, txt, ms, flecha) {
+    if (!el || !el.getClientRects().length) return;
+    const r = el.getBoundingClientRect(), h = document.createElement("div"); h.className = "tour-pista";
+    h.innerHTML = `<i>${flecha}</i><span></span>`; h.lastChild.textContent = txt;
+    const izq = Math.max(8, Math.min(innerWidth - 190, r.left));
+    h.style.cssText = `left:${izq}px;top:${r.bottom + 6}px`;
+    document.body.appendChild(h); setTimeout(() => { h.classList.add("chau"); setTimeout(() => h.remove(), 400); }, ms);
+  }
+  window.pistaTutorial = pista;
+  function cerrar(salto) {
+    const ultimo = i >= PASOS.length - 1;
+    abierto = false; E("tour").hidden = true; document.body.classList.remove("tour-on"); marcar();
+    if (salto === true && !ultimo) {   // si lo saltó: una flechita corta (no molesta) le dice dónde volver a verlo
+      try { localStorage.setItem("zarela_tour_salto", "1"); } catch (_) {}
+      setTimeout(() => pista(document.querySelector(".menu-toggle-btn"), "¿Lo saltaste sin querer? Tutorial: entrá acá", 3600, "↖"), 400);
+    }
+  }
   window.abrirTutorial = abrir;
   document.addEventListener("DOMContentLoaded", () => {
     E("tour-sig")?.addEventListener("click", () => { if (i >= PASOS.length - 1) cerrar(); else { i++; mostrar(); } });
     E("tour-atras")?.addEventListener("click", () => { if (i > 0) { i--; mostrar(); } });
-    E("tour-saltar")?.addEventListener("click", cerrar);
-    document.addEventListener("keydown", (e) => { if (abierto && e.key === "Escape") cerrar(); });
+    E("tour-saltar")?.addEventListener("click", () => cerrar(true));
+    document.addEventListener("keydown", (e) => { if (abierto && e.key === "Escape") cerrar(true); });
+    // al abrir el menú después de saltar la guía: la manito señala "Ver tutorial" un ratito
+    const menu = E("sidebar-menu");
+    if (menu) new MutationObserver(() => {
+      let f = false; try { f = localStorage.getItem("zarela_tour_salto") === "1"; } catch (_) {}
+      if (!f || !menu.classList.contains("open")) return;
+      try { localStorage.removeItem("zarela_tour_salto"); } catch (_) {}
+      const b = E("sb-tutorial"); if (b) setTimeout(() => { b.scrollIntoView({ block: "nearest" }); pista(b, "Acá está el tutorial", 3200, "👆"); b.classList.add("sb-resalta"); setTimeout(() => b.classList.remove("sb-resalta"), 3400); }, 500);
+    }).observe(menu, { attributes: true, attributeFilter: ["class"] });
     E("sb-tutorial")?.addEventListener("click", () => setTimeout(abrir, 250));
     // primera visita: se muestra sola una vez (no a la administradora)
     setTimeout(() => {
@@ -5841,3 +5882,30 @@ document.addEventListener("DOMContentLoaded", () => setTimeout(actualizarBadgeHo
     }, 2500);
   });
 })();
+
+
+// ---- Tiempo real: Supabase avisa al instante (mensajes, saldo, órdenes); el sondeo de siempre queda de respaldo
+let rtCanal = null, rtUid = null, rtT = {};
+function rtDebounce(k, fn) { clearTimeout(rtT[k]); rtT[k] = setTimeout(() => { try { fn(); } catch (_) {} }, 350); }
+function iniciarTiempoReal() {
+  try {
+    if (typeof supabase.channel !== "function") return;
+    const uid = usuarioActual ? usuarioActual.id : null;
+    if (uid === rtUid) return;
+    if (rtCanal) { try { supabase.removeChannel(rtCanal); } catch (_) {} rtCanal = null; }
+    rtUid = uid; if (!uid) return;
+    const ch = supabase.channel("zarela-" + uid), admin = esAdminActual();
+    const on = (tabla, filtro, fn, evento = "*") => ch.on("postgres_changes", { event: evento, schema: "public", table: tabla, ...(filtro ? { filter: filtro } : {}) }, fn);
+    if (admin) {
+      on(MSG.tabla, null, () => { rtDebounce("m", () => { if (clienteSel) refrescarMensajes(false); cargarPanelAdmin(true); }); });
+      on("ordenes_recarga", null, () => rtDebounce("o", () => { cargarOrdenesAdmin(true); actualizarBadgeHoy(); }));
+    } else {
+      on(MSG.tabla, `${MSG.userCol}=eq.${uid}`, () => rtDebounce("m", () => cargarHistorialCliente(false)));
+      on(CONFIG.TABLA_PERFILES, `${CONFIG.COL_ID}=eq.${uid}`, () => rtDebounce("s", () => cargarSaldo(usuarioActual)), "UPDATE");
+      on("ordenes_recarga", `user_id=eq.${uid}`, () => rtDebounce("o", () => { consultarSeguimiento(); cargarSaldo(usuarioActual); if (comprasAbierto()) cargarHistorialCompras(true); else cargarHistorialCompras(true); }));
+    }
+    ch.subscribe();
+    rtCanal = ch;
+  } catch (e) { console.warn("Tiempo real no disponible:", e && e.message); }
+}
+setInterval(iniciarTiempoReal, 4000);   // se (re)conecta solo cuando cambia la sesión
