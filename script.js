@@ -1662,6 +1662,7 @@ let cargandoOrdenes = false;
 let ultimaCargaOrdenes = 0;
 let vistaAdmin = "clientes";
 let vistaChats = "normal";
+let chatFijado = null;   // id del cliente cuyo chat queda abierto aunque cambies de sala
 let filtroOrdenesInicial = true;    // la primera vez muestra "Requieren atención" solo si hay alguna
 const reenviando = new Set();
 
@@ -1687,7 +1688,12 @@ function mostrarVistaAdmin(vista) {
   if (vista === "ordenes") cargarOrdenesAdmin(false);
   if (vista === "stock") cargarStockPines();
   if (esCobro) rellenarCobro();
-  if (esChat) { pintarAyudaChats(); renderListaClientes(); }
+  if (esChat) {
+    pintarAyudaChats();
+    // al pasar de una sala a otra, el chat de un cliente que no está en la nueva sala se cierra (salvo que esté fijado 📌)
+    if (clienteSel && chatFijado !== clienteSel.id && !pasaFiltroChats(clienteSel.id)) { try { cerrarChatActual(); } catch (_) {} }
+    renderListaClientes();
+  }
   if (vista === "todas" || vista === "jugadores") pintarTodasSalas();
 }
 
@@ -2205,6 +2211,7 @@ function seleccionarCliente(fila, etiqueta) {
     saldos: saldoDisponible ? { USD: Number(fila[CONFIG.COL_SALDO]) || 0, ARS: Number(fila[CONFIG.COL_SALDO_ARS]) || 0 } : null,
     fila,
   };
+  if (chatFijado && chatFijado !== fila[CONFIG.COL_ID]) chatFijado = null;   // al abrir otro chat se suelta el anterior
   respuestaPendiente.admin = null;
   abrirChatMovilAdmin();
   renderListaClientes();   // resalta el cliente elegido
@@ -3696,7 +3703,7 @@ function pintarUltimas(nueva) {
       const n = document.createElement("b"); n.className = "ul-nom"; n.textContent = nombre;
       const meta = document.createElement("span"); meta.className = "ul-meta";
       const d = document.createElement("em"); d.className = "ul-dia"; d.textContent = fmtNum(r.diamantes) + " 💎";
-      const t = document.createElement("small"); t.className = "ul-t"; t.textContent = haceCorto((Number(r.hace_seg) || 0) + extra);
+      const t = document.createElement("small"); t.className = "ul-t"; t.textContent = haceCorto((Number(r.hace_seg) || 0) + extra); if (compacto) t.textContent = t.textContent.replace(" min", "m").replace(" h", "h").replace(" d", "d");
       meta.append(d, t); tx.append(n, meta); fila.append(av, tx); pista.appendChild(fila);
     });
     col.appendChild(pista); cont.appendChild(col);
@@ -4927,6 +4934,10 @@ function armarMenuChat() {
 
   const titulo = document.createElement("div"); titulo.className = "adm-cab-t"; titulo.append(nombre, sub);
   const puntos = document.createElement("button"); puntos.type = "button"; puntos.className = "adm-puntos"; puntos.setAttribute("aria-label", "Más opciones"); puntos.innerHTML = '<i class="fa-solid fa-ellipsis-vertical"></i>';
+  const pin = document.createElement("button"); pin.type = "button"; pin.className = "adm-puntos adm-pin"; pin.textContent = "📌";
+  const pintarPin = () => { const on = chatFijado === uid; pin.classList.toggle("on", on); pin.title = on ? "Chat fijado: no se cierra al cambiar de sala (tocá para soltarlo)" : "Fijar este chat: no se cierra al cambiar de sala"; pin.setAttribute("aria-label", pin.title); pin.setAttribute("aria-pressed", String(on)); };
+  pin.addEventListener("click", (e) => { e.stopPropagation(); chatFijado = chatFijado === uid ? null : uid; pintarPin(); mostrarAviso(chatFijado === uid ? "Chat fijado: queda abierto aunque cambies de sala." : "Chat suelto: se cierra si cambiás a una sala donde no está.", "ok"); });
+  pintarPin();
   const menu = document.createElement("div"); menu.className = "adm-menu"; menu.hidden = true;
   const actualizadores = [];
   const item = (ico, txt, fn, nodo) => { const b = nodo || document.createElement("button"); b.type = "button"; b.className = "adm-mi"; b.removeAttribute("style"); if (!nodo) b.innerHTML = `<span>${ico}</span><b>${txt}</b>`; b.addEventListener("click", () => { menu.hidden = true; fn(); }); menu.appendChild(b); return b; };
@@ -4959,7 +4970,7 @@ function armarMenuChat() {
   refrescar();
   puntos.addEventListener("click", (e) => { e.stopPropagation(); refrescar(); menu.hidden = !menu.hidden; });
   document.addEventListener("click", (e) => { if (!menu.hidden && !menu.contains(e.target)) menu.hidden = true; });
-  cab.replaceChildren(...[atras, titulo, puntos, menu].filter(Boolean));
+  cab.replaceChildren(...[atras, titulo, pin, puntos, menu].filter(Boolean));
   cab.classList.add("adm-cab-v2");
 }
 

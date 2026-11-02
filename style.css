@@ -2268,3 +2268,17 @@ body.chat-con-fondo .chat-v2>*,body.chat-con-fondo #admin-chat-view>*{position:r
 .rr-cerrar{border:1px solid rgba(127,214,255,.5);background:transparent;color:#fff;border-radius:12px;padding:9px;font-weight:700;cursor:pointer}
 .bonoxs-card-badge{font-size:9px}
 @media(max-width:600px){.bonoxs-card{padding:16px 8px 10px!important}.bonoxs-card-badge{top:4px;right:6px}}
+
+/* ===== v22: botón 📌 fijar chat, título del paso 1 en blanco cristal (celular), carrusel de celular con costados visibles como en PC ===== */
+.adm-pin{font-size:15px;filter:grayscale(.8);opacity:.85;margin-right:6px!important}
+.adm-pin:hover{filter:none;opacity:1}
+.adm-pin.on{filter:none;opacity:1;background:rgba(127,214,255,.22)!important;border-color:#7fd6ff!important;box-shadow:0 0 10px rgba(127,214,255,.55)}
+@media(max-width:600px){
+  .step-title:has(#chip-compras) h3{font-size:.98rem!important;white-space:nowrap;background:linear-gradient(180deg,#ffffff 15%,#bfe4ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 0 6px rgba(150,215,255,.35));min-width:0}
+  .step-title .hchip{padding:3px 8px!important;font-size:11px!important;gap:3px}
+  .step-title{gap:6px}
+  .carousel-track-container{height:148px!important}
+  .carousel-slide{width:64%}
+  .carousel-slide.prev{transform:translateX(-38%) scale(.8)}
+  .carousel-slide.next{transform:translateX(38%) scale(.8)}
+}
