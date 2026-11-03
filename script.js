@@ -359,7 +359,7 @@ async function verificarJugador() {
   };
 
   try {
-    const res = await postWebhook({ tipo_evento: "VERIFICAR_JUGADOR", id_jugador: id, playerId: id, region: "SAC" });
+    const res = await postWebhook({ tipo_evento: "VERIFICAR_JUGADOR", id_jugador: id, playerId: id, region: "SAC" }, 25000);
     if (mi !== verifSeq) return;   // el usuario cambió el ID o volvió a tocar Verificar
     if (!res.ok) return modoManual("HTTP " + res.status);
 
@@ -5762,7 +5762,7 @@ const nombresId = new Map();
 async function nombreDeId(id) {
   if (nombresId.has(id)) return nombresId.get(id);
   try {
-    const res = await postWebhook({ tipo_evento: "VERIFICAR_JUGADOR", id_jugador: id, playerId: id, region: "SAC" }, 12000);
+    const res = await postWebhook({ tipo_evento: "VERIFICAR_JUGADOR", id_jugador: id, playerId: id, region: "SAC" }, 25000);
     if (!res.ok) return null;
     const info = normalizarJugador(await conTimeout(res.json(), 8000));
     const n = info && info.nombre ? String(info.nombre) : null;
