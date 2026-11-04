@@ -5662,12 +5662,12 @@ async function saludReunir() {
     const reales = (data || []).filter((x) => ETIQUETA_STOCK[x.paquete_id]);
     const lista = reales.length ? reales : (data || []);
     const nom = (x) => (ETIQUETA_STOCK[x.paquete_id] ? ETIQUETA_STOCK[x.paquete_id] + " 💎" : x.nombre || x.diamantes + " 💎");
-    const sin = lista.filter((x) => Number(x.disponibles) === 0), pocos = lista.filter((x) => Number(x.disponibles) > 0 && Number(x.disponibles) < 5);
+    const sin = lista.filter((x) => Number(x.disponibles) === 0), pocos = lista.filter((x) => Number(x.disponibles) > 0 && Number(x.disponibles) < 4);
     if (sin.length) out.push({ id: "stock-cero", nivel: "alto", icono: "📉", titulo: `Sin PINs para: ${sin.map(nom).join(", ")}`,
       detalle: "Si un cliente compra ese paquete, no hay PIN para entregarle.",
       pasos: ["Comprá PINs en tu proveedor para esos paquetes.", "En el panel andá a Stock, elegí el paquete y pegá los códigos (uno por línea) con «Agregar PINs».", "Cuando haya stock vuelve a quedar todo en verde."],
       ir: irPanelAdmin("stock"), irTxt: "Ir a Stock" });
-    if (pocos.length) out.push({ id: "stock-poco", nivel: "bajo", icono: "📉", titulo: `Quedan muy pocos PINs: ${pocos.map((x) => nom(x) + " (" + x.disponibles + ")").join(", ")}`,
+    if (pocos.length) out.push({ id: "stock-poco", nivel: "alto", icono: "📉", titulo: `Quedan muy pocos PINs: ${pocos.map((x) => nom(x) + " (" + x.disponibles + ")").join(", ")}`,
       detalle: "Todavía alcanza, pero conviene reponer pronto.", pasos: ["Comprá PINs de esos paquetes.", "En Stock pegá los códigos con «Agregar PINs»."], ir: irPanelAdmin("stock"), irTxt: "Ir a Stock" });
   } catch (e) {
     const falta = /PGRST202|42883|admin_stock_pines/i.test(String((e && (e.code || e.message)) || ""));
@@ -5725,10 +5725,10 @@ async function saludRevisar() {
 }
 function pintarBotonSalud() {
   const b = $("btn-salud"); if (!b) return;
-  const n = saludProblemas.filter((p) => p.nivel !== "bajo").length, total = saludProblemas.length;
+  const n = saludProblemas.filter((p) => p.nivel === "alto").length, total = saludProblemas.length;   // rojo: PINs que faltan / se acaban y fallas de órdenes
   b.classList.toggle("mal", n > 0); b.classList.toggle("aviso", n === 0 && total > 0); b.classList.toggle("bien", total === 0);
-  b.querySelector("em").textContent = n ? String(n) : total ? "!" : "✓";
-  b.title = n ? `${n} cosa${n > 1 ? "s" : ""} para revisar` : total ? "Avisos menores" : "Todo en orden";
+  b.querySelector("em").textContent = n ? String(n) : total ? String(total) : "✓";
+  b.title = n ? `${n} cosa${n > 1 ? "s" : ""} urgente${n > 1 ? "s" : ""}` : total ? `${total} pendiente${total > 1 ? "s" : ""} para más adelante` : "Todo en orden";
 }
 function pintarSalud() {
   const lista = $("salud-lista"); if (!lista) return;
@@ -5903,7 +5903,7 @@ async function hoyDatos() {
     const r = await conTimeout(supabase.rpc("admin_stock_pines"), 10000);
     if (r.error) throw r.error;
     stockPaquetes = Array.isArray(r.data) ? r.data : stockPaquetes;
-    d.stock = stockPaquetes.filter((p) => ETIQUETA_STOCK[p.paquete_id] && (Number(p.disponibles) || 0) < 5).map((p) => ({ nombre: ETIQUETA_STOCK[p.paquete_id], n: Number(p.disponibles) || 0 }));
+    d.stock = stockPaquetes.filter((p) => ETIQUETA_STOCK[p.paquete_id] && (Number(p.disponibles) || 0) < 4).map((p) => ({ nombre: ETIQUETA_STOCK[p.paquete_id], n: Number(p.disponibles) || 0 }));
   } catch (_) { d.err.push("stock"); }
   return d;
 }
@@ -5966,7 +5966,7 @@ function promoTick() {
 }
 setInterval(promoTick, 1000);
 // ---- Clientes registrados (hoy / total) con buscador
-let cliDatos = null, cliTs = 0, cliCargando = false, cliTab = "hoy", cliQ = "", cliN = 6;
+let cliDatos = null, cliTs = 0, cliCargando = false; const cliQ = { hoy: "", total: "" }, cliN = { hoy: 6, total: 6 };
 async function cliCargar() {
   if (cliCargando) return; cliCargando = true;
   try {
@@ -5982,24 +5982,27 @@ async function cliCargar() {
   } catch (_) { if (!cliDatos) cliDatos = { error: true, filas: [], total: 0, hoy: 0 }; }
   cliCargando = false;
 }
-function tarjetaClientes(abrirChat) {
+function tarjetaClientes(abrirChat, modo) {
   const t = document.createElement("div"); t.className = "hoy-card info cli-card";
+  const titulo = modo === "hoy" ? "Registrados hoy" : "Total de clientes", ico = modo === "hoy" ? "🆕" : "👥";
   const pintar = () => {
     const d = cliDatos; if (!d) return;
-    const hoyN = d.hoy, totN = d.total;
-    t.innerHTML = `<div class="hoy-cab"><span>👥</span><b>Clientes</b></div>
-      <div class="cli-tabs"><button type="button" data-t="hoy" class="${cliTab === "hoy" ? "on" : ""}"><strong>${hoyN}</strong><small>Registrados hoy</small></button><button type="button" data-t="total" class="${cliTab === "total" ? "on" : ""}"><strong>${totN}</strong><small>Total de clientes</small></button></div>
+    const n = modo === "hoy" ? d.hoy : d.total;
+    t.innerHTML = `<div class="hoy-cab"><span>${ico}</span><b>${titulo}</b><em></em></div><div class="cli-num"></div>
       <label class="cli-bus">🔍<input type="search" class="cli-q" placeholder="Buscar por nombre o mail" autocomplete="off"></label><div class="cli-lista"></div>`;
-    const q = t.querySelector(".cli-q"); q.value = cliQ;
+    t.querySelector("em").textContent = String(n); t.querySelector(".cli-num").textContent = n === 1 ? "1 cliente" : n + " clientes";
+    const q = t.querySelector(".cli-q"); q.value = cliQ[modo] || "";
+    if (modo === "hoy") q.closest("label").hidden = d.hoy < 7;
     const lista = t.querySelector(".cli-lista");
     const llenar = () => {
       lista.replaceChildren();
-      const bus = cliQ.trim().toLowerCase();
-      let filas = d.filas.filter((f) => cliTab === "total" || new Date(f.created_at).getTime() >= d.ini);
+      const bus = (cliQ[modo] || "").trim().toLowerCase();
+      let filas = d.filas.filter((f) => modo === "total" || new Date(f.created_at).getTime() >= d.ini);
       if (bus) filas = filas.filter((f) => ((f.full_name || "") + " " + (f.email || "")).toLowerCase().includes(bus));
       if (d.error) { const p = document.createElement("p"); p.className = "hoy-vacio"; p.textContent = "No se pudo leer la lista de clientes."; lista.appendChild(p); return; }
-      if (!filas.length) { const p = document.createElement("p"); p.className = "hoy-vacio"; p.textContent = bus ? "Nadie coincide con esa búsqueda." : cliTab === "hoy" ? "Hoy todavía no se registró nadie." : "Sin clientes."; lista.appendChild(p); return; }
-      filas.slice(0, cliN).forEach((f) => {
+      if (!filas.length) { const p = document.createElement("p"); p.className = "hoy-vacio"; p.textContent = bus ? "Nadie coincide con esa búsqueda." : modo === "hoy" ? "Hoy todavía no se registró nadie." : "Sin clientes."; lista.appendChild(p); return; }
+      const lim = cliN[modo];
+      filas.slice(0, lim).forEach((f) => {
         const b = document.createElement("button"); b.type = "button"; b.className = "cli-fila";
         const nom = f.full_name || (f.email || "").split("@")[0] || "Cliente";
         const av = document.createElement("span"); av.className = "cli-av"; pintarAvatarEn(av, f.avatar_url, (nom[0] || "C").toUpperCase());
@@ -6007,14 +6010,13 @@ function tarjetaClientes(abrirChat) {
         const fe = document.createElement("em"); const ms = new Date(f.created_at).getTime(); fe.textContent = ms >= d.ini ? new Date(ms).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : new Date(ms).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
         b.append(av, tx, fe); b.title = "Abrir chat"; b.addEventListener("click", () => abrirChat(f.id)); lista.appendChild(b);
       });
-      if (filas.length > cliN) { const m = document.createElement("button"); m.type = "button"; m.className = "cli-mas"; m.textContent = `Ver más (${filas.length - cliN})`; m.addEventListener("click", () => { cliN += 10; llenar(); }); lista.appendChild(m); }
-      else if (cliN > 6) { const m = document.createElement("button"); m.type = "button"; m.className = "cli-mas"; m.textContent = "Ver menos"; m.addEventListener("click", () => { cliN = 6; llenar(); }); lista.appendChild(m); }
+      if (filas.length > lim) { const m = document.createElement("button"); m.type = "button"; m.className = "cli-mas"; m.textContent = `Ver más (${filas.length - lim})`; m.addEventListener("click", () => { cliN[modo] += 10; llenar(); }); lista.appendChild(m); }
+      else if (lim > 6) { const m = document.createElement("button"); m.type = "button"; m.className = "cli-mas"; m.textContent = "Ver menos"; m.addEventListener("click", () => { cliN[modo] = 6; llenar(); }); lista.appendChild(m); }
     };
     llenar();
-    t.querySelectorAll(".cli-tabs button").forEach((b) => b.addEventListener("click", () => { cliTab = b.dataset.t; cliN = 6; pintar(); }));
-    q.addEventListener("input", () => { cliQ = q.value; cliN = 6; llenar(); });
+    q.addEventListener("input", () => { cliQ[modo] = q.value; cliN[modo] = 6; llenar(); });
   };
-  if (cliDatos) pintar(); else t.innerHTML = '<div class="hoy-cab"><span>👥</span><b>Clientes</b></div><p class="hoy-vacio">Cargando…</p>';
+  if (cliDatos) pintar(); else t.innerHTML = `<div class="hoy-cab"><span>${ico}</span><b>${titulo}</b></div><p class="hoy-vacio">Cargando…</p>`;
   if (!cliDatos || Date.now() - cliTs > 60000) cliCargar().then(() => { if (t.isConnected && document.activeElement !== t.querySelector(".cli-q")) pintar(); });
   return t;
 }
@@ -6113,12 +6115,11 @@ async function pintarHoy() {
     tarjeta("🧾", "Órdenes por atender", d.ords.length, "alto", d.ords.map((o) => [`#${o.id} · ${o.diamantes || "?"} 💎 · ID ${o.id_jugador || "-"}`, (/REVISAR A MANO/i.test(o.envio_error || "") ? "⚠ revisar a mano · " : o.estado === "error_envio" ? "no llegó a n8n · " : "") + minOrd(o), () => mostrarVistaAdmin("ordenes")]), "Todas las órdenes están al día.", ["Ir a Órdenes", () => mostrarVistaAdmin("ordenes")]),
     tarjeta("📦", "Stock de PIN bajo", d.stock.length, "aviso", d.stock.map((p) => [`Paquete ${p.nombre} 💎`, p.n === 0 ? "sin PIN" : `quedan ${p.n}`, () => mostrarVistaAdmin("stock")]), "Hay PIN suficientes en todos los paquetes.", ["Ir a Stock", () => mostrarVistaAdmin("stock")]),
   );
-  grid.append(tarjetaClientes(abrirChat), tarjetaReglasPerfil());
   const hoy = document.createElement("div"); hoy.className = "hoy-card info";
   hoy.innerHTML = `<div class="hoy-cab"><span>📈</span><b>Hoy</b></div><p class="hoy-num"></p><small class="hoy-mas">Contado sobre tus últimas 60 órdenes.</small><button type="button" class="hoy-ir">🩺 Revisar errores y cómo arreglarlos</button>`;
   hoy.querySelector(".hoy-num").textContent = `${d.hoyOk} recarga${d.hoyOk === 1 ? "" : "s"} acreditada${d.hoyOk === 1 ? "" : "s"} · ${fmtNum(d.hoyDia)} 💎`;
   hoy.querySelector(".hoy-ir").addEventListener("click", () => { try { abrirSalud(); } catch (_) {} });
-  grid.appendChild(hoy);
+  grid.append(hoy, tarjetaClientes(abrirChat, "hoy"), tarjetaClientes(abrirChat, "total"), tarjetaReglasPerfil());
   c.appendChild(grid);
   if (d.err.length) { const p = document.createElement("p"); p.className = "hoy-mas"; p.textContent = "No se pudo leer: " + d.err.join(", ") + ". Tocá 🔄 para reintentar."; c.appendChild(p); }
   if (!hoyTotal(d) && !d.err.length) { const ok = document.createElement("p"); ok.className = "hoy-todo"; ok.textContent = "✅ Todo al día. No tenés nada pendiente."; c.prepend(ok); }
@@ -6376,7 +6377,7 @@ function sfxTono(c, t0, f1, f2, dur, vol, tipo = "sine") {
   o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dur + 0.02);
 }
 function sfx(nombre) {
-  if (!sfxActivo()) return;
+  if (!sfxActivo() && nombre !== "alarma") return;   // la alarma de stock suena aunque silencies los sonidos
   const ahora = Date.now(); if (nombre === "tap" && ahora - sfxUlt < 70) return; sfxUlt = ahora;   // el toque nunca pisa a otro sonido
   try {
     const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
@@ -6385,6 +6386,8 @@ function sfx(nombre) {
     if (nombre === "abrir") { sfxTono(c, t, 440, 660, 0.12, 0.05); sfxTono(c, t + 0.07, 660, 880, 0.14, 0.04); }
     else if (nombre === "cerrar") { sfxTono(c, t, 660, 400, 0.12, 0.045); }
     else if (nombre === "ok") { sfxTono(c, t, 523, null, 0.1, 0.05); sfxTono(c, t + 0.08, 659, null, 0.1, 0.05); sfxTono(c, t + 0.16, 784, null, 0.18, 0.05); }
+    else if (nombre === "alarma") { for (let i = 0; i < 6; i++) sfxTono(c, t + i * 0.34, i % 2 ? 660 : 990, i % 2 ? 640 : 960, 0.3, 0.16, "square"); }
+    else if (nombre === "registro") { sfxTono(c, t, 784, null, 0.12, 0.04); sfxTono(c, t + 0.1, 1047, null, 0.2, 0.035); }
     else if (nombre === "error") { sfxTono(c, t, 220, 160, 0.2, 0.05, "triangle"); }
     else { sfxTono(c, t, 900, 700, 0.045, 0.03); }   // tap
   } catch (_) {}
@@ -6555,3 +6558,61 @@ document.addEventListener("DOMContentLoaded", () => {
   $("al-file")?.addEventListener("change", (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; subirFotoPerfil(f); });
   $("al-foto-q")?.addEventListener("click", quitarFotoPerfil);
 });
+
+
+// =====================================================================
+// v45: ALARMA cuando queda 1 PIN (o 0) y aviso suave de cliente nuevo (con la página abierta; con la página cerrada avisa el push)
+// =====================================================================
+function avisoDeEscritorio(titulo, cuerpo, tag, urgente) {
+  try {
+    if (!("Notification" in window) || Notification.permission !== "granted" || !document.hidden) return;
+    new Notification(titulo, { body: cuerpo, icon: "icon-192.png", tag, renotify: true, requireInteraction: !!urgente, vibrate: urgente ? [600, 200, 600, 200, 600, 200, 900] : [120, 60, 120] });
+  } catch (_) {}
+}
+function alarmaStock(lista) {
+  const txt = lista.map((p) => (Number(p.disponibles) === 0 ? "SIN PINs de " : "Queda 1 PIN de ") + ETIQUETA_STOCK[p.paquete_id] + " 💎").join(" · ");
+  try { sfx("alarma"); setTimeout(() => sfx("alarma"), 2300); } catch (_) {}
+  try { if (navigator.vibrate) navigator.vibrate([600, 200, 600, 200, 600, 200, 900]); } catch (_) {}
+  try { mostrarAviso("🚨 " + txt + ". Cargá stock.", "error"); } catch (_) {}
+  avisoDeEscritorio("🚨 Stock de PIN", txt, "stock-alarma", true);
+}
+async function stockVigilar() {
+  if (!esAdminActual()) return;
+  try {
+    const { data, error } = await conTimeout(Promise.resolve(supabase.rpc("admin_stock_pines")), 10000);
+    if (error || !Array.isArray(data)) return;
+    let prev = {}; try { prev = JSON.parse(localStorage.getItem("zarela_stock_prev") || "{}"); } catch (_) {}
+    const ahora = {}, avisar = [];
+    data.filter((p) => ETIQUETA_STOCK[p.paquete_id]).forEach((p) => {
+      const n = Number(p.disponibles) || 0; ahora[p.paquete_id] = n;
+      const antes = prev[p.paquete_id];
+      if (n === 1 && antes !== 1) avisar.push(p);
+      else if (n === 0 && typeof antes === "number" && antes > 0) avisar.push(p);
+    });
+    let ult = 0; try { ult = Number(localStorage.getItem("zarela_stock_ult") || 0); } catch (_) {}
+    if (!avisar.length && Date.now() - ult > 1800000) data.filter((p) => ETIQUETA_STOCK[p.paquete_id] && Number(p.disponibles) === 1).forEach((p) => avisar.push(p));   // recordatorio cada 30 min mientras siga en 1
+    try { localStorage.setItem("zarela_stock_prev", JSON.stringify(ahora)); } catch (_) {}
+    if (avisar.length) { try { localStorage.setItem("zarela_stock_ult", String(Date.now())); } catch (_) {} alarmaStock(avisar); }
+  } catch (_) {}
+}
+setInterval(stockVigilar, 20000); setTimeout(stockVigilar, 6000);
+
+async function clientesNuevosVigilar() {
+  if (!esAdminActual()) return;
+  try {
+    const [t, u] = await Promise.all([
+      supabase.from(CONFIG.TABLA_PERFILES).select("id", { count: "exact", head: true }),
+      supabase.from(CONFIG.TABLA_PERFILES).select("full_name,email").order("created_at", { ascending: false }).limit(1),
+    ]);
+    if (t.error || t.count == null) return;
+    let prev = null; try { prev = localStorage.getItem("zarela_cli_total"); } catch (_) {}
+    try { localStorage.setItem("zarela_cli_total", String(t.count)); } catch (_) {}
+    if (prev !== null && t.count > Number(prev)) {
+      const f = (u.data || [])[0] || {}, nom = f.full_name || (f.email || "").split("@")[0] || "Alguien";
+      try { sfx("registro"); } catch (_) {}
+      try { mostrarAviso("👋 Nuevo cliente: " + nom, "info"); } catch (_) {}
+      avisoDeEscritorio("👋 Nuevo cliente", nom, "cliente-nuevo", false);
+    }
+  } catch (_) {}
+}
+setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 8000);

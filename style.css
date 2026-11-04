@@ -2844,3 +2844,6 @@ html.z-oculto *,html.z-oculto *::before,html.z-oculto *::after{animation-play-st
 .rp-f{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:12px;font-weight:700;color:#bfe9ff}
 .rp-in{width:62px;border:1px solid #3f557f;background:#0e1424;color:#fff;border-radius:8px;padding:4px 8px;font-size:13px;font-weight:700}
 .al-foto-n{color:#ffd27a;min-height:0}
+
+/* v45 */
+.cli-num{font-size:22px;font-weight:900;color:#7fffc0;margin:4px 0 6px}
