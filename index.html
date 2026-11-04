@@ -708,6 +708,11 @@
   <span class="sb-txt"><b>Mi historial de compras</b><small>Mirá tus recargas y cómo van</small></span>
   <i class="fa-solid fa-chevron-right sb-flecha"></i>
   </button>
+  <button type="button" class="sb-accion sb-hist" onclick="abrirAlias()">
+  <span class="sb-ico"><i class="fa-solid fa-pen"></i></span>
+  <span class="sb-txt"><b>Mi nombre en el Top</b><small>Elegí cómo te ven los demás</small></span>
+  <i class="fa-solid fa-chevron-right sb-flecha"></i>
+  </button>
   </div>
 
   <div class="sb-wallet" id="sb-wallet" hidden>
@@ -1121,7 +1126,7 @@
 
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="adm-top">
-  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 40</small></span>
+  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 41</small></span>
   <label class="adm-soporte" title="Lo que ven tus clientes arriba del chat"><span>Estado ante clientes:</span>
   <select id="adm-soporte" aria-label="Estado que ven los clientes"><option value="en_linea">🟢 En línea</option><option value="desconectada">⚪ Desconectada</option><option value="oculto">🙈 No mostrar nada</option></select></label>
   <button type="button" class="adm-salir" onclick="salirModoAdmin()" aria-label="Volver al modo normal"><i class="fa-solid fa-arrow-left"></i> <span>Volver al modo normal</span></button>
@@ -1369,5 +1374,17 @@ function irAlChat(){
 <div class="nh-lista" id="nh-lista"></div>
 <div class="nh-pie"><button type="button" id="nh-limpiar">Borrar historial</button></div>
 </div></div>
+<div class="nh-modal" id="al-modal" hidden role="dialog" aria-modal="true" aria-label="Mi nombre en el Top">
+<div class="nh-card">
+<div class="nh-cab"><b>🏆 Tu nombre en el Top</b><button type="button" id="al-x" aria-label="Cerrar">✕</button></div>
+<div class="al-cuerpo">
+<p>Es el nombre que ve todo el mundo en el <b>Top de recargas</b> y en <b>Últimas compras</b>. Elegí el que quieras: no puede repetirse con el de otra persona.</p>
+<label for="al-in">Tu nombre</label>
+<input id="al-in" type="text" maxlength="20" autocomplete="off" placeholder="Ej: Julián JP">
+<small>De 3 a 20 letras o números. Sin links.</small>
+<div class="al-prev">Así te van a ver: <b id="al-prev"></b></div>
+<button type="button" id="al-ok" class="al-ok">Guardar mi nombre</button>
+<small id="al-nota" class="al-nota"></small>
+</div></div></div>
 </body>
 </html>

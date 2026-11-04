@@ -2763,3 +2763,17 @@ body.modo-admin .op-form-campos .op-btn{padding:5px 10px;font-size:.72rem}
 .hoy-rv-si:hover,.hoy-rv-no:hover{filter:brightness(1.2)}
 .hoy-rv-f .hoy-rv-si{margin-left:auto}
 
+
+/* v41 */
+html.z-oculto *,html.z-oculto *::before,html.z-oculto *::after{animation-play-state:paused!important}
+.z-fuera,.z-fuera *,.z-fuera *::before,.z-fuera *::after{animation-play-state:paused!important}
+.nh-t{white-space:pre-line}
+.al-cuerpo{padding:12px 14px 16px;display:grid;gap:8px;font-size:13px;line-height:1.35}
+.al-cuerpo p{margin:0;color:#cfe9ff}
+.al-cuerpo label{font-weight:700;color:#bfe9ff}
+.al-cuerpo input{border-radius:12px;border:1px solid rgba(127,214,255,.5);background:rgba(255,255,255,.08);color:inherit;padding:10px 12px;font:inherit;font-size:15px}
+.al-cuerpo small{opacity:.75}
+.al-prev{padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.06)}
+.al-ok{border:0;border-radius:12px;padding:11px;background:linear-gradient(135deg,#19e68c,#7fd6ff);color:#052a1b;font-weight:800;cursor:pointer}
+.al-ok:disabled{opacity:.5}
+.al-nota{min-height:1em;color:#ffd27a}

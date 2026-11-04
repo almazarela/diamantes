@@ -1723,6 +1723,8 @@ let ordenesColsEnvio = true;        // false si falta ejecutar n8n_envio_fix.sql
 let revisarEnviosDisponible = true; // false si falta la función admin_revisar_envios (n8n_envio_fix.sql)
 let cargandoOrdenes = false;
 let ultimaCargaOrdenes = 0;
+let promoAusT = null;
+function promoAusSeg() { try { return Math.max(5, Math.min(600, parseInt(localStorage.getItem("zarela_promo_ausente") || "20", 10) || 20)); } catch (_) { return 20; } }
 let vistaAdmin = "clientes";
 let hoySeq = 0, promoModo = false, promoSeg = 90, promoSegBorrador = 90, promoCambioTs = 0, promoOcupado = false, promoUltModo = null, promoVistas = new Set();
 let vistaChats = "normal";
@@ -1742,7 +1744,12 @@ const TODAS_VISTAS = ["hoy", ...VISTAS_CHAT, "ordenes", "stock", "todas", "jugad
 function mostrarVistaAdmin(vista) {
   try { if (vista !== vistaAdmin) sfx("tap"); } catch (_) {}
   if (!TODAS_VISTAS.includes(vista)) vista = "clientes";
-  if (vista !== "hoy" && promoModo) promoApagarAuto();   // saliste de Pendientes: nada queda esperando
+  if (vista === "hoy") { clearTimeout(promoAusT); promoAusT = null; }
+  else if (promoModo && !promoAusT) {   // saliste de Pendientes: seguís disponible unos segundos; si no volvés, se apaga y todo sale con PIN
+    const sg = promoAusSeg();
+    promoAusT = setTimeout(() => { promoAusT = null; if (vistaAdmin !== "hoy" && promoModo) promoApagarAuto(); }, sg * 1000);
+    mostrarAviso(`Seguís disponible. Si no volvés a Pendientes en ${sg} s, se apaga y los pedidos salen con PIN.`, "info");
+  }
   const esCobro = VISTAS_COBRO.includes(vista), esChat = VISTAS_CHAT.includes(vista);
   vistaAdmin = vista;
   vistaChats = vista === "clientes" ? "normal" : esChat ? vista : vistaChats;
@@ -3630,7 +3637,7 @@ async function comprarPaquete(ev, paqueteId, moneda = "USD") {
       estado = "pendiente";   // el servidor estaba apagado: no se hace esperar al cliente frente a una pantalla de carga
     } else if (CONFIG.ESPERAR_CONFIRMACION) {
       const textoEspera = `${nombrePaquete} para el ID ${id}`;
-      mostrarDialogo({ tono: "warn", titulo: "Acreditando tus diamantes…", texto: textoEspera, cargando: true });
+      mostrarDialogo({ tono: "warn", titulo: "¡Carga enviada! 🚀", texto: `${textoEspera}. Se va a ver reflejada en tu cuenta en aproximadamente 1 minuto. Reiniciá el juego para ver tus diamantes. Si tarda más, escribinos por el chat de Almazarela.`, cargando: true });
       estado = await esperarOrden(orden.orden_id, () => mostrarDialogo({
         tono: "warn", titulo: "Está tardando un poco más…", cargando: true,
         texto: `${textoEspera}. Tu compra ya está registrada: si querés, podés cerrar esta ventana y fijarte en "Mi historial de compras".`,
@@ -3659,7 +3666,7 @@ async function comprarPaquete(ev, paqueteId, moneda = "USD") {
         tono: "info", icono: "⏳", titulo: "Compra registrada",
         texto: pedidoDemorado
           ? `Tu pedido quedó en pendiente. Tus diamantes se acreditan apenas retomemos las recargas. No hace falta que hagas nada más: podés seguirlo en "Mi historial de compras".`
-          : `Tu pedido está en proceso. Tus diamantes se acreditan en unos minutos. Si tarda, escribinos por el chat.`,
+          : `Tu pedido está en proceso. Tus diamantes se acreditan en unos minutos: reiniciá el juego para verlos. Si tarda, escribinos por el chat de Almazarela.`,
         botones: [{ texto: "Entendido", primario: true }],
       });
     }
@@ -5743,9 +5750,10 @@ function nhEventos() {
   const add = (k, t, ic, txt) => { if (vistos.has(k) || !t || Number.isNaN(t)) return; vistos.add(k); ev.push({ k, t, ic, txt }); };
   (comprasUsuario || []).slice(0, 10).forEach((o) => {
     const t = new Date(o.created_at).getTime(), n = "#" + numCompra(o), idj = o.id_jugador ? " al ID " + o.id_jugador : "", dia = o.diamantes ? fmtNum(o.diamantes) + " 💎" : "diamantes";
-    add("o" + o.id + "_env", t, "📨", `Tu orden ${n} fue enviada${idj}.`);
+    const nm = o.id_jugador ? nombreGuardado(String(o.id_jugador)) : "", sub = nm ? "\n👤 " + nm : "";
+    add("o" + o.id + "_env", t, "📨", `Tu orden ${n} fue enviada${idj}.${sub}`);
     if (o.estado === "pendiente" || o.estado === "error_envio") add("o" + o.id + "_pend", t + 1, "⏳", `Tu orden ${n} está en proceso (${dia}).`);
-    else if (o.estado === "completada") add("o" + o.id + "_completada", t + 2, "✅", `Se acreditaron ${dia}${idj} (orden ${n}).`);
+    else if (o.estado === "completada") add("o" + o.id + "_completada", t + 2, "✅", `Se acreditaron ${dia}${idj} (orden ${n}).${sub}`);
     else if (o.estado === "fallida") add("o" + o.id + "_fallida", t + 2, "↩️", `La orden ${n} no se pudo acreditar: tu saldo fue devuelto.`);
   });
   nhMovs.forEach((m) => {
@@ -5777,14 +5785,18 @@ function nhPintar() {
     const f = document.createElement("div"); f.className = "nh-item" + (e.t > visto ? " nuevo" : "");
     const i = document.createElement("span"); i.className = "nh-ic"; i.textContent = e.ic || "🔔";
     const c = document.createElement("div"), t = document.createElement("div"), h = document.createElement("small");
-    t.textContent = e.txt; h.textContent = fechaHora(e.t) + " · " + hace(new Date(e.t).toISOString());
+    t.className = "nh-t"; t.textContent = e.txt; h.textContent = fechaHora(e.t) + " · " + hace(new Date(e.t).toISOString());
     c.append(t, h); f.append(i, c); cont.appendChild(f);
   });
+}
+async function nhNombres() {   // trae el nombre de los IDs de tus compras (lo guarda el sistema al acreditar)
+  const ids = [...new Set((comprasUsuario || []).slice(0, 10).map((o) => o.id_jugador && String(o.id_jugador)).filter(Boolean))].filter((i) => !nombreGuardado(i));
+  await Promise.all(ids.map(async (i) => { try { const r = await conTimeout(Promise.resolve(supabase.rpc("nombre_id", { p_id: i })), 4000); if (r && r.data) recordarNombre(i, String(r.data)); } catch (_) {} }));
 }
 async function abrirNotifs() {
   if (!usuarioActual) return;
   $("nh-modal").hidden = false; nhPintar();
-  await nhTraerMovs(); if (!$("nh-modal").hidden) nhPintar();
+  await Promise.all([nhTraerMovs(), nhNombres()]); if (!$("nh-modal").hidden) nhPintar();
   nhGuardar("visto", Date.now()); nhBadge();
 }
 const cerrarNotifs = () => { $("nh-modal").hidden = true; nhBadge(); };
@@ -5880,6 +5892,7 @@ async function promoConfig(activo = null, segundos = null, latido = false) {
 function promoMarcarId(id, diamantes, resultado) { try { Promise.resolve(supabase.rpc("admin_promo_resultado", { p_id: String(id || ""), p_diamantes: Number(diamantes) || 0, p_resultado: resultado })).catch(() => {}); } catch (_) {} }
 // Si salís de Pendientes o apagás: lo que esperaba sale al instante con tu PIN
 async function promoApagarAuto() {
+  clearTimeout(promoAusT); promoAusT = null;
   if (!promoModo) return;
   promoModo = false; promoCambioTs = Date.now();
   try { await promoConfig(false); mostrarAviso("Modo disponible apagado: los pedidos que esperaban salieron con tu PIN.", "info"); }
@@ -5907,7 +5920,7 @@ async function pintarHoy() {
   const mi = ++hoySeq;
   const d = await hoyDatos(); if (mi !== hoySeq || vistaAdmin !== "hoy") return;
   const b = $("hoy-n"); if (b) { const n = hoyTotal(d); b.hidden = n === 0; b.textContent = String(n); }
-  if (document.activeElement && document.activeElement.classList && (document.activeElement.classList.contains("hoy-seg-in"))) return;   // no te saco del casillero mientras escribís
+  if (document.activeElement && document.activeElement.classList && (document.activeElement.classList.contains("hoy-seg-in") || document.activeElement.classList.contains("hoy-aus-in"))) return;   // no te saco del casillero mientras escribís
   const filasPrevias = new Map([...c.querySelectorAll(".hoy-esp-fila")].map((f) => [f.dataset.id, f]));   // se reutilizan: la barra no parpadea
   promoUltModo = d.modo;
   c.replaceChildren();
@@ -5926,9 +5939,11 @@ async function pintarHoy() {
   const minOrd = (o) => { const m = Math.max(0, Math.round((Date.now() - new Date(o.created_at).getTime()) / 60000)); return m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`; };
   // --- modo "Estoy disponible" (compra manual con descuento)
   const caja = document.createElement("div"); caja.className = "hoy-promo" + (d.modo ? " on" : "");
-  caja.innerHTML = `<div class="hoy-promo-t"><b>💸 Compras con descuento (Pago Store)</b><label class="hoy-sw"><input type="checkbox" class="hoy-sw-in"><span></span></label></div><p class="hoy-promo-d"></p><label class="hoy-seg">⏱ Segundos que espera cada pedido <input type="number" class="hoy-seg-in" min="15" max="600" step="5" inputmode="numeric"> <small></small></label>`;
+  caja.innerHTML = `<div class="hoy-promo-t"><b>💸 Compras con descuento (Pago Store)</b><label class="hoy-sw"><input type="checkbox" class="hoy-sw-in"><span></span></label></div><p class="hoy-promo-d"></p><label class="hoy-seg">⏱ Segundos que espera cada pedido <input type="number" class="hoy-seg-in" min="15" max="600" step="5" inputmode="numeric"> <small></small></label><label class="hoy-seg">🚪 Si me voy de esta pantalla, se apaga a los <input type="number" class="hoy-aus-in" min="5" max="600" step="5" inputmode="numeric"> s <small>Los pedidos que esperaban salen con PIN.</small></label>`;
   const chk = caja.querySelector(".hoy-sw-in"); chk.checked = !!d.modo;
   const segInp = caja.querySelector(".hoy-seg-in");
+  const ausInp = caja.querySelector(".hoy-aus-in"); ausInp.value = promoAusSeg();
+  ausInp.addEventListener("input", () => { const v = parseInt(ausInp.value, 10); if (v >= 5 && v <= 600) { try { localStorage.setItem("zarela_promo_ausente", String(v)); } catch (_) {} } });
   segInp.value = d.modo ? d.segundos : promoSegBorrador; segInp.disabled = !!d.modo;
   segInp.addEventListener("input", () => { const v = parseInt(segInp.value, 10); if (v > 0) promoSegBorrador = v; });
   caja.querySelector(".hoy-seg small").textContent = d.modo ? "Fijo mientras esté prendido. Para cambiarlo, apagá y volvé a prender." : "Elegilo antes de prender (15 a 600).";
@@ -6264,3 +6279,63 @@ document.addEventListener("click", (e) => {
 });
 document.addEventListener("DOMContentLoaded", pintarSfxMenu);
 setTimeout(pintarSfxMenu, 1500);
+
+
+// =====================================================================
+// v41: pausar animaciones fuera de pantalla / con la pestaña oculta (celulares más livianos)
+// =====================================================================
+(function pausarAnimaciones() {
+  const R = document.documentElement;
+  const oculto = () => R.classList.toggle("z-oculto", document.hidden);
+  document.addEventListener("visibilitychange", oculto); oculto();
+  if (!("IntersectionObserver" in window)) return;
+  const io = new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle("z-fuera", !e.isIntersecting)), { rootMargin: "120px 0px" });
+  const ver = () => document.querySelectorAll("header.navbar, .hero-banner-section, section.card, footer").forEach((el) => { if (!el.dataset.zobs) { el.dataset.zobs = "1"; io.observe(el); } });
+  ver(); setTimeout(ver, 3000); setInterval(ver, 15000);
+})();
+
+// =====================================================================
+// v41: "Mi nombre en el Top" (único por persona)
+// =====================================================================
+async function abrirAlias() {
+  if (!usuarioActual) return;
+  try { if ($("sidebar-menu")?.classList.contains("open")) toggleMenu(); } catch (_) {}
+  const m = $("al-modal"); if (!m) return;
+  m.hidden = false; $("al-nota").textContent = ""; $("al-ok").disabled = false;
+  const inp = $("al-in");
+  inp.value = ""; inp.disabled = false; $("al-prev").textContent = nombreCompleto(usuarioActual);
+  try {
+    const r = await conTimeout(Promise.resolve(supabase.rpc("mi_alias")), 6000);
+    const d = r && r.data;
+    if (d) {
+      if (d.alias) inp.value = d.alias;
+      $("al-prev").textContent = d.nombre || nombreCompleto(usuarioActual);
+      if (d.puede === false) { inp.disabled = true; $("al-ok").disabled = true; $("al-nota").textContent = "Ya cambiaste tu nombre hace poco. Podés volver a cambiarlo el " + new Date(d.proximo).toLocaleDateString("es-AR") + "."; }
+    }
+  } catch (_) {}
+  setTimeout(() => { try { inp.focus(); } catch (_) {} }, 50);
+}
+function cerrarAlias() { const m = $("al-modal"); if (m) m.hidden = true; }
+function aliasPrevia() { const v = ($("al-in")?.value || "").trim(); if ($("al-prev")) $("al-prev").textContent = v || (usuarioActual ? nombreCompleto(usuarioActual) : ""); }
+async function guardarAlias() {
+  const v = ($("al-in").value || "").trim(), nota = $("al-nota"), ok = $("al-ok");
+  if (v.length < 3) { nota.textContent = "Escribí al menos 3 letras."; return; }
+  ok.disabled = true; nota.textContent = "Guardando…";
+  try {
+    const { error } = await conTimeout(Promise.resolve(supabase.rpc("mi_alias_guardar", { p_alias: v })), 8000);
+    if (error) {
+      const t = String(error.message || "");
+      if (/ALIAS_OCUPADO/.test(t)) nota.textContent = `Ese nombre ya lo usa otra persona. Probá con «${v.slice(0, 16)} ${Math.floor(Math.random() * 90 + 10)}».`;
+      else if (/ALIAS_INVALIDO/.test(t)) nota.textContent = "Usá de 3 a 20 letras o números (puede tener espacios, punto, guion). Sin links ni símbolos raros.";
+      else if (/ALIAS_RESERVADO/.test(t)) nota.textContent = "Ese nombre está reservado. Elegí otro.";
+      else if (/ALIAS_ESPERA/.test(t)) nota.textContent = "Ya cambiaste tu nombre hace poco. Probá más adelante.";
+      else if (/PGRST202|does not exist|42883/.test(t + (error.code || ""))) nota.textContent = "Esta función todavía no está disponible. Probá más tarde.";
+      else nota.textContent = "No pudimos guardarlo. Probá de nuevo en un momento.";
+      ok.disabled = false; return;
+    }
+    mostrarAviso("¡Listo! Ahora te ven como «" + v + "» en el Top.", "ok");
+    cerrarAlias();
+  } catch (_) { nota.textContent = "No pudimos guardarlo. Revisá tu conexión."; ok.disabled = false; }
+}
+document.addEventListener("DOMContentLoaded", () => { $("al-x")?.addEventListener("click", cerrarAlias); $("al-modal")?.addEventListener("click", (e) => { if (e.target.id === "al-modal") cerrarAlias(); }); $("al-in")?.addEventListener("input", aliasPrevia); $("al-in")?.addEventListener("keydown", (e) => { if (e.key === "Enter") guardarAlias(); }); $("al-ok")?.addEventListener("click", guardarAlias); });
+Object.assign(window, { abrirAlias });
