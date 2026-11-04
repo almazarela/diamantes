@@ -5907,7 +5907,7 @@ async function hoyDatos() {
   } catch (_) { d.err.push("stock"); }
   return d;
 }
-const hoyTotal = (d) => d.chats.length + d.ords.length + d.stock.length + d.espera.length;
+const hoyTotal = (d) => d.ords.length + d.stock.length + d.espera.length;
 async function actualizarBadgeHoy() {
   if (!esAdminActual() || !document.body.classList.contains("modo-admin") || document.hidden) return;
   const d = await hoyDatos(), b = $("hoy-n"); if (!b) return;
@@ -5965,12 +5965,86 @@ function promoTick() {
   });
 }
 setInterval(promoTick, 1000);
+// ---- Clientes registrados (hoy / total) con buscador
+let cliDatos = null, cliTs = 0, cliCargando = false, cliTab = "hoy", cliQ = "", cliN = 6;
+async function cliCargar() {
+  if (cliCargando) return; cliCargando = true;
+  try {
+    const ini = new Date(); ini.setHours(0, 0, 0, 0);
+    const [l, t, h] = await Promise.all([
+      supabase.from(CONFIG.TABLA_PERFILES).select("id,email,full_name,avatar_url,created_at").order("created_at", { ascending: false }).limit(500),
+      supabase.from(CONFIG.TABLA_PERFILES).select("id", { count: "exact", head: true }),
+      supabase.from(CONFIG.TABLA_PERFILES).select("id", { count: "exact", head: true }).gte("created_at", ini.toISOString()),
+    ]);
+    if (l.error) throw l.error;
+    cliDatos = { filas: l.data || [], total: t.count != null ? t.count : (l.data || []).length, hoy: h.count != null ? h.count : 0, ini: ini.getTime() };
+    cliTs = Date.now();
+  } catch (_) { if (!cliDatos) cliDatos = { error: true, filas: [], total: 0, hoy: 0 }; }
+  cliCargando = false;
+}
+function tarjetaClientes(abrirChat) {
+  const t = document.createElement("div"); t.className = "hoy-card info cli-card";
+  const pintar = () => {
+    const d = cliDatos; if (!d) return;
+    const hoyN = d.hoy, totN = d.total;
+    t.innerHTML = `<div class="hoy-cab"><span>👥</span><b>Clientes</b></div>
+      <div class="cli-tabs"><button type="button" data-t="hoy" class="${cliTab === "hoy" ? "on" : ""}"><strong>${hoyN}</strong><small>Registrados hoy</small></button><button type="button" data-t="total" class="${cliTab === "total" ? "on" : ""}"><strong>${totN}</strong><small>Total de clientes</small></button></div>
+      <label class="cli-bus">🔍<input type="search" class="cli-q" placeholder="Buscar por nombre o mail" autocomplete="off"></label><div class="cli-lista"></div>`;
+    const q = t.querySelector(".cli-q"); q.value = cliQ;
+    const lista = t.querySelector(".cli-lista");
+    const llenar = () => {
+      lista.replaceChildren();
+      const bus = cliQ.trim().toLowerCase();
+      let filas = d.filas.filter((f) => cliTab === "total" || new Date(f.created_at).getTime() >= d.ini);
+      if (bus) filas = filas.filter((f) => ((f.full_name || "") + " " + (f.email || "")).toLowerCase().includes(bus));
+      if (d.error) { const p = document.createElement("p"); p.className = "hoy-vacio"; p.textContent = "No se pudo leer la lista de clientes."; lista.appendChild(p); return; }
+      if (!filas.length) { const p = document.createElement("p"); p.className = "hoy-vacio"; p.textContent = bus ? "Nadie coincide con esa búsqueda." : cliTab === "hoy" ? "Hoy todavía no se registró nadie." : "Sin clientes."; lista.appendChild(p); return; }
+      filas.slice(0, cliN).forEach((f) => {
+        const b = document.createElement("button"); b.type = "button"; b.className = "cli-fila";
+        const nom = f.full_name || (f.email || "").split("@")[0] || "Cliente";
+        const av = document.createElement("span"); av.className = "cli-av"; pintarAvatarEn(av, f.avatar_url, (nom[0] || "C").toUpperCase());
+        const tx = document.createElement("span"); tx.className = "cli-tx"; tx.innerHTML = "<b></b><small></small>"; tx.firstChild.textContent = nom; tx.lastChild.textContent = f.email || "";
+        const fe = document.createElement("em"); const ms = new Date(f.created_at).getTime(); fe.textContent = ms >= d.ini ? new Date(ms).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : new Date(ms).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
+        b.append(av, tx, fe); b.title = "Abrir chat"; b.addEventListener("click", () => abrirChat(f.id)); lista.appendChild(b);
+      });
+      if (filas.length > cliN) { const m = document.createElement("button"); m.type = "button"; m.className = "cli-mas"; m.textContent = `Ver más (${filas.length - cliN})`; m.addEventListener("click", () => { cliN += 10; llenar(); }); lista.appendChild(m); }
+      else if (cliN > 6) { const m = document.createElement("button"); m.type = "button"; m.className = "cli-mas"; m.textContent = "Ver menos"; m.addEventListener("click", () => { cliN = 6; llenar(); }); lista.appendChild(m); }
+    };
+    llenar();
+    t.querySelectorAll(".cli-tabs button").forEach((b) => b.addEventListener("click", () => { cliTab = b.dataset.t; cliN = 6; pintar(); }));
+    q.addEventListener("input", () => { cliQ = q.value; cliN = 6; llenar(); });
+  };
+  if (cliDatos) pintar(); else t.innerHTML = '<div class="hoy-cab"><span>👥</span><b>Clientes</b></div><p class="hoy-vacio">Cargando…</p>';
+  if (!cliDatos || Date.now() - cliTs > 60000) cliCargar().then(() => { if (t.isConnected && document.activeElement !== t.querySelector(".cli-q")) pintar(); });
+  return t;
+}
+// ---- Reglas de nombre y foto (días entre cambios)
+function tarjetaReglasPerfil() {
+  const t = document.createElement("div"); t.className = "hoy-card info rp-card";
+  t.innerHTML = `<div class="hoy-cab"><span>⚙️</span><b>Nombre y foto de clientes</b></div>
+    <p class="hoy-mas">Cada cuántos días puede cambiar un cliente su nombre y su foto. Poné 0 para que no haya límite.</p>
+    <label class="rp-f">✏️ Cambiar nombre cada <input type="number" class="rp-in rp-a" min="0" max="365" inputmode="numeric"> días</label>
+    <label class="rp-f">📷 Cambiar foto cada <input type="number" class="rp-in rp-f2" min="0" max="365" inputmode="numeric"> días</label>
+    <button type="button" class="hoy-ir rp-g">Guardar</button>`;
+  const a = t.querySelector(".rp-a"), f = t.querySelector(".rp-f2"), g = t.querySelector(".rp-g");
+  a.value = "30"; f.value = "30";
+  Promise.resolve(supabase.rpc("perfil_reglas")).then((r) => { const d = r && r.data; if (d && document.activeElement !== a && document.activeElement !== f) { a.value = d.alias_dias; f.value = d.foto_dias; } }).catch(() => {});
+  g.addEventListener("click", async () => {
+    g.disabled = true;
+    try {
+      const { error } = await supabase.rpc("admin_perfil_reglas", { p_alias_dias: Math.max(0, parseInt(a.value, 10) || 0), p_foto_dias: Math.max(0, parseInt(f.value, 10) || 0) });
+      if (error) throw error; mostrarAviso("Guardado: nombre cada " + (parseInt(a.value, 10) || 0) + " días, foto cada " + (parseInt(f.value, 10) || 0) + " días.", "ok");
+    } catch (e) { mostrarAviso(/PGRST202|does not exist|42883/i.test(String(e.message || e.code)) ? "Falta ejecutar novedades_clientes_v32.sql en Supabase." : "No se pudo guardar.", "error"); }
+    g.disabled = false;
+  });
+  return t;
+}
 async function pintarHoy() {
   const c = $("hoy-cont"); if (!c) return;
   const mi = ++hoySeq;
   const d = await hoyDatos(); if (mi !== hoySeq || vistaAdmin !== "hoy") return;
   const b = $("hoy-n"); if (b) { const n = hoyTotal(d); b.hidden = n === 0; b.textContent = String(n); }
-  if (document.activeElement && document.activeElement.classList && (document.activeElement.classList.contains("hoy-seg-in") || document.activeElement.classList.contains("hoy-aus-in"))) return;   // no te saco del casillero mientras escribís
+  if (document.activeElement && document.activeElement.classList && (document.activeElement.classList.contains("hoy-seg-in") || document.activeElement.classList.contains("hoy-aus-in") || document.activeElement.classList.contains("cli-q") || document.activeElement.classList.contains("rp-in"))) return;   // no te saco del casillero mientras escribís
   const filasPrevias = new Map([...c.querySelectorAll(".hoy-esp-fila")].map((f) => [f.dataset.id, f]));   // se reutilizan: la barra no parpadea
   promoUltModo = d.modo;
   c.replaceChildren();
@@ -6039,6 +6113,7 @@ async function pintarHoy() {
     tarjeta("🧾", "Órdenes por atender", d.ords.length, "alto", d.ords.map((o) => [`#${o.id} · ${o.diamantes || "?"} 💎 · ID ${o.id_jugador || "-"}`, (/REVISAR A MANO/i.test(o.envio_error || "") ? "⚠ revisar a mano · " : o.estado === "error_envio" ? "no llegó a n8n · " : "") + minOrd(o), () => mostrarVistaAdmin("ordenes")]), "Todas las órdenes están al día.", ["Ir a Órdenes", () => mostrarVistaAdmin("ordenes")]),
     tarjeta("📦", "Stock de PIN bajo", d.stock.length, "aviso", d.stock.map((p) => [`Paquete ${p.nombre} 💎`, p.n === 0 ? "sin PIN" : `quedan ${p.n}`, () => mostrarVistaAdmin("stock")]), "Hay PIN suficientes en todos los paquetes.", ["Ir a Stock", () => mostrarVistaAdmin("stock")]),
   );
+  grid.append(tarjetaClientes(abrirChat), tarjetaReglasPerfil());
   const hoy = document.createElement("div"); hoy.className = "hoy-card info";
   hoy.innerHTML = `<div class="hoy-cab"><span>📈</span><b>Hoy</b></div><p class="hoy-num"></p><small class="hoy-mas">Contado sobre tus últimas 60 órdenes.</small><button type="button" class="hoy-ir">🩺 Revisar errores y cómo arreglarlos</button>`;
   hoy.querySelector(".hoy-num").textContent = `${d.hoyOk} recarga${d.hoyOk === 1 ? "" : "s"} acreditada${d.hoyOk === 1 ? "" : "s"} · ${fmtNum(d.hoyDia)} 💎`;
@@ -6373,6 +6448,8 @@ async function abrirAlias() {
       inp.value = d.alias || String(d.nombre || "").slice(0, 20);
       aliasFotoPintar(d.avatar || "");
       $("al-prev").textContent = d.nombre || nombreCompleto(usuarioActual);
+      if (d.puede_foto === false) { const bf = $("al-foto-b"); if (bf) { bf.disabled = true; bf.title = "Podés cambiarla el " + new Date(d.proximo_foto).toLocaleDateString("es-AR"); } $("al-foto-n").textContent = "Podés cambiar tu foto el " + new Date(d.proximo_foto).toLocaleDateString("es-AR") + "."; }
+      else { const bf = $("al-foto-b"); if (bf) bf.disabled = false; $("al-foto-n").textContent = ""; }
       if (d.puede === false) { inp.disabled = true; $("al-ok").disabled = true; $("al-nota").textContent = "Ya cambiaste tu nombre hace poco. Podés volver a cambiarlo el " + new Date(d.proximo).toLocaleDateString("es-AR") + "."; }
     }
   } catch (_) {}
@@ -6460,7 +6537,8 @@ async function subirFotoPerfil(file) {
     aplicarFotoPropia(pub); nota.textContent = ""; mostrarAviso("¡Listo! Ya tenés tu foto.", "ok");
   } catch (e) {
     const t = String((e && e.message) || "") + String((e && e.code) || "");
-    nota.textContent = /AVATAR_SIN_COMPRA/.test(t) ? "La foto propia se habilita con tu primera recarga acreditada. Mientras tanto se usa la de tu cuenta de Google."
+    nota.textContent = /AVATAR_ESPERA/.test(t) ? "Ya cambiaste tu foto hace poco. Podés volver a cambiarla más adelante."
+      : /AVATAR_SIN_COMPRA/.test(t) ? "La foto propia se habilita con tu primera recarga acreditada. Mientras tanto se usa la de tu cuenta de Google."
       : /Bucket not found|PGRST202|42883/i.test(t) ? "Esta función todavía no está disponible. Probá más tarde."
       : "No pudimos subir la foto. Probá con otra imagen.";
   }
