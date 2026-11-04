@@ -6035,7 +6035,17 @@ function tarjetaLimitesPin() {
     t.innerHTML = `<div class="hoy-cab"><span>📦</span><b>Límites de PINs</b></div>
       <p class="hoy-mas">Elegí cuál querés ajustar.</p>
       <div class="lp-btns"><button type="button" data-m="alarma" class="${modo === "alarma" ? "on" : ""}"><strong>🚨 Alarma urgente</strong><small>Avisa al celular y por mail cuando quedan ${l.alarma} o menos</small></button>
-      <button type="button" data-m="pocos" class="${modo === "pocos" ? "on" : ""}"><strong>⚠️ «Quedan pocos»</strong><small>Marca el aviso del Estado del sistema con ${l.pocos} o menos</small></button></div><div class="lp-panel"></div>`;
+      <button type="button" data-m="pocos" class="${modo === "pocos" ? "on" : ""}"><strong>⚠️ «Quedan pocos»</strong><small>Marca el aviso del Estado del sistema con ${l.pocos} o menos</small></button></div><div class="lp-panel"></div><button type="button" class="lp-prueba">🔔 Probar alarma en mis dispositivos</button><small class="lp-pr-n hoy-mas"></small>`;
+    t.querySelector(".lp-prueba").addEventListener("click", async (ev) => {
+      const bt = ev.currentTarget, nota = t.querySelector(".lp-pr-n"); bt.disabled = true;
+      try { sfx("alarma"); if (navigator.vibrate) navigator.vibrate([600, 200, 600, 200, 900]); } catch (_) {}
+      try {
+        const { data, error } = await supabase.rpc("admin_push_prueba"); if (error) throw error;
+        const n = Number(data) || 0;
+        nota.textContent = n ? `Mandé la alarma a ${n} dispositivo${n > 1 ? "s" : ""} registrado${n > 1 ? "s" : ""}. Si cerraste la página, debería llegarte en unos segundos.` : "No tenés ningún dispositivo registrado para avisos. Abrí el menú ☰ en cada equipo y activá «Avisos».";
+      } catch (e) { nota.textContent = /PGRST202|does not exist|42883/i.test(String(e.message || e.code)) ? "Falta ejecutar novedades_clientes_v35.sql en Supabase." : "No se pudo mandar la prueba."; }
+      bt.disabled = false;
+    });
     t.querySelectorAll(".lp-btns button").forEach((b) => b.addEventListener("click", () => { modo = modo === b.dataset.m ? null : b.dataset.m; pintar(); }));
     if (!modo) return;
     const p = t.querySelector(".lp-panel");

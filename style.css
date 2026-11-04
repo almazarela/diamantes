@@ -1287,9 +1287,7 @@ body::after {
 }
 
 /* La administradora atiende desde su panel: en celular no se muestra el chat de clientes */
-@media (max-width: 800px) {
-  body.es-admin #chat-fab, body.es-admin #chat-widget { display: none !important; }
-}
+/* v47: la cuenta de administradora vuelve a ver el chat como cualquier cliente */
 
 /* ===== Logo Zarela: degradé "mágico" que fluye, brilla y titila como neón ===== */
 .zl {
@@ -2861,3 +2859,8 @@ html.z-oculto *,html.z-oculto *::before,html.z-oculto *::after{animation-play-st
 .lp-filas{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px}
 .lp-fila{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:3px 6px}
 .lp-fila input{width:54px}
+
+/* v47 · barra rosa cristal en la cuenta de administradora (distinta del rosa del logo y del azul de los clientes) */
+body.es-admin .navbar{background:radial-gradient(120% 220% at 50% -60%,rgba(255,105,180,.34),transparent 65%),radial-gradient(60% 120% at 100% 100%,rgba(168,85,247,.2),transparent 60%),linear-gradient(180deg,#3b0f33,#230a26)!important;box-shadow:0 2px 24px rgba(236,72,153,.3);border-bottom-color:#ff5fa8}
+.lp-prueba{margin-top:8px;width:100%;border:1px solid rgba(255,90,90,.6);background:rgba(255,60,80,.12);color:#ffd6d6;border-radius:10px;padding:7px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.lp-pr-n{display:block;margin-top:4px}
