@@ -898,14 +898,17 @@ async function cargarOpiniones() {
 function esAdminActual() { return !!usuarioActual && (usuarioActual.email || "").toLowerCase() === CONFIG.ADMIN_EMAIL.toLowerCase(); }
 
 let opBusca = "";
+let opPuede = null;   // null = todavía no se sabe (o falta el SQL): no se bloquea
 function renderOpiniones() {
   const lista = $("comments-list");
   if (!lista) return;
   const mia = usuarioActual ? opiniones.find((o) => o.user_id === usuarioActual.id) : null;
 
+  const bloq = !!usuarioActual && opPuede === false && !mia;   // solo opinan quienes ya recargaron
   $("op-form-login").hidden = !!usuarioActual;
-  $("op-form-campos").hidden = !usuarioActual || (!!mia && !opEditando);
-  if ($("op-form")) $("op-form").hidden = !!usuarioActual && !!mia && !opEditando;
+  if ($("op-form-bloq")) $("op-form-bloq").hidden = !bloq;
+  $("op-form-campos").hidden = !usuarioActual || bloq || (!!mia && !opEditando);
+  if ($("op-form")) $("op-form").hidden = !!usuarioActual && !bloq && !!mia && !opEditando;
   if (usuarioActual && !$("op-pick").childElementCount) pintarSelectorEstrellas();
 
   const res = $("op-resumen");
@@ -1054,6 +1057,7 @@ async function alternarReaccion(opId, emoji) {
 async function enviarRespuesta(opId, inp, btn) {
   const texto = inp.value.trim();
   if (!texto) return;
+  if (opPuede === false) return mostrarAviso("Solo pueden responder quienes ya hicieron una recarga.", "error");
   btn.disabled = true;
   const fila = { opinion_id: opId, user_id: usuarioActual.id, nombre: esAdminActual() ? "Alma Zarela" : nombreCompleto(usuarioActual), avatar_url: fotoDe(usuarioActual), es_admin: esAdminActual(), texto };
   const { data, error } = await supabase.from("opiniones_respuestas").insert(fila).select().single();
@@ -1103,6 +1107,7 @@ function actualizarContadorOp() { const t = $("op-texto"); if (t && $("op-cont")
 async function publicarOpinion() {
   if (opEnviando) return;
   if (!usuarioActual) return mostrarAviso("Iniciá sesión con Google para opinar.", "error");
+  if (opPuede === false) return mostrarAviso("Solo pueden opinar quienes ya hicieron una recarga.", "error");
   const texto = $("op-texto").value.trim();
   if (texto.length < 5) return mostrarAviso("Escribí al menos unas palabras sobre tu experiencia.", "error");
   opEnviando = true; $("op-enviar").disabled = true;
@@ -1224,8 +1229,11 @@ async function loginConGoogle() {
 }
 
 async function logoutGoogle() {
-  try { await supabase.auth.signOut(); } catch (err) { console.error(err); }
+  const yo = usuarioActual ? usuarioActual.id : null;
+  try { await supabase.auth.signOut({ scope: "local" }); } catch (err) { console.error(err); }
+  try { if (yo) cuentaOlvidar(yo); } catch (_) {}
   renderSesion(null);
+  try { pintarCuentas(); } catch (_) {}
 }
 
 function renderSesion(user) {
@@ -1700,6 +1708,9 @@ function renderHistorialCompras() {
       n.textContent = est.nota;
       item.appendChild(n);
     }
+    const sh = document.createElement("button"); sh.type = "button"; sh.className = "hist-share"; sh.textContent = "🔗 Compartir estado";
+    sh.addEventListener("click", () => compartirEstado(o.id, sh));
+    item.appendChild(sh);
     lista.appendChild(item);
   });
 }
@@ -6544,24 +6555,16 @@ Object.assign(window, { abrirAlias });
 // =====================================================================
 // v50: aviso opcional al cliente cuando se acredita su recarga (mail O WhatsApp) + lista de WhatsApp para vos
 // =====================================================================
-let avisoSel = null;
-function avisoPintar() {
-  document.querySelectorAll("#av-modal .av-o").forEach((b) => b.classList.toggle("on", b.dataset.v === avisoSel));
-  const inp = $("av-in"), lab = $("av-lab"), ok = $("av-ok");
-  const mostrar = !!avisoSel; inp.hidden = lab.hidden = ok.hidden = !mostrar;
-  if (!mostrar) { $("av-ayuda").textContent = ""; return; }
-  if (avisoSel === "email") { lab.textContent = "Tu mail"; inp.type = "email"; inp.inputMode = "email"; inp.placeholder = "tucorreo@gmail.com"; $("av-ayuda").textContent = "Te mandamos un mail cuando se acredite."; }
-  else { lab.textContent = "Tu WhatsApp (con código de país)"; inp.type = "tel"; inp.inputMode = "tel"; inp.placeholder = "Ej: 5491112345678"; $("av-ayuda").textContent = "Te escribimos por WhatsApp cuando se acredite. Poné el código de país y el número, sin 0 ni 15."; }
-}
 async function abrirAviso() {
   if (!usuarioActual) return;
   try { if ($("sidebar-menu")?.classList.contains("open")) toggleMenu(); } catch (_) {}
   const m = $("av-modal"); if (!m) return;
-  m.hidden = false; $("av-nota").textContent = ""; avisoSel = null; $("av-in").value = ""; $("av-no").hidden = true; avisoPintar();
+  m.hidden = false; $("av-nota").textContent = ""; $("av-in").value = ""; $("av-no").hidden = true;
+  if ($("av-mail-d")) $("av-mail-d").textContent = usuarioActual.email || "tu cuenta de Google";
   try {
     const r = await conTimeout(Promise.resolve(supabase.rpc("mi_aviso")), 6000);
     const d = r && r.data;
-    if (d && d.via) { avisoSel = d.via; $("av-in").value = d.via === "whatsapp" ? "+" + d.valor : d.valor; $("av-no").hidden = false; avisoPintar(); $("av-nota").textContent = "Ya lo tenés activado."; }
+    if (d && d.via === "whatsapp" && d.valor) { $("av-in").value = "+" + d.valor; $("av-no").hidden = false; $("av-nota").textContent = "Ya lo tenés activado."; }
   } catch (_) {}
 }
 function cerrarAviso() { const m = $("av-modal"); if (m) m.hidden = true; }
@@ -6571,22 +6574,154 @@ async function guardarAviso(via, valor) {
     const { error } = await conTimeout(Promise.resolve(supabase.rpc("mi_aviso_guardar", { p_via: via, p_valor: valor })), 8000);
     if (error) {
       const t = String(error.message || "");
-      nota.textContent = /AVISO_INVALIDO/.test(t) ? (via === "email" ? "Revisá el mail: parece incompleto." : "Revisá el número: poné código de país y número, solo dígitos.") : /PGRST202|does not exist|42883/.test(t + (error.code || "")) ? "Esta función todavía no está disponible. Probá más tarde." : "No pudimos guardarlo. Probá de nuevo.";
+      nota.textContent = /AVISO_INVALIDO/.test(t) ? "Revisá el número: poné código de país y número, solo dígitos." : /PGRST202|does not exist|42883/.test(t + (error.code || "")) ? "Esta función todavía no está disponible. Probá más tarde." : "No pudimos guardarlo. Probá de nuevo.";
       return;
     }
-    nota.textContent = via ? "¡Listo! Te vamos a avisar." : "Listo, no te vamos a mandar avisos.";
-    if (!via) { avisoSel = null; $("av-in").value = ""; $("av-no").hidden = true; avisoPintar(); } else $("av-no").hidden = false;
+    if (via) { nota.textContent = "¡Listo! Además del mail, te escribimos por WhatsApp."; $("av-no").hidden = false; }
+    else { nota.textContent = "Listo, quitamos el WhatsApp. El mail sigue activo."; $("av-in").value = ""; $("av-no").hidden = true; }
   } catch (_) { nota.textContent = "No pudimos guardarlo. Probá de nuevo."; }
 }
 document.addEventListener("DOMContentLoaded", () => {
   $("av-x")?.addEventListener("click", cerrarAviso);
   $("av-modal")?.addEventListener("click", (e) => { if (e.target.id === "av-modal") cerrarAviso(); });
-  document.querySelectorAll("#av-modal .av-o").forEach((b) => b.addEventListener("click", () => { avisoSel = b.dataset.v; $("av-in").value = ""; $("av-nota").textContent = ""; avisoPintar(); setTimeout(() => $("av-in")?.focus(), 30); }));
-  $("av-ok")?.addEventListener("click", () => guardarAviso(avisoSel, ($("av-in").value || "").trim()));
-  $("av-in")?.addEventListener("keydown", (e) => { if (e.key === "Enter") guardarAviso(avisoSel, ($("av-in").value || "").trim()); });
+  $("av-ok")?.addEventListener("click", () => guardarAviso("whatsapp", ($("av-in").value || "").trim()));
+  $("av-in")?.addEventListener("keydown", (e) => { if (e.key === "Enter") guardarAviso("whatsapp", ($("av-in").value || "").trim()); });
   $("av-no")?.addEventListener("click", () => guardarAviso("ninguno", ""));
 });
 Object.assign(window, { abrirAviso });
+
+
+// =====================================================================
+// v51: cambiar de cuenta, opiniones solo para quienes recargaron, invitación a opinar, enlace de estado
+// =====================================================================
+const CUENTAS_KEY = "zarela_cuentas";
+const cuentasLeer = () => { try { const a = JSON.parse(localStorage.getItem(CUENTAS_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (_) { return []; } };
+const cuentasGuardar = (a) => { try { localStorage.setItem(CUENTAS_KEY, JSON.stringify(a.slice(0, 2))); } catch (_) {} };
+function cuentaRecordar(session) {
+  if (!session || !session.user) return;
+  const u = session.user;
+  const a = cuentasLeer().filter((x) => x.id !== u.id);
+  a.unshift({ id: u.id, email: u.email || "", nombre: nombreCompleto(u), foto: fotoDe(u) || "", at: session.access_token, rt: session.refresh_token });
+  cuentasGuardar(a);
+}
+function cuentaOlvidar(id) { cuentasGuardar(cuentasLeer().filter((x) => x.id !== id)); }
+async function cambiarCuenta(id) {
+  const c = cuentasLeer().find((x) => x.id === id); if (!c) return;
+  mostrarAviso("Cambiando de cuenta…", "ok");
+  try {
+    const { data } = await supabase.auth.getSession(); if (data && data.session) cuentaRecordar(data.session);
+    const { error } = await supabase.auth.setSession({ access_token: c.at, refresh_token: c.rt }); if (error) throw error;
+    setTimeout(() => location.reload(), 200);
+  } catch (_) { cuentaOlvidar(id); pintarCuentas(); mostrarAviso("Esa cuenta venció. Volvé a agregarla con «Agregar otra cuenta».", "error"); }
+}
+async function agregarCuenta() {
+  try {
+    const { data } = await supabase.auth.getSession(); if (data && data.session) cuentaRecordar(data.session);
+    const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname, queryParams: { prompt: "select_account" } } });
+    if (error) throw error;
+  } catch (_) { mostrarAviso("No se pudo abrir el inicio de sesión.", "error"); }
+}
+function pintarCuentas() {
+  const box = $("sb-cuentas"); if (!box) return;
+  const lista = cuentasLeer(), actual = usuarioActual ? usuarioActual.id : null;
+  const otras = lista.filter((x) => x.id !== actual);
+  if (!actual && !otras.length) { box.hidden = true; box.replaceChildren(); return; }
+  box.hidden = false; box.replaceChildren();
+  const t = document.createElement("div"); t.className = "cu-tit"; t.textContent = actual ? "Cambiar de cuenta" : "Cuentas guardadas"; box.appendChild(t);
+  const fila = (c, esActual) => {
+    const r = document.createElement("div"); r.className = "cu-fila" + (esActual ? " on" : "");
+    const av = document.createElement("span"); av.className = "cu-av"; if (c.foto) av.style.backgroundImage = `url("${String(c.foto).replace(/["\\)]/g, "")}")`; else av.textContent = (c.nombre || c.email || "?").slice(0, 1).toUpperCase();
+    const tx = document.createElement("span"); tx.className = "cu-tx"; const n = document.createElement("b"); n.textContent = c.nombre || c.email; const s = document.createElement("small"); s.textContent = esActual ? "✓ Cuenta activa" : (c.email || "Tocá para entrar");
+    tx.append(n, s); r.append(av, tx);
+    if (!esActual) {
+      r.tabIndex = 0; r.addEventListener("click", () => cambiarCuenta(c.id));
+      const q = document.createElement("button"); q.type = "button"; q.className = "cu-q"; q.title = "Quitar de este dispositivo"; q.textContent = "✕";
+      q.addEventListener("click", (e) => { e.stopPropagation(); cuentaOlvidar(c.id); pintarCuentas(); }); r.appendChild(q);
+    }
+    return r;
+  };
+  if (actual) { const yo = lista.find((x) => x.id === actual) || { nombre: nombreCompleto(usuarioActual), email: usuarioActual.email, foto: fotoDe(usuarioActual) }; box.appendChild(fila(yo, true)); }
+  otras.forEach((c) => box.appendChild(fila(c, false)));
+  if (lista.length < 2 || (!actual && otras.length < 2)) {
+    const ad = document.createElement("button"); ad.type = "button"; ad.className = "cu-add"; ad.textContent = "➕ Agregar otra cuenta"; ad.addEventListener("click", agregarCuenta); box.appendChild(ad);
+  }
+}
+supabase.auth.onAuthStateChange((_e, session) => { if (session) cuentaRecordar(session); setTimeout(pintarCuentas, 80); });
+document.addEventListener("DOMContentLoaded", () => setTimeout(pintarCuentas, 300));
+Object.assign(window, { cambiarCuenta, agregarCuenta });
+
+// ---- Opiniones: ¿ya recargó?
+async function opCargarPuede() {
+  if (!usuarioActual) { opPuede = null; return; }
+  try { const r = await conTimeout(Promise.resolve(supabase.rpc("mi_recarga_ok")), 6000); opPuede = r && !r.error ? !!r.data : null; } catch (_) { opPuede = null; }
+  try { renderOpiniones(); } catch (_) {}
+}
+supabase.auth.onAuthStateChange((_e, session) => { if (session) setTimeout(opCargarPuede, 400); else { opPuede = null; } });
+
+// ---- Invitación a opinar 2 minutos después de acreditada la recarga
+const OPINV_KEY = "zarela_opinv";
+async function opInvitar() {
+  try {
+    if (!usuarioActual || document.hidden) return;
+    if (opiniones.some((o) => o.user_id === usuarioActual.id)) return;
+    const { data } = await supabase.from("ordenes_recarga").select("id,updated_at").eq("user_id", usuarioActual.id).eq("estado", "completada").order("updated_at", { ascending: false }).limit(1);
+    const o = data && data[0]; if (!o) return;
+    const edad = Date.now() - new Date(o.updated_at).getTime(); if (edad < 120000 || edad > 86400000) return;
+    let vistos = []; try { vistos = JSON.parse(localStorage.getItem(OPINV_KEY) || "[]"); } catch (_) {}
+    if (vistos.includes(o.id)) return;
+    const el = $("op-inv"); if (!el) return; el.dataset.id = o.id; el.hidden = false;
+  } catch (_) {}
+}
+function opInvCerrar() {
+  const el = $("op-inv"); if (!el) return; const id = Number(el.dataset.id); el.hidden = true;
+  try { const v = JSON.parse(localStorage.getItem(OPINV_KEY) || "[]"); if (id && !v.includes(id)) v.push(id); localStorage.setItem(OPINV_KEY, JSON.stringify(v.slice(-30))); } catch (_) {}
+}
+document.addEventListener("DOMContentLoaded", () => {
+  $("op-inv-x")?.addEventListener("click", opInvCerrar);
+  $("op-inv-ok")?.addEventListener("click", () => {
+    opInvCerrar();
+    const f = $("op-form") || $("comments-list"); try { f.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (_) {}
+    setTimeout(() => { try { $("op-texto")?.focus(); } catch (_) {} }, 500);
+  });
+  setInterval(opInvitar, 45000); setTimeout(opInvitar, 25000);
+});
+
+// ---- Compartir el estado de un pedido (enlace público sin datos personales)
+async function compartirEstado(id, btn) {
+  const base = btn.textContent; btn.disabled = true;
+  try {
+    const { data, error } = await supabase.rpc("mi_orden_enlace", { p_id: id }); if (error || !data) throw error || new Error("sin token");
+    const url = location.origin + location.pathname + "?pedido=" + data;
+    if (navigator.share) { try { await navigator.share({ title: "Estado de mi recarga", text: "Mirá el estado de mi recarga de diamantes 💎", url }); btn.disabled = false; return; } catch (e) { if (e && e.name === "AbortError") { btn.disabled = false; return; } } }
+    try { await navigator.clipboard.writeText(url); btn.textContent = "✓ Enlace copiado"; } catch (_) { window.prompt("Copiá este enlace:", url); }
+    setTimeout(() => { btn.textContent = base; btn.disabled = false; }, 2200);
+  } catch (e) {
+    mostrarAviso(/PGRST202|does not exist|42883/i.test(String((e && (e.message || e.code)) || "")) ? "Falta ejecutar novedades_clientes_v37.sql en Supabase." : "No se pudo crear el enlace.", "error");
+    btn.disabled = false;
+  }
+}
+function pedidoPublicoIniciar() {
+  const tk = new URLSearchParams(location.search).get("pedido");
+  if (!tk || !/^[0-9a-f-]{36}$/i.test(tk)) return;
+  const m = $("pd-modal"); if (!m) return; m.hidden = false;
+  let timer = null;
+  const cerrar = () => { m.hidden = true; clearTimeout(timer); try { history.replaceState(null, "", location.pathname); } catch (_) {} };
+  $("pd-x")?.addEventListener("click", cerrar); $("pd-cta")?.addEventListener("click", (e) => { e.preventDefault(); cerrar(); });
+  m.addEventListener("click", (e) => { if (e.target.id === "pd-modal") cerrar(); });
+  const pintar = async () => {
+    let d = null;
+    try { const r = await conTimeout(Promise.resolve(supabase.rpc("estado_pedido", { p_token: tk })), 8000); d = r && r.data; } catch (_) {}
+    const est = $("pd-est"), det = $("pd-det"); if (m.hidden) return;
+    if (!d) { est.textContent = "No encontramos este pedido"; est.className = "pd-est mal"; det.textContent = "Revisá que el enlace esté completo."; return; }
+    if (d.estado === "completada") { est.textContent = "✅ Acreditada"; est.className = "pd-est ok"; det.textContent = `Los ${d.diamantes} 💎 ya llegaron. Reiniciá Free Fire y revisá tu cuenta.`; return; }
+    if (d.estado === "fallida") { est.textContent = "⚠️ No se pudo completar"; est.className = "pd-est mal"; det.textContent = "La persona que hizo el pedido puede escribirnos por el chat para resolverlo."; return; }
+    est.textContent = "⏳ En proceso"; est.className = "pd-est wait"; det.textContent = `Se está acreditando una recarga de ${d.diamantes} 💎. Suele tardar alrededor de 1 minuto. Esta pantalla se actualiza sola.`;
+    timer = setTimeout(pintar, 8000);
+  };
+  pintar();
+}
+document.addEventListener("DOMContentLoaded", pedidoPublicoIniciar);
+Object.assign(window, { compartirEstado });
 
 // Tarjeta del panel: avisos de WhatsApp para mandar con un toque
 function tarjetaAvisosWa() {

@@ -2898,3 +2898,36 @@ body.es-admin .navbar{background:radial-gradient(120% 220% at 50% -60%,rgba(255,
 .av-ayuda{opacity:.75}
 .wa-lista{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .wa-bt{width:100%}
+
+/* v51 */
+.av-mail{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;background:rgba(25,230,140,.1);border:1px solid rgba(25,230,140,.5);font-size:14px}
+.av-mail span{font-size:22px}
+.op-bloq{padding:14px;border-radius:14px;background:rgba(255,211,90,.08);border:1px solid #f3ba2f;text-align:center;font-weight:600;margin:6px 0}
+.op-bloq[hidden]{display:none}
+.op-inv{position:fixed;right:14px;bottom:14px;z-index:100001;max-width:300px;display:flex;flex-direction:column;gap:6px;padding:14px 16px;border-radius:16px;background:linear-gradient(160deg,#13204a,#0c1330);border:1px solid #7fd6ff;box-shadow:0 10px 30px rgba(0,0,0,.55);color:#fff;animation:zSube .35s ease}
+.op-inv[hidden]{display:none}
+.op-inv #op-inv-x{position:absolute;top:6px;right:8px;background:none;border:0;color:#cfe8ff;font-size:16px;cursor:pointer}
+.pd-est{font-size:24px;font-weight:800;text-align:center;padding:14px;border-radius:14px;background:#10193a}
+.pd-est.ok{color:#19e68c;border:1px solid #19e68c}.pd-est.wait{color:#ffd35a;border:1px solid #f3ba2f}.pd-est.mal{color:#ff8a8a;border:1px solid #ff5a5f}
+.pd-cta{display:block;text-align:center;text-decoration:none}
+.hist-share{margin-top:8px;border:1px solid rgba(127,214,255,.5);background:rgba(127,214,255,.1);color:#dff6ff;border-radius:10px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;width:100%}
+.sb-cuentas{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:14px;background:#10193a;border:1px solid #2b3d78}
+.sb-cuentas[hidden]{display:none}
+.cu-tit{font-size:12px;font-weight:800;color:#7fd6ff;text-transform:uppercase;letter-spacing:.5px}
+.cu-fila{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:12px;border:1px solid #2b3d78;background:#0b1230;cursor:pointer}
+.cu-fila.on{border-color:#19e68c;background:rgba(25,230,140,.1);cursor:default}
+.cu-av{width:34px;height:34px;border-radius:50%;flex:none;background:#2b3d78 center/cover;display:grid;place-items:center;font-weight:800}
+.cu-tx{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.2}
+.cu-tx b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cu-tx small{font-size:11px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cu-q{background:none;border:0;color:#9fb0d8;cursor:pointer;font-size:14px;padding:4px}
+.cu-add{padding:9px;border-radius:12px;border:1px dashed #7fd6ff;background:transparent;color:#dff6ff;font:inherit;font-weight:700;cursor:pointer}
+/* PC: diamantes de los paquetes y botones de avisos más grandes */
+@media (min-width:801px){
+  #grid-mp .diamond-box .icon,#grid-binance .diamond-box .icon{font-size:2.7rem!important}
+  .camp-bar{right:22px;bottom:12px;gap:10px}
+  .camp-bar .nh-btn{padding:10px 24px!important;font-size:15px!important;gap:8px}
+  .camp-bar .nh-btn i{font-size:17px!important}
+  .camp-bar .camp-top{padding:10px 24px;font-size:15px;gap:8px}
+  .camp-bar .camp-top i{font-size:17px}
+}
+.sb-cuentas .cu-fila{text-align:left;color:#fff}.sb-cuentas .cu-tx{align-items:flex-start}.sb-cuentas .cu-tx b{color:#fff;opacity:1}.sb-cuentas .cu-tx small{color:#cfe0ff}
