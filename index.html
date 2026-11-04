@@ -703,14 +703,14 @@
 
 
   <div class="sidebar-section" id="sidebar-historial" style="display: none;">
-  <button type="button" class="sb-accion sb-hist" onclick="abrirHistorial()">
-  <span class="sb-ico"><i class="fa-solid fa-clock-rotate-left"></i></span>
-  <span class="sb-txt"><b>Mi historial de compras</b><small>Mirá tus recargas y cómo van</small></span>
+  <button type="button" class="sb-accion sb-alias" onclick="abrirAlias()">
+  <span class="sb-ico"><i class="fa-solid fa-user-pen"></i></span>
+  <span class="sb-txt"><b>Mi nombre y foto</b><small>Cómo te ven en el Top de recargas</small></span>
   <i class="fa-solid fa-chevron-right sb-flecha"></i>
   </button>
-  <button type="button" class="sb-accion sb-hist" onclick="abrirAlias()">
-  <span class="sb-ico"><i class="fa-solid fa-pen"></i></span>
-  <span class="sb-txt"><b>Mi nombre en el Top</b><small>Elegí cómo te ven los demás</small></span>
+  <button type="button" class="sb-accion sb-hist sb-hist2" onclick="abrirHistorial()">
+  <span class="sb-ico"><i class="fa-solid fa-clock-rotate-left"></i></span>
+  <span class="sb-txt"><b>Mi historial de compras</b><small>Mirá tus recargas y cómo van</small></span>
   <i class="fa-solid fa-chevron-right sb-flecha"></i>
   </button>
   </div>
@@ -727,14 +727,15 @@
   <span class="sb-saldo-txt"><small>Binance</small><strong id="menu-wallet-balance">$0.00 USD</strong></span>
   </div>
   </div>
-  <button type="button" class="sb-conv" onclick="toggleMenu(); abrirModalConvertir()"><i class="fa-solid fa-right-left"></i> Convertir pesos a USD</button>
+  <button type="button" class="sb-conv" onclick="toggleMenu(); abrirModalConvertir()"><i class="fa-solid fa-right-left"></i> Pesos a USD</button>
   <button type="button" class="sb-cargar" onclick="toggleMenu(); abrirModalSeleccionCarga()"><i class="fa-solid fa-circle-plus"></i> Cargar saldo</button>
   </div>
 
-  <div id="sb-wa" class="sb-accion sb-wa sb-prox" role="button" aria-disabled="true" tabindex="-1">
-  <span class="sb-ico"><i class="fa-brands fa-whatsapp"></i></span>
-  <span class="sb-txt"><b>Atención por WhatsApp</b><small>Próximamente</small></span>
-  </div>
+
+  <button type="button" id="sb-tutorial" class="sb-accion sb-avisos">
+  <span class="sb-ico">🎓</span>
+  <span class="sb-txt"><b>Ver tutorial</b><small>Repasá cómo funciona la página en 30 segundos.</small></span>
+  </button>
 
   <button type="button" id="sb-avisos" class="sb-accion sb-avisos">
   <span class="sb-ico">🔔</span>
@@ -746,15 +747,16 @@
   <span class="sb-txt"><b>Sonidos de la página</b><small>Activados</small></span>
   </button>
 
-  <button type="button" id="sb-tutorial" class="sb-accion sb-avisos">
-  <span class="sb-ico">🎓</span>
-  <span class="sb-txt"><b>Ver tutorial</b><small>Repasá cómo funciona la página en 30 segundos.</small></span>
-  </button>
 
   <button type="button" id="sb-instalar" class="sb-accion sb-avisos">
   <span class="sb-ico">📲</span>
   <span class="sb-txt"><b>Descargar app</b><small>Instalala en tu celular o PC, sin ocupar casi espacio.</small></span>
   </button>
+
+  <div id="sb-wa" class="sb-accion sb-wa sb-prox" role="button" aria-disabled="true" tabindex="-1">
+  <span class="sb-ico"><i class="fa-brands fa-whatsapp"></i></span>
+  <span class="sb-txt"><b>Atención por WhatsApp</b><small>Próximamente</small></span>
+  </div>
 
   <div class="status-indicator">
   <span class="status-dot online"></span>
@@ -1126,7 +1128,7 @@
 
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="adm-top">
-  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 42</small></span>
+  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 43</small></span>
   <label class="adm-soporte" title="Lo que ven tus clientes arriba del chat"><span>Estado ante clientes:</span>
   <select id="adm-soporte" aria-label="Estado que ven los clientes"><option value="en_linea">🟢 En línea (si estoy en la página)</option><option value="desconectada">⚪ Desconectada</option><option value="oculto">🙈 No mostrar nada</option></select></label>
   <button type="button" class="adm-salir" onclick="salirModoAdmin()" aria-label="Volver al modo normal"><i class="fa-solid fa-arrow-left"></i> <span>Volver al modo normal</span></button>
@@ -1383,9 +1385,10 @@ function irAlChat(){
 </div></div>
 <div class="nh-modal" id="al-modal" hidden role="dialog" aria-modal="true" aria-label="Mi nombre en el Top">
 <div class="nh-card">
-<div class="nh-cab"><b>🏆 Tu nombre en el Top</b><button type="button" id="al-x" aria-label="Cerrar">✕</button></div>
+<div class="nh-cab"><b>🏆 Tu nombre y foto</b><button type="button" id="al-x" aria-label="Cerrar">✕</button></div>
 <div class="al-cuerpo">
 <p>Es el nombre que ve todo el mundo en el <b>Top de recargas</b> y en <b>Últimas compras</b>. Elegí el que quieras: no puede repetirse con el de otra persona.</p>
+<div class="al-foto"><span class="al-av" id="al-av"></span><div class="al-fb"><button type="button" id="al-foto-b" class="al-sec">📷 Cambiar mi foto</button><button type="button" id="al-foto-q" class="al-sec" hidden>Quitar mi foto</button></div><input type="file" id="al-file" accept="image/*" hidden></div>
 <label for="al-in">Tu nombre</label>
 <input id="al-in" type="text" maxlength="20" autocomplete="off" placeholder="Ej: tu apodo">
 <small>De 3 a 20 letras o números. Sin links.</small>

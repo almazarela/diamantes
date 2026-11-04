@@ -746,6 +746,14 @@ async function notificarChatN8n(texto, ruta, nombreArchivo) {
   }, 15000, CONFIG.WEBHOOK_EVENTOS_URL);
 }
 
+// Si soporte no está en línea (o las recargas están demoradas), el cliente recibe un aviso claro apenas manda su mensaje
+function avisoSoporteAusente() {
+  const c = $("chat-messages-container"); if (!c) return;
+  let a = $("chat-aviso-off");
+  if (soporteEstado === "en_linea") { a?.remove(); return; }
+  if (!a) { a = document.createElement("div"); a.id = "chat-aviso-off"; a.className = "chat-aviso-off"; c.after(a); }
+  a.textContent = "🌙 Alma Zarela está desconectada en este momento. Ya recibimos tu mensaje y te responde en breve, apenas vuelva. Si es por una recarga, quedate tranquilo/a: se acredita sola.";
+}
 async function enviarMensajeWebhook() {
   if (enviandoChat) return;
   const inputMensaje = $("chat-user-input");
@@ -798,6 +806,7 @@ async function enviarMensajeWebhook() {
     if (inputMensaje) inputMensaje.value = "";
     await cargarHistorialCliente(true);
     irAlFinal($("chat-messages-container"));
+    try { avisoSoporteAusente(); } catch (_) {}
     notificarChatN8n(texto, ruta, archivo ? archivo.name : "")
       .catch((err) => console.warn("No se pudo avisar a n8n:", err.message || err));
   } catch (err) {
@@ -6249,6 +6258,7 @@ function pintarSoporte(base) {
   soporteBase = base;
   const e = (servidorLento && base !== "oculto") ? "desconectada" : base;   // recargas demoradas (compu apagada): se ve "Desconectada" sola
   soporteEstado = e;
+  if (e === "en_linea") { try { $("chat-aviso-off")?.remove(); } catch (_) {} }
   const w = $("chat-widget"); if (w) w.dataset.soporte = e;
   const t = $("chat-soporte-txt"); if (t) { t.textContent = SOPORTE_TXT[e]; t.hidden = e === "oculto"; }
   const sel = $("adm-soporte"); if (sel && sel.value !== base && document.activeElement !== sel) sel.value = base;
@@ -6354,12 +6364,14 @@ async function abrirAlias() {
   m.hidden = false; $("al-nota").textContent = ""; $("al-ok").disabled = false;
   const inp = $("al-in");
   inp.value = ""; inp.disabled = false; $("al-prev").textContent = nombreCompleto(usuarioActual);
+  aliasFotoPintar((usuarioActual.user_metadata || {}).avatar_url || (usuarioActual.user_metadata || {}).picture || "");
   inp.placeholder = "Ej: " + ejemploAlias(usuarioActual);
   try {
     const r = await conTimeout(Promise.resolve(supabase.rpc("mi_alias")), 6000);
     const d = r && r.data;
     if (d) {
-      if (d.alias) inp.value = d.alias;
+      inp.value = d.alias || String(d.nombre || "").slice(0, 20);
+      aliasFotoPintar(d.avatar || "");
       $("al-prev").textContent = d.nombre || nombreCompleto(usuarioActual);
       if (d.puede === false) { inp.disabled = true; $("al-ok").disabled = true; $("al-nota").textContent = "Ya cambiaste tu nombre hace poco. Podés volver a cambiarlo el " + new Date(d.proximo).toLocaleDateString("es-AR") + "."; }
     }
@@ -6390,3 +6402,78 @@ async function guardarAlias() {
 }
 document.addEventListener("DOMContentLoaded", () => { $("al-x")?.addEventListener("click", cerrarAlias); $("al-modal")?.addEventListener("click", (e) => { if (e.target.id === "al-modal") cerrarAlias(); }); $("al-in")?.addEventListener("input", aliasPrevia); $("al-in")?.addEventListener("keydown", (e) => { if (e.key === "Enter") guardarAlias(); }); $("al-ok")?.addEventListener("click", guardarAlias); });
 Object.assign(window, { abrirAlias });
+
+
+// =====================================================================
+// v43: foto de perfil propia (se achica a 256 px y se sube sola)
+// =====================================================================
+const esFotoPropia = (u) => /\/storage\/v1\/object\/public\/avatares\//.test(String(u || ""));
+function pintarAvatarEn(el, url, inicial) {
+  if (!el) return;
+  el.replaceChildren();
+  if (/^https:\/\//.test(url || "")) { const im = document.createElement("img"); im.alt = ""; im.referrerPolicy = "no-referrer"; im.src = url; im.addEventListener("error", () => { im.remove(); el.textContent = inicial; }); el.appendChild(im); }
+  else el.textContent = inicial;
+}
+function aliasFotoPintar(url) {
+  const ini = (nombreCompleto(usuarioActual)[0] || "A").toUpperCase();
+  pintarAvatarEn($("al-av"), url, ini);
+  const q = $("al-foto-q"); if (q) q.hidden = !esFotoPropia(url);
+}
+function aplicarFotoPropia(url) {
+  const ini = (nombreCompleto(usuarioActual)[0] || "A").toUpperCase();
+  pintarAvatarEn($("sb-avatar"), url, ini); pintarAvatarEn($("cu-av"), url, ini); aliasFotoPintar(url);
+}
+async function cargarFotoPropia() {   // si ya subió una foto propia, se usa en vez de la de Google
+  if (!usuarioActual) return;
+  try {
+    const { data } = await conTimeout(supabase.from(CONFIG.TABLA_PERFILES).select("avatar_url").eq(CONFIG.COL_ID, usuarioActual.id).maybeSingle(), 8000);
+    if (data && esFotoPropia(data.avatar_url)) aplicarFotoPropia(data.avatar_url);
+  } catch (_) {}
+}
+setInterval(() => { if (usuarioActual && !usuarioActual._fotoOk) { usuarioActual._fotoOk = true; cargarFotoPropia(); } }, 3000);
+function achicarFoto(file) {
+  return new Promise((ok, mal) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => {
+      try {
+        const L = 256, c = document.createElement("canvas"); c.width = L; c.height = L;
+        const lado = Math.min(im.naturalWidth, im.naturalHeight), sx = (im.naturalWidth - lado) / 2, sy = (im.naturalHeight - lado) / 2;
+        c.getContext("2d").drawImage(im, sx, sy, lado, lado, 0, 0, L, L);
+        c.toBlob((b) => { URL.revokeObjectURL(url); b ? ok(b) : mal(new Error("blob")); }, "image/jpeg", 0.85);
+      } catch (e) { mal(e); }
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); mal(new Error("imagen")); };
+    im.src = url;
+  });
+}
+async function subirFotoPerfil(file) {
+  const nota = $("al-nota");
+  if (!file || !/^image\//.test(file.type)) { nota.textContent = "Elegí una imagen (JPG, PNG o WebP)."; return; }
+  nota.textContent = "Subiendo tu foto…";
+  try {
+    const blob = await achicarFoto(file), ruta = usuarioActual.id + ".jpg";
+    const { error: e1 } = await supabase.storage.from("avatares").upload(ruta, blob, { contentType: "image/jpeg", upsert: true });
+    if (e1) throw e1;
+    const pub = supabase.storage.from("avatares").getPublicUrl(ruta).data.publicUrl + "?v=" + Date.now();
+    const { error: e2 } = await supabase.rpc("mi_avatar_guardar", { p_url: pub });
+    if (e2) throw e2;
+    aplicarFotoPropia(pub); nota.textContent = ""; mostrarAviso("¡Listo! Ya tenés tu foto.", "ok");
+  } catch (e) {
+    const t = String((e && e.message) || "") + String((e && e.code) || "");
+    nota.textContent = /AVATAR_SIN_COMPRA/.test(t) ? "La foto propia se habilita con tu primera recarga acreditada. Mientras tanto se usa la de tu cuenta de Google."
+      : /Bucket not found|PGRST202|42883/i.test(t) ? "Esta función todavía no está disponible. Probá más tarde."
+      : "No pudimos subir la foto. Probá con otra imagen.";
+  }
+}
+async function quitarFotoPerfil() {
+  try {
+    const { error } = await supabase.rpc("mi_avatar_quitar"); if (error) throw error;
+    const md = usuarioActual.user_metadata || {}; aplicarFotoPropia(md.avatar_url || md.picture || "");
+    mostrarAviso("Volviste a la foto de tu cuenta de Google.", "ok");
+  } catch (_) { $("al-nota").textContent = "No pudimos quitar la foto. Probá de nuevo."; }
+}
+document.addEventListener("DOMContentLoaded", () => {
+  $("al-foto-b")?.addEventListener("click", () => $("al-file")?.click());
+  $("al-file")?.addEventListener("change", (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; subirFotoPerfil(f); });
+  $("al-foto-q")?.addEventListener("click", quitarFotoPerfil);
+});
