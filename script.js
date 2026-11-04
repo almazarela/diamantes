@@ -6174,7 +6174,7 @@ async function pintarHoy() {
   hoy.innerHTML = `<div class="hoy-cab"><span>📈</span><b>Hoy</b></div><p class="hoy-num"></p><small class="hoy-mas">Contado sobre tus últimas 60 órdenes.</small><button type="button" class="hoy-ir">🩺 Revisar errores y cómo arreglarlos</button>`;
   hoy.querySelector(".hoy-num").textContent = `${d.hoyOk} recarga${d.hoyOk === 1 ? "" : "s"} acreditada${d.hoyOk === 1 ? "" : "s"} · ${fmtNum(d.hoyDia)} 💎`;
   hoy.querySelector(".hoy-ir").addEventListener("click", () => { try { abrirSalud(); } catch (_) {} });
-  grid.append(hoy, tarjetaClientes(abrirChat, "hoy"), tarjetaClientes(abrirChat, "total"), tarjetaReglasPerfil(), tarjetaLimitesPin());
+  grid.append(hoy, tarjetaClientes(abrirChat, "hoy"), tarjetaClientes(abrirChat, "total"), tarjetaReglasPerfil(), tarjetaLimitesPin(), tarjetaAvisosWa());
   c.appendChild(grid);
   if (d.err.length) { const p = document.createElement("p"); p.className = "hoy-mas"; p.textContent = "No se pudo leer: " + d.err.join(", ") + ". Tocá 🔄 para reintentar."; c.appendChild(p); }
   if (!hoyTotal(d) && !d.err.length) { const ok = document.createElement("p"); ok.className = "hoy-todo"; ok.textContent = "✅ Todo al día. No tenés nada pendiente."; c.prepend(ok); }
@@ -6541,6 +6541,79 @@ async function guardarAlias() {
 }
 document.addEventListener("DOMContentLoaded", () => { $("al-x")?.addEventListener("click", cerrarAlias); $("al-modal")?.addEventListener("click", (e) => { if (e.target.id === "al-modal") cerrarAlias(); }); $("al-in")?.addEventListener("input", aliasPrevia); $("al-in")?.addEventListener("keydown", (e) => { if (e.key === "Enter") guardarAlias(); }); $("al-ok")?.addEventListener("click", guardarAlias); });
 Object.assign(window, { abrirAlias });
+// =====================================================================
+// v50: aviso opcional al cliente cuando se acredita su recarga (mail O WhatsApp) + lista de WhatsApp para vos
+// =====================================================================
+let avisoSel = null;
+function avisoPintar() {
+  document.querySelectorAll("#av-modal .av-o").forEach((b) => b.classList.toggle("on", b.dataset.v === avisoSel));
+  const inp = $("av-in"), lab = $("av-lab"), ok = $("av-ok");
+  const mostrar = !!avisoSel; inp.hidden = lab.hidden = ok.hidden = !mostrar;
+  if (!mostrar) { $("av-ayuda").textContent = ""; return; }
+  if (avisoSel === "email") { lab.textContent = "Tu mail"; inp.type = "email"; inp.inputMode = "email"; inp.placeholder = "tucorreo@gmail.com"; $("av-ayuda").textContent = "Te mandamos un mail cuando se acredite."; }
+  else { lab.textContent = "Tu WhatsApp (con código de país)"; inp.type = "tel"; inp.inputMode = "tel"; inp.placeholder = "Ej: 5491112345678"; $("av-ayuda").textContent = "Te escribimos por WhatsApp cuando se acredite. Poné el código de país y el número, sin 0 ni 15."; }
+}
+async function abrirAviso() {
+  if (!usuarioActual) return;
+  try { if ($("sidebar-menu")?.classList.contains("open")) toggleMenu(); } catch (_) {}
+  const m = $("av-modal"); if (!m) return;
+  m.hidden = false; $("av-nota").textContent = ""; avisoSel = null; $("av-in").value = ""; $("av-no").hidden = true; avisoPintar();
+  try {
+    const r = await conTimeout(Promise.resolve(supabase.rpc("mi_aviso")), 6000);
+    const d = r && r.data;
+    if (d && d.via) { avisoSel = d.via; $("av-in").value = d.via === "whatsapp" ? "+" + d.valor : d.valor; $("av-no").hidden = false; avisoPintar(); $("av-nota").textContent = "Ya lo tenés activado."; }
+  } catch (_) {}
+}
+function cerrarAviso() { const m = $("av-modal"); if (m) m.hidden = true; }
+async function guardarAviso(via, valor) {
+  const nota = $("av-nota"); nota.textContent = "Guardando…";
+  try {
+    const { error } = await conTimeout(Promise.resolve(supabase.rpc("mi_aviso_guardar", { p_via: via, p_valor: valor })), 8000);
+    if (error) {
+      const t = String(error.message || "");
+      nota.textContent = /AVISO_INVALIDO/.test(t) ? (via === "email" ? "Revisá el mail: parece incompleto." : "Revisá el número: poné código de país y número, solo dígitos.") : /PGRST202|does not exist|42883/.test(t + (error.code || "")) ? "Esta función todavía no está disponible. Probá más tarde." : "No pudimos guardarlo. Probá de nuevo.";
+      return;
+    }
+    nota.textContent = via ? "¡Listo! Te vamos a avisar." : "Listo, no te vamos a mandar avisos.";
+    if (!via) { avisoSel = null; $("av-in").value = ""; $("av-no").hidden = true; avisoPintar(); } else $("av-no").hidden = false;
+  } catch (_) { nota.textContent = "No pudimos guardarlo. Probá de nuevo."; }
+}
+document.addEventListener("DOMContentLoaded", () => {
+  $("av-x")?.addEventListener("click", cerrarAviso);
+  $("av-modal")?.addEventListener("click", (e) => { if (e.target.id === "av-modal") cerrarAviso(); });
+  document.querySelectorAll("#av-modal .av-o").forEach((b) => b.addEventListener("click", () => { avisoSel = b.dataset.v; $("av-in").value = ""; $("av-nota").textContent = ""; avisoPintar(); setTimeout(() => $("av-in")?.focus(), 30); }));
+  $("av-ok")?.addEventListener("click", () => guardarAviso(avisoSel, ($("av-in").value || "").trim()));
+  $("av-in")?.addEventListener("keydown", (e) => { if (e.key === "Enter") guardarAviso(avisoSel, ($("av-in").value || "").trim()); });
+  $("av-no")?.addEventListener("click", () => guardarAviso("ninguno", ""));
+});
+Object.assign(window, { abrirAviso });
+
+// Tarjeta del panel: avisos de WhatsApp para mandar con un toque
+function tarjetaAvisosWa() {
+  const t = document.createElement("div"); t.className = "hoy-card info";
+  t.innerHTML = `<div class="hoy-cab"><span>💬</span><b>Avisos por WhatsApp</b></div><p class="hoy-num wa-n">…</p><small class="hoy-mas wa-m">Clientes que pidieron que les avises por WhatsApp cuando se acredita su recarga.</small><div class="wa-lista"></div>`;
+  const lista = t.querySelector(".wa-lista");
+  const pintar = async () => {
+    try {
+      const { data, error } = await supabase.rpc("admin_avisos_wa"); if (error) throw error;
+      const f = Array.isArray(data) ? data : [];
+      t.querySelector(".wa-n").textContent = f.length ? `${f.length} por enviar` : "Ninguno pendiente";
+      lista.innerHTML = "";
+      f.forEach((x) => {
+        const b = document.createElement("button"); b.type = "button"; b.className = "hoy-ir wa-bt";
+        b.textContent = `Enviar a +${x.tel} · orden #${x.orden}`;
+        b.addEventListener("click", async () => {
+          window.open(`https://wa.me/${x.tel}?text=${encodeURIComponent(x.texto)}`, "_blank", "noopener");
+          try { await supabase.rpc("admin_aviso_wa_marcar", { p_id: x.id }); } catch (_) {}
+          pintar();
+        });
+        lista.appendChild(b);
+      });
+    } catch (e) { t.querySelector(".wa-n").textContent = "—"; t.querySelector(".wa-m").textContent = /PGRST202|does not exist|42883/i.test(String(e.message || e.code)) ? "Falta ejecutar novedades_clientes_v36.sql en Supabase." : "No se pudo leer la lista."; }
+  };
+  pintar(); return t;
+}
+
 
 
 // =====================================================================

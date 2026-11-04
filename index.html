@@ -718,6 +718,11 @@
   <span class="sb-txt"><b>Mi nombre y foto</b><small>Cómo te ven en el Top de recargas</small></span>
   <i class="fa-solid fa-chevron-right sb-flecha"></i>
   </button>
+  <button type="button" class="sb-accion sb-aviso" onclick="abrirAviso()">
+  <span class="sb-ico"><i class="fa-solid fa-bell"></i></span>
+  <span class="sb-txt"><b>Avisarme cuando se acredite</b><small>Opcional: por mail o por WhatsApp</small></span>
+  <i class="fa-solid fa-chevron-right sb-flecha"></i>
+  </button>
   <button type="button" class="sb-accion sb-hist sb-hist2" onclick="abrirHistorial()">
   <span class="sb-ico"><i class="fa-solid fa-clock-rotate-left"></i></span>
   <span class="sb-txt"><b>Mi historial de compras</b><small>Mirá tus recargas y cómo van</small></span>
@@ -1138,7 +1143,7 @@
 
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="adm-top">
-  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 49</small></span>
+  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 51</small></span>
   <label class="adm-soporte" title="Lo que ven tus clientes arriba del chat"><span>Estado ante clientes:</span>
   <select id="adm-soporte" aria-label="Estado que ven los clientes"><option value="en_linea">🟢 En línea (si estoy en la página)</option><option value="desconectada">⚪ Desconectada</option><option value="oculto">🙈 No mostrar nada</option></select></label>
   <button type="button" class="adm-salir" onclick="salirModoAdmin()" aria-label="Volver al modo normal"><i class="fa-solid fa-arrow-left"></i> <span>Volver al modo normal</span></button>
@@ -1406,6 +1411,19 @@ function irAlChat(){
 <div class="al-prev">Así te van a ver: <b id="al-prev"></b></div>
 <button type="button" id="al-ok" class="al-ok">Guardar mi nombre</button>
 <small id="al-nota" class="al-nota"></small>
+</div></div></div>
+<div class="nh-modal" id="av-modal" hidden role="dialog" aria-modal="true" aria-label="Aviso de recarga acreditada">
+<div class="nh-card">
+<div class="nh-cab"><b>🔔 Avisarme cuando se acredite</b><button type="button" id="av-x" aria-label="Cerrar">✕</button></div>
+<div class="al-cuerpo">
+<p>Cuando tu recarga se acredite te mandamos un mensaje. <b>Es opcional</b> y elegís <b>una sola</b> forma de recibirlo.</p>
+<div class="av-opc"><button type="button" class="av-o" data-v="email"><span>✉️</span><b>Mail</b></button><button type="button" class="av-o" data-v="whatsapp"><span>💬</span><b>WhatsApp</b></button></div>
+<label for="av-in" id="av-lab" hidden></label>
+<input id="av-in" type="text" maxlength="120" autocomplete="off" hidden>
+<small id="av-ayuda" class="av-ayuda"></small>
+<button type="button" id="av-ok" class="al-ok" hidden>Guardar</button>
+<button type="button" id="av-no" class="al-sec" hidden>No quiero avisos</button>
+<small id="av-nota" class="al-nota"></small>
 </div></div></div>
 </body>
 </html>

@@ -2865,20 +2865,36 @@ body.es-admin .navbar{background:radial-gradient(120% 220% at 50% -60%,rgba(255,
 .lp-prueba{margin-top:8px;width:100%;border:1px solid rgba(255,90,90,.6);background:rgba(255,60,80,.12);color:#ffd6d6;border-radius:10px;padding:7px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
 .lp-pr-n{display:block;margin-top:4px}
 
-/* v48: Mercado Pago — estilo "Aurora suave" con relieve */
-#grid-mp .grid-diamonds{gap:10px}
-#grid-mp .diamond-box{position:relative;overflow:hidden;border-radius:18px;padding:14px 10px 12px;gap:4px;
-  background:radial-gradient(120% 90% at 0 0,rgba(80,200,255,.3),transparent 60%),radial-gradient(120% 90% at 100% 100%,rgba(120,90,255,.3),transparent 60%),#0d1635;
-  border:1px solid rgba(160,205,255,.38);
-  box-shadow:0 8px 18px rgba(3,8,30,.55),0 1px 0 rgba(255,255,255,.28) inset,0 -10px 18px rgba(30,60,160,.22) inset;
-  transition:transform .18s ease,box-shadow .18s ease}
-#grid-mp .diamond-box::before{content:"";position:absolute;left:12%;right:12%;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent)}
-#grid-mp .diamond-box:hover{transform:translateY(-2px);box-shadow:0 12px 24px rgba(3,8,30,.6),0 1px 0 rgba(255,255,255,.35) inset,0 -10px 18px rgba(40,80,200,.3) inset}
-#grid-mp .diamond-box .icon{font-size:1.7rem;filter:drop-shadow(0 3px 6px rgba(80,200,255,.55))}
-#grid-mp .diamond-box h4{font-size:1rem;font-weight:800;color:#fff}
+/* v49: paquetes Mercado Pago (aurora azul) y Binance (aurora dorada) con relieve de botón */
+#grid-mp .grid-diamonds,#grid-binance .grid-diamonds{gap:12px}
+#grid-mp .diamond-box,#grid-binance .diamond-box{position:relative;overflow:hidden;border-radius:18px;padding:14px 10px 13px;gap:4px;transition:transform .18s ease,box-shadow .18s ease}
+#grid-mp .diamond-box{background:radial-gradient(120% 90% at 0 0,rgba(80,200,255,.3),transparent 60%),radial-gradient(120% 90% at 100% 100%,rgba(120,90,255,.3),transparent 60%),#0d1635;
+  border:1px solid rgba(160,205,255,.42);
+  box-shadow:0 6px 0 #070d26,0 14px 22px rgba(3,8,30,.6),0 1px 0 rgba(255,255,255,.32) inset,0 -12px 20px rgba(30,60,160,.28) inset}
+#grid-binance .diamond-box{background:radial-gradient(120% 90% at 0 0,rgba(255,210,90,.3),transparent 60%),radial-gradient(120% 90% at 100% 100%,rgba(255,140,60,.25),transparent 60%),#16120a;
+  border:1px solid rgba(255,215,120,.45);
+  box-shadow:0 6px 0 #0a0804,0 14px 22px rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.28) inset,0 -12px 20px rgba(200,130,20,.24) inset}
+#grid-mp .diamond-box::before,#grid-binance .diamond-box::before{content:"";position:absolute;left:12%;right:12%;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent)}
+#grid-mp .diamond-box:hover,#grid-binance .diamond-box:hover{transform:translateY(-3px)}
+#grid-mp .diamond-box .icon,#grid-binance .diamond-box .icon{font-size:1.75rem;filter:drop-shadow(0 0 6px #7fd6ff) drop-shadow(0 0 12px rgba(127,214,255,.45))}
+#grid-mp .diamond-box h4,#grid-binance .diamond-box h4{font-size:1rem;font-weight:800;color:#fff}
 #grid-mp .diamond-box .price{font-size:1rem;font-weight:800;color:#bfe9ff;text-shadow:0 1px 6px rgba(80,200,255,.45)}
-#grid-mp .btn-buy{width:92%;padding:9px 0;margin-top:4px;border-radius:12px;font-family:inherit;font-size:.82rem;font-weight:800;letter-spacing:.6px;text-transform:none;color:#0b1430;
-  background:linear-gradient(180deg,#ffffff,#d9e6fb);
-  box-shadow:0 4px 0 #8aa3d4,0 8px 14px rgba(0,0,0,.35),0 1px 0 #fff inset;transition:transform .12s ease,box-shadow .12s ease}
-#grid-mp .btn-buy:hover{background:linear-gradient(180deg,#ffffff,#e6f0ff);transform:translateY(-1px);box-shadow:0 5px 0 #8aa3d4,0 10px 16px rgba(0,0,0,.38),0 1px 0 #fff inset}
-#grid-mp .btn-buy:active{transform:translateY(3px);box-shadow:0 1px 0 #8aa3d4,0 3px 6px rgba(0,0,0,.35),0 1px 0 #fff inset}
+#grid-binance .diamond-box .price{font-size:1rem;font-weight:800;color:#ffe08a;text-shadow:0 1px 6px rgba(255,190,60,.4)}
+#grid-mp .btn-buy,#grid-binance .btn-buy{width:92%;padding:10px 0;margin-top:4px;border-radius:12px;font-family:inherit;font-size:.84rem;font-weight:800;letter-spacing:.6px;text-transform:none;transition:transform .12s ease,box-shadow .12s ease}
+#grid-mp .btn-buy{color:#0b1430;background:linear-gradient(180deg,#ffffff,#d6e4fb);box-shadow:0 5px 0 #7f98cc,0 10px 16px rgba(0,0,0,.4),0 1px 0 #fff inset}
+#grid-binance .btn-buy{color:#2a1c00;background:linear-gradient(180deg,#ffeeb3,#f3ba2f);box-shadow:0 5px 0 #a87a10,0 10px 16px rgba(0,0,0,.4),0 1px 0 rgba(255,255,255,.7) inset}
+#grid-mp .btn-buy:hover,#grid-binance .btn-buy:hover{transform:translateY(-1px);filter:brightness(1.05)}
+#grid-mp .btn-buy:active{transform:translateY(4px);box-shadow:0 1px 0 #7f98cc,0 3px 6px rgba(0,0,0,.35),0 1px 0 #fff inset}
+#grid-binance .btn-buy:active{transform:translateY(4px);box-shadow:0 1px 0 #a87a10,0 3px 6px rgba(0,0,0,.35),0 1px 0 rgba(255,255,255,.7) inset}
+
+/* v50: aviso de recarga acreditada */
+.sb-aviso{background:#1a2f3d;color:#fff;border-color:#4fd1ff;box-shadow:0 0 0 1px rgba(79,209,255,.25) inset}
+.sb-aviso .sb-ico{background:#4fd1ff;color:#06222e}
+.av-opc{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0}
+.av-o{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border-radius:14px;border:1.5px solid #34406b;background:#10193a;color:#fff;cursor:pointer;font-size:14px}
+.av-o span{font-size:22px}
+.av-o.on{border-color:#19e68c;background:rgba(25,230,140,.12);box-shadow:0 0 12px rgba(25,230,140,.3)}
+#av-in{width:100%;padding:11px;border-radius:12px;border:1px solid #34406b;background:#0b1230;color:#fff;font-size:15px}
+.av-ayuda{opacity:.75}
+.wa-lista{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.wa-bt{width:100%}
