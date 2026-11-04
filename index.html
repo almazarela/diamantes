@@ -587,6 +587,11 @@
   <button onclick="abrirModalConvertir()" style="width:100%; padding:11px; background:transparent; border:1px solid #4a5580; border-radius:8px; color:#cfd8f5; font-weight:700; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
   <i class="fa-solid fa-right-left"></i> Convertir mis pesos a dólares
   </button>
+  <button type="button" class="cg-tarjeta" aria-disabled="true" onclick="avisarTarjetaProximamente()">
+  <span class="cg-t-ico"><i class="fa-solid fa-credit-card"></i></span>
+  <span class="cg-t-txt"><b>Cargar con tarjeta</b><small>Se acredita solo, al instante</small></span>
+  <span class="cg-t-badge">Próximamente</span>
+  </button>
   </div>
   </div>
   </div>
@@ -710,15 +715,19 @@
   <button type="button" class="sb-cargar" onclick="toggleMenu(); abrirModalSeleccionCarga()"><i class="fa-solid fa-circle-plus"></i> Cargar saldo</button>
   </div>
 
-  <a id="sb-wa" href="https://wa.me/" target="_blank" rel="noopener" class="sb-accion sb-wa">
+  <div id="sb-wa" class="sb-accion sb-wa sb-prox" role="button" aria-disabled="true" tabindex="-1">
   <span class="sb-ico"><i class="fa-brands fa-whatsapp"></i></span>
-  <span class="sb-txt"><b>Atención por WhatsApp</b><small>Te respondemos rápido</small></span>
-  <i class="fa-solid fa-chevron-right sb-flecha"></i>
-  </a>
+  <span class="sb-txt"><b>Atención por WhatsApp</b><small>Próximamente</small></span>
+  </div>
 
   <button type="button" id="sb-avisos" class="sb-accion sb-avisos">
   <span class="sb-ico">🔔</span>
   <span class="sb-txt"><b>Avisos con sonido</b><small></small></span>
+  </button>
+
+  <button type="button" id="sb-sfx" class="sb-accion sb-avisos" aria-pressed="true">
+  <span class="sb-ico">🔊</span>
+  <span class="sb-txt"><b>Sonidos de la página</b><small>Activados</small></span>
   </button>
 
   <button type="button" id="sb-tutorial" class="sb-accion sb-avisos">
@@ -1101,7 +1110,7 @@
 
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="adm-top">
-  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 34</small></span>
+  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 35</small></span>
   <label class="adm-soporte" title="Lo que ven tus clientes arriba del chat"><span>Estado ante clientes:</span>
   <select id="adm-soporte" aria-label="Estado que ven los clientes"><option value="en_linea">🟢 En línea</option><option value="desconectada">⚪ Desconectada</option><option value="oculto">🙈 No mostrar nada</option></select></label>
   <button type="button" class="adm-salir" onclick="salirModoAdmin()" aria-label="Volver al modo normal"><i class="fa-solid fa-arrow-left"></i> <span>Volver al modo normal</span></button>

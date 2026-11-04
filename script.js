@@ -60,8 +60,9 @@ function mostrarAviso(texto, tipo = "info") {
   const div = document.createElement("div");
   div.textContent = texto;
   div.setAttribute("role", "status");
+  try { if (tipo === "ok") sfx("ok"); else if (tipo === "error") sfx("error"); } catch (_) {}
   div.style.cssText =
-    "position:fixed;left:50%;bottom:90px;transform:translateX(-50%);max-width:90%;" +
+    "animation:zToast .32s cubic-bezier(.2,1,.3,1);position:fixed;left:50%;bottom:90px;transform:translateX(-50%);max-width:90%;" +
     "background:#161822;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;" +
     "z-index:10000;box-shadow:0 4px 20px rgba(0,0,0,.6);border:1px solid " + (colores[tipo] || colores.info);
   document.body.appendChild(div);
@@ -103,6 +104,7 @@ function toggleMenu() {
   const overlay = $("menu-overlay");
   if (!menu || !overlay) return;
   const abierto = menu.classList.toggle("open");
+  try { sfx(abierto ? "abrir" : "cerrar"); } catch (_) {}
   overlay.classList.toggle("open", abierto);
   document.body.style.overflow = abierto ? "hidden" : "";
 }
@@ -110,11 +112,13 @@ function toggleMenu() {
 // ------------------------- MODALES DE SALDO --------------------------
 function mostrarModal(id, visible) {
   const el = $(id);
+  try { if (el && visible !== (el.style.display === "flex")) sfx(visible ? "abrir" : "cerrar"); } catch (_) {}
   if (el) el.style.display = visible ? "flex" : "none";
 }
 function cerrarTodosLosModales() {
   ["modal-seleccion-carga", "modal-binance", "modal-mercadopago", "modal-convertir"].forEach((id) => mostrarModal(id, false));
 }
+function avisarTarjetaProximamente() { mostrarAviso("💳 Muy pronto vas a poder cargar saldo con tarjeta, sin esperar a nadie.", "info"); }
 function abrirModalSeleccionCarga() { cerrarTodosLosModales(); mostrarModal("modal-seleccion-carga", true); }
 function cerrarModalSeleccionCarga() { mostrarModal("modal-seleccion-carga", false); }
 function abrirModalBinance() { cerrarTodosLosModales(); mostrarModal("modal-binance", true); }
@@ -1178,13 +1182,6 @@ function renderSesion(user) {
       av.appendChild(img);
     } else av.textContent = (nombre[0] || "A").toUpperCase();
   }
-  const wa = $("sb-wa");
-  if (wa) {
-    let n = String(CONFIG.WHATSAPP_NUMBER || "").replace(/\D/g, "");
-    if (n && !n.startsWith("54")) n = "549" + n;
-    wa.href = "https://wa.me/" + n + "?text=" + encodeURIComponent("¡Hola! Tengo una consulta sobre las recargas.");
-  }
-
   $("menu-wallet-id").textContent = logueado ? "#REV-" + user.id.replace(/-/g, "").slice(0, 5).toUpperCase() : "#REV-00000";
   resetSaldos();
 
@@ -1693,6 +1690,7 @@ const VISTAS_CHAT = ["clientes", "archivados", "sala1", "sala2", "sala3"];
 const VISTAS_COBRO = ["cobro", "precios", "niveles"];
 const TODAS_VISTAS = ["hoy", ...VISTAS_CHAT, "ordenes", "stock", "todas", "jugadores", ...VISTAS_COBRO];
 function mostrarVistaAdmin(vista) {
+  try { if (vista !== vistaAdmin) sfx("tap"); } catch (_) {}
   if (!TODAS_VISTAS.includes(vista)) vista = "clientes";
   if (vista !== "hoy" && promoModo) promoApagarAuto();   // saliste de Pendientes: nada queda esperando
   const esCobro = VISTAS_COBRO.includes(vista), esChat = VISTAS_CHAT.includes(vista);
@@ -3867,8 +3865,8 @@ function pintarUltimas(nueva) {
   if (!ultimasDatos.length) return;
   const compacto = !!sl && sl.clientWidth > 0 && sl.clientWidth < 470;   // celular: 3 columnas x 5, solo el nombre de pila
   ultimasCompacto = compacto;
-  const lista = ultimasDatos.slice(0, compacto ? 15 : 30);
-  const por = Math.min(compacto ? 5 : 10, Math.ceil(lista.length / 3));   // columnas parejas aunque haya pocas compras
+  const lista = ultimasDatos.slice(0, compacto ? 15 : 18);
+  const por = Math.min(compacto ? 5 : 6, Math.ceil(lista.length / 3));   // columnas parejas aunque haya pocas compras
   cont.classList.toggle("ul-compacto", compacto);
   const extra = Math.round((Date.now() - ultimasT0) / 1000);
   const colores = [["#ff7a18", "#ffd23f"], ["#2979ff", "#00e5ff"], ["#b266ff", "#ff4fd8"], ["#19e68c", "#9dff6a"], ["#ff2d55", "#ff8a5c"]];
@@ -6121,3 +6119,50 @@ document.addEventListener("change", async (ev) => {
 });
 setTimeout(() => { soporteConectar(); leerSoporte(); }, 2500);
 setInterval(leerSoporte, 30000);
+
+
+// =====================================================================
+// v35: sonidos suaves (sintetizados, sin archivos) con botón para silenciar
+// =====================================================================
+let sfxCtx = null, sfxUlt = 0;
+const sfxActivo = () => { try { return localStorage.getItem("zarela_sfx") !== "0"; } catch (_) { return true; } };
+function sfxTono(c, t0, f1, f2, dur, vol, tipo = "sine") {
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = tipo; o.frequency.setValueAtTime(f1, t0); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+}
+function sfx(nombre) {
+  if (!sfxActivo()) return;
+  const ahora = Date.now(); if (nombre === "tap" && ahora - sfxUlt < 70) return; sfxUlt = ahora;   // el toque nunca pisa a otro sonido
+  try {
+    const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+    sfxCtx = sfxCtx || new C(); if (sfxCtx.state === "suspended") sfxCtx.resume();
+    const c = sfxCtx, t = c.currentTime + 0.005;
+    if (nombre === "abrir") { sfxTono(c, t, 440, 660, 0.12, 0.05); sfxTono(c, t + 0.07, 660, 880, 0.14, 0.04); }
+    else if (nombre === "cerrar") { sfxTono(c, t, 660, 400, 0.12, 0.045); }
+    else if (nombre === "ok") { sfxTono(c, t, 523, null, 0.1, 0.05); sfxTono(c, t + 0.08, 659, null, 0.1, 0.05); sfxTono(c, t + 0.16, 784, null, 0.18, 0.05); }
+    else if (nombre === "error") { sfxTono(c, t, 220, 160, 0.2, 0.05, "triangle"); }
+    else { sfxTono(c, t, 900, 700, 0.045, 0.03); }   // tap
+  } catch (_) {}
+}
+// toque suave en los botones principales (no en cada elemento: solo los que son botones de verdad)
+document.addEventListener("click", (e) => {
+  const b = e.target.closest && e.target.closest("button, .admin-tab, .sb-accion, a.btn-cargar-saldo, .carousel-btn");
+  if (!b || b.disabled || b.getAttribute("aria-disabled") === "true" || b.id === "sb-sfx") return;
+  const t0 = Date.now();
+  setTimeout(() => { if (sfxUlt < t0) sfx("tap"); }, 30);   // si el clic abrió algo, ya sonó su sonido y el toque se omite
+}, true);
+function pintarSfxMenu() {
+  const b = document.getElementById("sb-sfx"); if (!b) return;
+  const on = sfxActivo(); b.setAttribute("aria-pressed", String(on));
+  const ico = b.querySelector(".sb-ico"), sm = b.querySelector("small");
+  if (ico) ico.textContent = on ? "🔊" : "🔇"; if (sm) sm.textContent = on ? "Activados" : "Silenciados";
+}
+document.addEventListener("click", (e) => {
+  if (!e.target.closest || !e.target.closest("#sb-sfx")) return;
+  try { localStorage.setItem("zarela_sfx", sfxActivo() ? "0" : "1"); } catch (_) {}
+  pintarSfxMenu(); sfx("ok");
+});
+document.addEventListener("DOMContentLoaded", pintarSfxMenu);
+setTimeout(pintarSfxMenu, 1500);

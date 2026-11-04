@@ -2647,3 +2647,59 @@ body.modo-admin .op-form-campos .op-btn{padding:5px 10px;font-size:.72rem}
 @keyframes tipSalto{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-4px);opacity:1}}
 #chat-widget[data-soporte="desconectada"] .chat-status-dot{background:#8a93a6;box-shadow:none}
 #chat-widget[data-soporte="oculto"] .chat-status-dot{display:none}
+
+/* ===== v35: animaciones suaves (solo transform/opacity: no pesan) ===== */
+@keyframes zFade{from{opacity:0}to{opacity:1}}
+@keyframes zPop{from{opacity:0;transform:translateY(14px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes zDespliega{from{opacity:0;transform:translateY(-10px) scaleY(.9)}to{opacity:1;transform:none}}
+@keyframes zSube{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes zToast{from{opacity:0;transform:translate(-50%,14px) scale(.96)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@keyframes zLatido{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(78,243,141,.55)}50%{transform:scale(1.18);box-shadow:0 0 0 7px rgba(78,243,141,0)}}
+@keyframes zBrillo{0%,100%{filter:drop-shadow(0 0 0 rgba(78,243,141,0))}50%{filter:drop-shadow(0 0 6px rgba(78,243,141,.9))}}
+
+/* ventanas emergentes: el fondo aparece y la tarjeta "salta" suave */
+#modal-seleccion-carga,#modal-binance,#modal-mercadopago,#modal-convertir,.salud-modal:not([hidden]),.nh-modal:not([hidden]){animation:zFade .2s ease-out}
+#modal-seleccion-carga>div,#modal-binance>div,#modal-mercadopago>div,#modal-convertir>div,.salud-modal:not([hidden])>*,.nh-modal:not([hidden])>*{animation:zPop .3s cubic-bezier(.2,1,.3,1)}
+
+/* desplegables (como "Otros ítems" en la tienda): bajan con suavidad */
+#ids-guardados:not([hidden]),#hist-panel:not([hidden]),#como-panel:not([hidden]),#player-card:not([hidden]){transform-origin:top center;animation:zDespliega .28s cubic-bezier(.2,1,.3,1)}
+.sidebar-menu.open .sb-accion,.sidebar-menu.open .sb-wallet,.sidebar-menu.open .sb-cargar,.sidebar-menu.open .sb-conv{animation:zSube .35s cubic-bezier(.2,1,.3,1) both}
+.sidebar-menu.open .sb-accion:nth-of-type(1){animation-delay:.04s}
+.sidebar-menu.open .sb-accion:nth-of-type(2){animation-delay:.08s}
+.sidebar-menu.open .sb-accion:nth-of-type(3){animation-delay:.12s}
+.sidebar-menu.open .sb-accion:nth-of-type(4){animation-delay:.16s}
+
+/* panel de administrador: cada sección entra suave */
+[id^="admin-vista-"]:not([hidden]){animation:zSube .3s cubic-bezier(.2,1,.3,1)}
+.admin-tab{transition:transform .15s,background .2s,box-shadow .2s}
+.admin-tab:hover{transform:translateX(2px)}
+.admin-tab:active{transform:scale(.97)}
+
+/* botones principales: un "hundido" corto al tocar y un leve realce al pasar */
+:where(.sb-cargar,.sb-conv,.sb-accion,.cu-btn,.hoy-ok,.hoy-pin,.hoy-copiar){transition:transform .15s,filter .2s,box-shadow .2s}
+:where(.sb-cargar,.sb-conv,.sb-accion,.cu-btn,.hoy-ok,.hoy-pin,.hoy-copiar):active{transform:scale(.96)}
+@media (hover:hover){:where(.sb-cargar,.sb-conv,.sb-accion,.cu-btn):hover{filter:brightness(1.1)}}
+
+/* "Cargar saldo": el icono verde late para que se note */
+.btn-cargar-saldo{animation:zBrillo 1.8s ease-in-out infinite}
+.btn-cargar-saldo i{animation:zIcono 1.8s ease-in-out infinite}
+@keyframes zIcono{0%,100%{transform:scale(1)}50%{transform:scale(1.22)}}
+
+/* menú: WhatsApp en pausa */
+.sb-wa.sb-prox{background:#1b2133;color:#8b93a7;box-shadow:none;cursor:default;opacity:.85}
+.sb-wa.sb-prox .sb-ico{background:#2a3150;color:#8b93a7}
+.sb-wa.sb-prox small{color:#f3ba2f;font-weight:800;letter-spacing:.04em}
+
+/* cuarto método de carga */
+.cg-tarjeta{position:relative;width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px dashed #5b6a99;background:linear-gradient(135deg,rgba(143,125,255,.14),rgba(78,243,141,.08));color:#dfe6ff;cursor:pointer;text-align:left}
+.cg-t-ico{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:rgba(143,125,255,.25);color:#cbbcff;font-size:16px;flex:none}
+.cg-t-txt{display:flex;flex-direction:column;line-height:1.2;flex:1}
+.cg-t-txt b{font-size:13px}
+.cg-t-txt small{font-size:11px;color:#9fb0dd}
+.cg-t-badge{font-size:10px;font-weight:800;letter-spacing:.03em;color:#1a1300;background:#f3ba2f;border-radius:99px;padding:3px 8px;white-space:nowrap}
+.cg-tarjeta:active{transform:scale(.98)}
+
+@media (prefers-reduced-motion:reduce){
+  #modal-seleccion-carga,#modal-binance,#modal-mercadopago,#modal-convertir,#modal-seleccion-carga>div,#modal-binance>div,#modal-mercadopago>div,#modal-convertir>div,.salud-modal>*,.nh-modal>*,#ids-guardados,#hist-panel,#como-panel,#player-card,[id^="admin-vista-"],.sidebar-menu.open .sb-accion,.sidebar-menu.open .sb-wallet,.sidebar-menu.open .sb-cargar,.sidebar-menu.open .sb-conv,.btn-cargar-saldo,.btn-cargar-saldo i{animation:none!important}
+}
+@media (max-width:600px){.btn-cargar-saldo{animation:zLatido 1.8s ease-in-out infinite}.btn-cargar-saldo i{animation:none}}
