@@ -240,7 +240,14 @@ function seleccionarMetodo(metodo) {
 
 // ------------------------- VERIFICAR JUGADOR -------------------------
 let jugadorVerificado = null;
-let verifSinNombre = 0;   // última vez que no se pudo traer el nombre (0 = andaba bien)
+let verifSinNombre = 0;
+const CLAVE_NOMBRES = "zarela_nombres";
+function nombreGuardado(id) {
+  try { const m = JSON.parse(localStorage.getItem(CLAVE_NOMBRES) || "{}"); if (m[id]) return String(m[id]).slice(0, 32); } catch (_) {}
+  try { const x = (typeof idsGuardados !== "undefined" ? idsGuardados : []).find((y) => y.id_jugador === id && y.apodo); if (x) return String(x.apodo).slice(0, 32); } catch (_) {}
+  return "";
+}
+function recordarNombre(id, nombre) { if (!nombre) return; try { const m = JSON.parse(localStorage.getItem(CLAVE_NOMBRES) || "{}"); m[id] = nombre; const k = Object.keys(m); if (k.length > 60) delete m[k[0]]; localStorage.setItem(CLAVE_NOMBRES, JSON.stringify(m)); } catch (_) {} }   // última vez que no se pudo traer el nombre (0 = andaba bien)
 
 function estadoVerificacion(texto, clase) {
   const el = $("verify-status");
@@ -370,6 +377,14 @@ async function verificarJugador() {
     if (mi !== verifSeq) return;
     console.warn("Verificación automática no disponible:", motivo);
     verifSinNombre = Date.now();
+    const guardado = nombreGuardado(id);   // nombre que ya se había visto antes de este ID (cache o "Mis ID guardados")
+    if (guardado) {
+      pintarJugador({ nombre: guardado, avatar: "", banner: "", nivel: null, region: "" }, id, true);
+      const pm = $("player-meta"); if (pm) pm.textContent = "Nombre guardado de antes · ID " + id;
+      jugadorVerificado = { id, nombre: guardado, validado: false };
+      estadoVerificacion("ID cargado con el nombre guardado de antes. Revisá que sea correcto antes de comprar.", "ok");
+      return;
+    }
     pintarJugador({}, id, false);
     jugadorVerificado = { id, nombre: null, validado: false };
     estadoVerificacion("ID cargado. Revisá que sea correcto antes de comprar.", "ok");
@@ -394,6 +409,7 @@ async function verificarJugador() {
 
     pintarJugador(info, id, true);
     verifSinNombre = 0;
+    recordarNombre(id, info.nombre);
     jugadorVerificado = { id, nombre: info.nombre || null, validado: true };
     estadoVerificacion("ID verificado correctamente.", "ok");
   } catch (err) {
@@ -5506,7 +5522,7 @@ document.addEventListener("DOMContentLoaded", () => { pintarInstalar(); $("sb-in
 const PENDIENTES_DESARROLLO = [
   { id: "tarjeta", titulo: "Cargar saldo con tarjeta: el botón existe pero todavía no funciona", detalle: "Dice «Próximamente». Falta elegir el medio de cobro y conectarlo para que acredite solo.", pasos: ["Decidir qué proveedor de cobro con tarjeta vas a usar.", "Pasárselo a Claude para conectarlo (los datos de la tarjeta los maneja el proveedor, nunca la página)."] },
   { id: "whatsapp", titulo: "Atención por WhatsApp: falta definir el enlace", detalle: "En el menú el botón dice «Próximamente» y no hace nada.", pasos: ["Cuando tengas el número o el enlace de WhatsApp Business, pasáselo a Claude."] },
-  { id: "descuento", titulo: "Compras con descuento (Pago Store): se revisa a mano", detalle: "No hay forma automática y segura de saber qué IDs tienen el 50 %. La página recuerda los IDs que ya revisaste para no hacerlos esperar de nuevo.", pasos: ["Usá «Ya la cargué» o «Sin descuento» en cada pedido: así el ID queda registrado."] },
+  { id: "descuento", titulo: "Compras con descuento (Pago Store): se revisa a mano", detalle: "No hay forma automática y segura de saber qué IDs tienen el 50 %. La página recuerda qué ID + paquete ya resolviste para no mandártelo de nuevo.", pasos: ["Usá «Ya la cargué» o «Mandar con PIN» en cada pedido: así queda registrado."] },
   { id: "referidos", titulo: "Programa de referidos: pospuesto", detalle: "Quedó para más adelante por el tema de cuentas múltiples y montos.", pasos: ["Cuando quieras retomarlo, decímelo y lo planificamos."] },
 ];
 // Convierte el texto técnico de un error en algo entendible
@@ -5606,13 +5622,13 @@ async function saludReunir() {
   }
   // --- Piezas de Supabase nuevas que todavía no ejecutaste
   const faltaRpc = async (nombre, args) => { try { const r = await conTimeout(supabase.rpc(nombre, args), 8000); const c = String((r.error && (r.error.code || r.error.message)) || ""); return /PGRST202|42883|does not exist|Could not find/i.test(c); } catch (_) { return false; } };
-  const [f22, f23] = await Promise.all([faltaRpc("soporte_estado"), faltaRpc("admin_promo_ids_por_revisar")]);
+  const [f22, f23] = await Promise.all([faltaRpc("soporte_estado"), faltaRpc("admin_promo_resultado", { p_id: "0", p_diamantes: 0, p_resultado: "probar" })]);
   if (f22) out.push({ id: "sql-v22", nivel: "medio", icono: "🧩", titulo: "Falta ejecutar novedades_clientes_v22.sql",
     detalle: "Sin esa pieza no funcionan los segundos a elección del modo «Estoy disponible» ni el estado En línea / Desconectada.",
     pasos: ["Abrí Supabase → SQL Editor.", "Pegá el contenido del archivo novedades_clientes_v22.sql (está en Downloads\\canje-fix) y tocá Run."], ir: null });
-  if (f23) out.push({ id: "sql-v23", nivel: "medio", icono: "🧩", titulo: "Falta ejecutar novedades_clientes_v24.sql",
-    detalle: "Sin esa pieza la página no se acuerda de los IDs de Pago Store ni arma la lista de IDs por revisar.",
-    pasos: ["Abrí Supabase → SQL Editor.", "Pegá el contenido del archivo novedades_clientes_v24.sql (está en Downloads\\canje-fix) y tocá Run."], ir: null });
+  if (f23) out.push({ id: "sql-v23", nivel: "medio", icono: "🧩", titulo: "Falta ejecutar novedades_clientes_v25.sql",
+    detalle: "Sin esa pieza la página no se acuerda qué IDs y paquetes ya resolviste en Pago Store.",
+    pasos: ["Abrí Supabase → SQL Editor.", "Pegá el contenido del archivo novedades_clientes_v25.sql (está en Downloads\\canje-fix) y tocá Run."], ir: null });
   // --- El buscador de nombre / banner / icono del ID
   if (verifSinNombre) out.push({ id: "verif-nombre", nivel: "medio", icono: "🪪", titulo: "No se está pudiendo traer el nombre, banner e icono del ID",
     detalle: "El ID se carga igual y se puede comprar, pero la tarjeta muestra solo el número. Los servicios gratuitos que consultamos están caídos o sin cuentas, y Garena protege su propia consulta con una verificación para humanos.",
@@ -5786,8 +5802,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // v29: "Pendientes" del administrador + guía animada para clientes nuevos
 // =====================================================================
 async function hoyDatos() {
-  const d = { chats: [], ords: [], stock: [], espera: [], revisar: [], modo: promoModo, segundos: promoSeg, hoyOk: 0, hoyDia: 0, err: [] };
-  try { const rv = await supabase.rpc("admin_promo_ids_por_revisar"); if (!rv.error && Array.isArray(rv.data)) d.revisar = rv.data; } catch (_) {}
+  const d = { chats: [], ords: [], stock: [], espera: [], modo: promoModo, segundos: promoSeg, hoyOk: 0, hoyDia: 0, err: [] };
   { const cfg = await promoConfig(null, null, true); if (cfg) { d.modo = !!cfg.activo; d.segundos = Number(cfg.segundos) || 90; } }
   resumenAdmin.forEach((r, id) => { if (r.noLeidos > 0) d.chats.push({ id, n: r.noLeidos, ultima: r.ultima }); });
   d.chats.sort((a, b) => b.ultima - a.ultima);
@@ -5841,7 +5856,7 @@ async function promoConfig(activo = null, segundos = null, latido = false) {
   } catch (e) { if (activo !== null) throw e; return null; }
 }
 // Recuerda los IDs que ya revisaste en Pago Store (sin descuento o ya usado): sus próximos pedidos salen directo con PIN, sin espera
-function promoMarcarId(id) { try { Promise.resolve(supabase.rpc("admin_promo_marcar_id", { p_id: String(id || ""), p_estado: "sin_descuento" })).catch(() => {}); } catch (_) {} }
+function promoMarcarId(id, diamantes, resultado) { try { Promise.resolve(supabase.rpc("admin_promo_resultado", { p_id: String(id || ""), p_diamantes: Number(diamantes) || 0, p_resultado: resultado })).catch(() => {}); } catch (_) {} }
 // Si salís de Pendientes o apagás: lo que esperaba sale al instante con tu PIN
 async function promoApagarAuto() {
   if (!promoModo) return;
@@ -5897,7 +5912,7 @@ async function pintarHoy() {
   segInp.addEventListener("input", () => { const v = parseInt(segInp.value, 10); if (v > 0) promoSegBorrador = v; });
   caja.querySelector(".hoy-seg small").textContent = d.modo ? "Fijo mientras esté prendido. Para cambiarlo, apagá y volvé a prender." : "Elegilo antes de prender (15 a 600).";
   caja.querySelector(".hoy-promo-d").textContent = d.modo
-    ? `ESTÁS DISPONIBLE: cada pedido nuevo espera hasta ${fmtSeg(d.segundos)} acá (cada uno con su propio reloj). Si lo comprás vos con descuento, apretá «Ya la cargué». Si no hacés nada, sale solo con tu PIN. Si apagás o salís de Pendientes, lo que esté esperando sale con PIN al instante. La primera compra de cada ID sale siempre con PIN; solo esperan acá los IDs que ya marcaste con descuento (10 días).`
+    ? `ESTÁS DISPONIBLE: cada pedido nuevo espera hasta ${fmtSeg(d.segundos)} acá (cada uno con su propio reloj). Si lo comprás vos con descuento, apretá «Ya la cargué». Si no hacés nada, sale solo con tu PIN. Si apagás o salís de Pendientes, lo que esté esperando sale con PIN al instante. La primera compra de cada ID sale siempre con PIN. Desde la segunda te llega acá, salvo ese paquete que ya resolviste («Ya la cargué», o PIN dos veces).`
     : "Apagado: todos los pedidos salen al instante con tus PIN. Prendelo cuando estés frente a la compu y quieras aprovechar el 50 %.";
   chk.addEventListener("change", async () => {
     const quiere = chk.checked;
@@ -5921,35 +5936,16 @@ async function pintarHoy() {
       const f = document.createElement("div"); f.className = "hoy-esp-fila"; f.dataset.id = o.id;
       f.dataset.hasta = new Date(o.promo_hasta).getTime();
       f.dataset.total = Math.max(1000, new Date(o.promo_hasta).getTime() - new Date(o.created_at || Date.now()).getTime());
-      f.innerHTML = `<div class="hoy-esp-i"><div class="hoy-esp-id"><b></b><button type="button" class="hoy-copiar" title="Copiar el ID" aria-label="Copiar el ID">📋</button><span class="hoy-nom"></span></div><small></small><div class="hoy-barra"><i></i></div></div><div class="hoy-cd"></div><button type="button" class="hoy-ok">✅ Ya la cargué</button><button type="button" class="hoy-pin">❌ Sin descuento → PIN</button>`;
+      f.innerHTML = `<div class="hoy-esp-i"><div class="hoy-esp-id"><b></b><button type="button" class="hoy-copiar" title="Copiar el ID" aria-label="Copiar el ID">📋</button><span class="hoy-nom"></span></div><small></small><div class="hoy-barra"><i></i></div></div><div class="hoy-cd"></div><button type="button" class="hoy-ok">✅ Ya la cargué</button><button type="button" class="hoy-pin">🚀 Mandar con PIN</button>`;
       f.querySelector("b").textContent = `#${o.id} · ${o.diamantes || "?"} 💎 · ID ${o.id_jugador}`;
-      f.querySelector("small").textContent = `Pago Store → República Dominicana → ese ID → ${o.diamantes} → PayPal. Si no tiene descuento, tocá «Sin descuento».`;
+      f.querySelector("small").textContent = `Pago Store → República Dominicana → ese ID → ${o.diamantes} → PayPal. Si no tiene descuento o no podés, tocá «Mandar con PIN».`;
       f.querySelector(".hoy-copiar").addEventListener("click", async () => { try { await navigator.clipboard.writeText(String(o.id_jugador)); mostrarAviso("ID copiado: " + o.id_jugador, "ok"); } catch (_) { mostrarAviso("No se pudo copiar.", "error"); } });
       nombreDeId(o.id_jugador).then((n) => { const e = f.querySelector(".hoy-nom"); if (e && n) e.textContent = "· " + n; });
-      f.querySelector(".hoy-ok").addEventListener("click", async () => { const { error } = await supabase.rpc("admin_promo_cargada", { p_orden_id: o.id }); if (!error) promoMarcarId(o.id_jugador); mostrarAviso(error ? "No se pudo cerrar (¿ya salió con PIN?)." : "Listo: orden acreditada y el PIN volvió a tu stock.", error ? "error" : "ok"); pintarHoy(); });
-      f.querySelector(".hoy-pin").addEventListener("click", async () => { const { error } = await supabase.rpc("admin_promo_mandar_pin", { p_orden_id: o.id }); if (!error) promoMarcarId(o.id_jugador); mostrarAviso(error ? "No se pudo enviar." : "Enviada con PIN.", error ? "error" : "ok"); pintarHoy(); });
+      f.querySelector(".hoy-ok").addEventListener("click", async () => { const { error } = await supabase.rpc("admin_promo_cargada", { p_orden_id: o.id }); if (!error) promoMarcarId(o.id_jugador, o.diamantes, "cargado"); mostrarAviso(error ? "No se pudo cerrar (¿ya salió con PIN?)." : "Listo: orden acreditada y el PIN volvió a tu stock.", error ? "error" : "ok"); pintarHoy(); });
+      f.querySelector(".hoy-pin").addEventListener("click", async () => { const { error } = await supabase.rpc("admin_promo_mandar_pin", { p_orden_id: o.id }); if (!error) promoMarcarId(o.id_jugador, o.diamantes, "pin"); mostrarAviso(error ? "No se pudo enviar." : "Enviada con PIN.", error ? "error" : "ok"); pintarHoy(); });
       w.appendChild(f);
     });
     c.appendChild(w);
-  }
-  if (d.revisar.length) {
-    const rv = document.createElement("div"); rv.className = "hoy-revisar";
-    rv.innerHTML = `<div class="hoy-rv-t"><b>🔎 IDs por revisar en Pago Store</b><span class="hoy-rv-n"></span></div><p class="hoy-rv-d">Clientes que ya recargaron con PIN. Cuando tengas un rato, mirá en Pago Store → República Dominicana → ese ID si tiene el 50 % y marcalo. Solo los que marques con descuento van a esperar por vos en su próxima compra.</p><div class="hoy-rv-l"></div>`;
-    rv.querySelector(".hoy-rv-n").textContent = String(d.revisar.length);
-    const lista = rv.querySelector(".hoy-rv-l");
-    d.revisar.slice(0, 12).forEach((r) => {
-      const f = document.createElement("div"); f.className = "hoy-rv-f";
-      f.innerHTML = `<b></b><span class="hoy-nom"></span><button type="button" class="hoy-copiar" title="Copiar el ID" aria-label="Copiar el ID">📋</button><button type="button" class="hoy-rv-si">✅ Tiene descuento</button><button type="button" class="hoy-rv-no">❌ No tiene</button>`;
-      f.querySelector("b").textContent = "ID " + r.id_jugador;
-      f.querySelector(".hoy-copiar").addEventListener("click", async () => { try { await navigator.clipboard.writeText(String(r.id_jugador)); mostrarAviso("ID copiado: " + r.id_jugador, "ok"); } catch (_) { mostrarAviso("No se pudo copiar.", "error"); } });
-      nombreDeId(r.id_jugador).then((n) => { const e = f.querySelector(".hoy-nom"); if (e && n) e.textContent = "· " + n; });
-      const marcar = async (estado) => { const { error } = await supabase.rpc("admin_promo_marcar_id", { p_id: String(r.id_jugador), p_estado: estado }); mostrarAviso(error ? "No se pudo guardar." : estado === "con_descuento" ? "Anotado: su próxima compra te va a esperar a vos." : "Anotado: sus próximas compras salen directo con PIN.", error ? "error" : "ok"); pintarHoy(); };
-      f.querySelector(".hoy-rv-si").addEventListener("click", () => marcar("con_descuento"));
-      f.querySelector(".hoy-rv-no").addEventListener("click", () => marcar("sin_descuento"));
-      lista.appendChild(f);
-    });
-    if (d.revisar.length > 12) { const m = document.createElement("small"); m.className = "hoy-mas"; m.textContent = `Y ${d.revisar.length - 12} más (aparecen al ir marcando).`; lista.appendChild(m); }
-    c.appendChild(rv);
   }
   const grid = document.createElement("div"); grid.className = "hoy-grid";
   grid.append(
