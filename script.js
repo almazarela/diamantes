@@ -384,7 +384,10 @@ async function verificarJugador() {
     btn.disabled = false;
   });
   const previo = nombreGuardado(id);   // nombre visto antes en este dispositivo: se muestra ya mismo mientras se confirma
-  if (previo) { pintarJugador({ nombre: previo, avatar: "", banner: "", nivel: null, region: "" }, id, true); jugadorVerificado = { id, nombre: previo, validado: false }; }
+  if (previo) {   // ya lo conocemos: se muestra al instante y se busca la foto/banner en segundo plano, sin cartel de "Verificando"
+    pintarJugador({ nombre: previo, avatar: "", banner: "", nivel: null, region: "" }, id, true); jugadorVerificado = { id, nombre: previo, validado: false };
+    estadoVerificacion("ID verificado correctamente.", "ok"); btn.disabled = false;
+  }
 
   // Si no se puede validar el nombre, el ID igual queda cargado para el pedido (modo manual)
   const modoManual = async (motivo) => {
@@ -396,6 +399,7 @@ async function verificarJugador() {
       if (!jugadorVerificado || !jugadorVerificado.validado) { pintarJugador({ nombre: confirmado, avatar: "", banner: "", nivel: null, region: "" }, id, true); jugadorVerificado = { id, nombre: confirmado, validado: true }; }
       estadoVerificacion("ID verificado correctamente.", "ok"); return;
     }
+    if (jugadorVerificado && jugadorVerificado.id === id && jugadorVerificado.nombre) { estadoVerificacion("ID verificado correctamente.", "ok"); return; }
     verifSinNombre = Date.now();
     const guardado = nombreGuardado(id);   // nombre que ya se había visto antes de este ID (cache o "Mis ID guardados")
     if (guardado) {
@@ -5150,7 +5154,7 @@ function pintarBotonAvisos() {
     : perm === "denied" ? "Tu navegador los bloqueó: tocá el candado de la barra de direcciones y permití las notificaciones."
     : perm === "unsupported" ? "Este navegador no permite notificaciones. Probá con Chrome." : "Tocá para recibir un aviso cuando se acredite tu recarga o te escriba soporte.";
   const b = $("sb-avisos");
-  if (b) { b.classList.toggle("off", !act); b.querySelector("b").textContent = titulo; b.querySelector("small").textContent = sub; b.querySelector(".sb-ico").textContent = act ? "🔔" : perm === "denied" ? "🚫" : "🔕"; }
+  if (b) { b.classList.toggle("off", !act); b.querySelector("b").textContent = titulo; { const sm = b.querySelector("small"); sm.textContent = ""; if (act) { const o = document.createElement("span"); o.className = "sb-okv"; o.textContent = "✓ Activados"; sm.append(o, " · "); } sm.append(sub); } b.querySelector(".sb-ico").textContent = act ? "🔔" : perm === "denied" ? "🚫" : "🔕"; }
   const t = $("camp-top");
   if (t) { t.classList.toggle("off", !act); t.classList.toggle("bloq", perm === "denied"); t.title = titulo; t.setAttribute("aria-label", titulo); t.querySelector("i").className = "fa-solid " + (act ? "fa-bell" : perm === "denied" ? "fa-bell-slash" : "fa-bell-slash"); t.querySelector("span").textContent = act ? "Avisos" : perm === "denied" ? "Bloqueados" : "Activar"; }
 }
@@ -5655,6 +5659,7 @@ async function saludReunir() {
     pasos: ["Abrí n8n → Ejecuciones y buscá la de esa orden: si está en rojo o todavía «Running», ahí está el problema.", "Revisá que Docker Desktop esté abierto y el servicio de canje (el robot, puerto 8080) corriendo. Si lo reiniciás, la orden queda marcada «para revisar a mano».", "Abrí redeempins.com a mano: si da error (por ejemplo «520»), el sitio está caído y hay que esperar.", "Antes de reenviar, verificá en redeempins.com si el PIN ya se usó (si se usó, tocá «✅ Ya se acreditó»; si no, «🔁 Reenviar a n8n»)."],
     ir: irPanelAdmin("ordenes"), irTxt: "Ir a Órdenes" });
   // --- Stock de PINs
+  await stockLimCargar();
   try {
     const { data, error } = await conTimeout(supabase.rpc("admin_stock_pines"), 12000);
     if (error) throw error;
@@ -5662,7 +5667,7 @@ async function saludReunir() {
     const reales = (data || []).filter((x) => ETIQUETA_STOCK[x.paquete_id]);
     const lista = reales.length ? reales : (data || []);
     const nom = (x) => (ETIQUETA_STOCK[x.paquete_id] ? ETIQUETA_STOCK[x.paquete_id] + " 💎" : x.nombre || x.diamantes + " 💎");
-    const sin = lista.filter((x) => Number(x.disponibles) === 0), pocos = lista.filter((x) => Number(x.disponibles) > 0 && Number(x.disponibles) < 4);
+    const sin = lista.filter((x) => Number(x.disponibles) === 0), pocos = lista.filter((x) => Number(x.disponibles) > 0 && Number(x.disponibles) <= limPk(x.paquete_id).pocos);
     if (sin.length) out.push({ id: "stock-cero", nivel: "alto", icono: "📉", titulo: `Sin PINs para: ${sin.map(nom).join(", ")}`,
       detalle: "Si un cliente compra ese paquete, no hay PIN para entregarle.",
       pasos: ["Comprá PINs en tu proveedor para esos paquetes.", "En el panel andá a Stock, elegí el paquete y pegá los códigos (uno por línea) con «Agregar PINs».", "Cuando haya stock vuelve a quedar todo en verde."],
@@ -5903,7 +5908,7 @@ async function hoyDatos() {
     const r = await conTimeout(supabase.rpc("admin_stock_pines"), 10000);
     if (r.error) throw r.error;
     stockPaquetes = Array.isArray(r.data) ? r.data : stockPaquetes;
-    d.stock = stockPaquetes.filter((p) => ETIQUETA_STOCK[p.paquete_id] && (Number(p.disponibles) || 0) < 4).map((p) => ({ nombre: ETIQUETA_STOCK[p.paquete_id], n: Number(p.disponibles) || 0 }));
+    d.stock = stockPaquetes.filter((p) => ETIQUETA_STOCK[p.paquete_id] && (Number(p.disponibles) || 0) <= limPk(p.paquete_id).pocos).map((p) => ({ nombre: ETIQUETA_STOCK[p.paquete_id], n: Number(p.disponibles) || 0 }));
   } catch (_) { d.err.push("stock"); }
   return d;
 }
@@ -6020,6 +6025,46 @@ function tarjetaClientes(abrirChat, modo) {
   if (!cliDatos || Date.now() - cliTs > 60000) cliCargar().then(() => { if (t.isConnected && document.activeElement !== t.querySelector(".cli-q")) pintar(); });
   return t;
 }
+// ---- Límites de PINs (alarma urgente y "quedan pocos")
+function tarjetaLimitesPin() {
+  const t = document.createElement("div"); t.className = "hoy-card info lp-card";
+  const NOM = Object.entries(ETIQUETA_STOCK);
+  let modo = null;
+  const pintar = () => {
+    const l = JSON.parse(JSON.stringify(stockLim));
+    t.innerHTML = `<div class="hoy-cab"><span>📦</span><b>Límites de PINs</b></div>
+      <p class="hoy-mas">Elegí cuál querés ajustar.</p>
+      <div class="lp-btns"><button type="button" data-m="alarma" class="${modo === "alarma" ? "on" : ""}"><strong>🚨 Alarma urgente</strong><small>Avisa al celular y por mail cuando quedan ${l.alarma} o menos</small></button>
+      <button type="button" data-m="pocos" class="${modo === "pocos" ? "on" : ""}"><strong>⚠️ «Quedan pocos»</strong><small>Marca el aviso del Estado del sistema con ${l.pocos} o menos</small></button></div><div class="lp-panel"></div>`;
+    t.querySelectorAll(".lp-btns button").forEach((b) => b.addEventListener("click", () => { modo = modo === b.dataset.m ? null : b.dataset.m; pintar(); }));
+    if (!modo) return;
+    const p = t.querySelector(".lp-panel");
+    const tit = modo === "alarma" ? "Avisarme con alarma cuando queden" : "Marcar «quedan pocos» cuando queden";
+    p.innerHTML = `<label class="rp-f">${tit} <input type="number" class="rp-in lp-g" min="0" max="999" inputmode="numeric"> PIN o menos <small>(en todos los paquetes)</small></label>
+      <details class="lp-det"><summary>Ajustar por paquete (opcional)</summary><div class="lp-filas"></div></details><button type="button" class="hoy-ir lp-gu">Guardar</button>`;
+    const g = p.querySelector(".lp-g"); g.value = l[modo];
+    const filas = p.querySelector(".lp-filas");
+    NOM.forEach(([id, n]) => {
+      const f = document.createElement("label"); f.className = "lp-fila"; f.innerHTML = `<span>${n} 💎</span><input type="number" class="rp-in lp-pk" min="0" max="999" inputmode="numeric" placeholder="general">`;
+      const i = f.querySelector("input"); i.dataset.id = id; const v = l.pk && l.pk[id] && l.pk[id][modo]; if (v != null) i.value = v;
+      filas.appendChild(f);
+    });
+    p.querySelector(".lp-gu").addEventListener("click", async (ev) => {
+      const bt = ev.currentTarget; bt.disabled = true;
+      const nuevo = JSON.parse(JSON.stringify(stockLim)); nuevo.pk = nuevo.pk || {};
+      nuevo[modo] = Math.max(0, parseInt(g.value, 10) || 0);
+      p.querySelectorAll(".lp-pk").forEach((i) => { const id = i.dataset.id; nuevo.pk[id] = nuevo.pk[id] || {}; if (i.value === "") delete nuevo.pk[id][modo]; else nuevo.pk[id][modo] = Math.max(0, parseInt(i.value, 10) || 0); });
+      try {
+        const { data, error } = await supabase.rpc("admin_stock_limites", { p: nuevo }); if (error) throw error;
+        stockLim = { alarma: Number(data.alarma), pocos: Number(data.pocos), pk: data.pk || {} };
+        mostrarAviso("Límites guardados.", "ok"); modo = null; pintar(); try { stockVigilar(); } catch (_) {}
+      } catch (e) { mostrarAviso(/PGRST202|does not exist|42883/i.test(String(e.message || e.code)) ? "Falta ejecutar novedades_clientes_v34.sql en Supabase." : "No se pudo guardar.", "error"); bt.disabled = false; }
+    });
+  };
+  pintar();
+  stockLimCargar().then(() => { if (t.isConnected && !modo) pintar(); });
+  return t;
+}
 // ---- Reglas de nombre y foto (días entre cambios)
 function tarjetaReglasPerfil() {
   const t = document.createElement("div"); t.className = "hoy-card info rp-card";
@@ -6046,7 +6091,7 @@ async function pintarHoy() {
   const mi = ++hoySeq;
   const d = await hoyDatos(); if (mi !== hoySeq || vistaAdmin !== "hoy") return;
   const b = $("hoy-n"); if (b) { const n = hoyTotal(d); b.hidden = n === 0; b.textContent = String(n); }
-  if (document.activeElement && document.activeElement.classList && (document.activeElement.classList.contains("hoy-seg-in") || document.activeElement.classList.contains("hoy-aus-in") || document.activeElement.classList.contains("cli-q") || document.activeElement.classList.contains("rp-in"))) return;   // no te saco del casillero mientras escribís
+  if (document.activeElement && document.activeElement.classList && (document.activeElement.classList.contains("hoy-seg-in") || document.activeElement.classList.contains("hoy-aus-in") || document.activeElement.classList.contains("cli-q") || document.activeElement.classList.contains("rp-in") || document.activeElement.classList.contains("lp-g") || document.activeElement.classList.contains("lp-pk"))) return;   // no te saco del casillero mientras escribís
   const filasPrevias = new Map([...c.querySelectorAll(".hoy-esp-fila")].map((f) => [f.dataset.id, f]));   // se reutilizan: la barra no parpadea
   promoUltModo = d.modo;
   c.replaceChildren();
@@ -6119,7 +6164,7 @@ async function pintarHoy() {
   hoy.innerHTML = `<div class="hoy-cab"><span>📈</span><b>Hoy</b></div><p class="hoy-num"></p><small class="hoy-mas">Contado sobre tus últimas 60 órdenes.</small><button type="button" class="hoy-ir">🩺 Revisar errores y cómo arreglarlos</button>`;
   hoy.querySelector(".hoy-num").textContent = `${d.hoyOk} recarga${d.hoyOk === 1 ? "" : "s"} acreditada${d.hoyOk === 1 ? "" : "s"} · ${fmtNum(d.hoyDia)} 💎`;
   hoy.querySelector(".hoy-ir").addEventListener("click", () => { try { abrirSalud(); } catch (_) {} });
-  grid.append(hoy, tarjetaClientes(abrirChat, "hoy"), tarjetaClientes(abrirChat, "total"), tarjetaReglasPerfil());
+  grid.append(hoy, tarjetaClientes(abrirChat, "hoy"), tarjetaClientes(abrirChat, "total"), tarjetaReglasPerfil(), tarjetaLimitesPin());
   c.appendChild(grid);
   if (d.err.length) { const p = document.createElement("p"); p.className = "hoy-mas"; p.textContent = "No se pudo leer: " + d.err.join(", ") + ". Tocá 🔄 para reintentar."; c.appendChild(p); }
   if (!hoyTotal(d) && !d.err.length) { const ok = document.createElement("p"); ok.className = "hoy-todo"; ok.textContent = "✅ Todo al día. No tenés nada pendiente."; c.prepend(ok); }
@@ -6368,6 +6413,9 @@ setInterval(leerSoporte, 30000);
 // =====================================================================
 // v35: sonidos suaves (sintetizados, sin archivos) con botón para silenciar
 // =====================================================================
+let stockLim = { alarma: 1, pocos: 3, pk: {} };
+const limPk = (id) => { const o = (stockLim.pk && stockLim.pk[id]) || {}; return { alarma: o.alarma != null ? Number(o.alarma) : Number(stockLim.alarma), pocos: o.pocos != null ? Number(o.pocos) : Number(stockLim.pocos) }; };
+async function stockLimCargar() { try { const r = await conTimeout(Promise.resolve(supabase.rpc("stock_limites")), 6000); if (r && r.data && typeof r.data === "object") stockLim = { alarma: Number(r.data.alarma), pocos: Number(r.data.pocos), pk: r.data.pk || {} }; } catch (_) {} }
 let sfxCtx = null, sfxUlt = 0;
 const sfxActivo = () => { try { return localStorage.getItem("zarela_sfx") !== "0"; } catch (_) { return true; } };
 function sfxTono(c, t0, f1, f2, dur, vol, tipo = "sine") {
@@ -6403,7 +6451,7 @@ function pintarSfxMenu() {
   const b = document.getElementById("sb-sfx"); if (!b) return;
   const on = sfxActivo(); b.setAttribute("aria-pressed", String(on));
   const ico = b.querySelector(".sb-ico"), sm = b.querySelector("small");
-  if (ico) ico.textContent = on ? "🔊" : "🔇"; if (sm) sm.textContent = on ? "Activados" : "Silenciados";
+  if (ico) ico.textContent = on ? "🔊" : "🔇"; if (sm) { sm.textContent = on ? "✓ Activados" : "Silenciados"; sm.classList.toggle("sb-okv", on); }
 }
 document.addEventListener("click", (e) => {
   if (!e.target.closest || !e.target.closest("#sb-sfx")) return;
@@ -6476,6 +6524,7 @@ async function guardarAlias() {
       else nota.textContent = "No pudimos guardarlo. Probá de nuevo en un momento.";
       ok.disabled = false; return;
     }
+    aplicarNombrePropio(v);
     mostrarAviso("¡Listo! Ahora te ven como «" + v + "» en el Top.", "ok");
     cerrarAlias();
   } catch (_) { nota.textContent = "No pudimos guardarlo. Revisá tu conexión."; ok.disabled = false; }
@@ -6499,6 +6548,12 @@ function aliasFotoPintar(url) {
   pintarAvatarEn($("al-av"), url, ini);
   const q = $("al-foto-q"); if (q) q.hidden = !esFotoPropia(url);
 }
+function aplicarNombrePropio(n) {   // el nombre que eligió para el Top se ve también en el menú
+  n = String(n || "").trim(); if (!n) return;
+  const a = $("sb-nombre"); if (a) a.textContent = n;
+  const b = $("cu-nombre"); if (b) b.textContent = n;
+  const ini = (n[0] || "A").toUpperCase(), av = $("sb-avatar"); if (av && !av.querySelector("img")) av.textContent = ini;
+}
 function aplicarFotoPropia(url) {
   const ini = (nombreCompleto(usuarioActual)[0] || "A").toUpperCase();
   pintarAvatarEn($("sb-avatar"), url, ini); pintarAvatarEn($("cu-av"), url, ini); aliasFotoPintar(url);
@@ -6506,11 +6561,12 @@ function aplicarFotoPropia(url) {
 async function cargarFotoPropia() {   // si ya subió una foto propia, se usa en vez de la de Google
   if (!usuarioActual) return;
   try {
-    const { data } = await conTimeout(supabase.from(CONFIG.TABLA_PERFILES).select("avatar_url").eq(CONFIG.COL_ID, usuarioActual.id).maybeSingle(), 8000);
+    const { data } = await conTimeout(supabase.from(CONFIG.TABLA_PERFILES).select("avatar_url,full_name,alias").eq(CONFIG.COL_ID, usuarioActual.id).maybeSingle(), 8000);
     if (data && esFotoPropia(data.avatar_url)) aplicarFotoPropia(data.avatar_url);
+    if (data && data.alias) aplicarNombrePropio(data.alias);
   } catch (_) {}
 }
-setInterval(() => { if (usuarioActual && !usuarioActual._fotoOk) { usuarioActual._fotoOk = true; cargarFotoPropia(); } }, 3000);
+setInterval(() => { if (usuarioActual && !usuarioActual._fotoOk) { usuarioActual._fotoOk = true; cargarFotoPropia(); } }, 1200);
 function achicarFoto(file) {
   return new Promise((ok, mal) => {
     const url = URL.createObjectURL(file), im = new Image();
@@ -6570,7 +6626,7 @@ function avisoDeEscritorio(titulo, cuerpo, tag, urgente) {
   } catch (_) {}
 }
 function alarmaStock(lista) {
-  const txt = lista.map((p) => (Number(p.disponibles) === 0 ? "SIN PINs de " : "Queda 1 PIN de ") + ETIQUETA_STOCK[p.paquete_id] + " 💎").join(" · ");
+  const txt = lista.map((p) => (Number(p.disponibles) === 0 ? "SIN PINs de " : "Quedan " + Number(p.disponibles) + " PIN de ") + ETIQUETA_STOCK[p.paquete_id] + " 💎").join(" · ");
   try { sfx("alarma"); setTimeout(() => sfx("alarma"), 2300); } catch (_) {}
   try { if (navigator.vibrate) navigator.vibrate([600, 200, 600, 200, 600, 200, 900]); } catch (_) {}
   try { mostrarAviso("🚨 " + txt + ". Cargá stock.", "error"); } catch (_) {}
@@ -6579,6 +6635,7 @@ function alarmaStock(lista) {
 async function stockVigilar() {
   if (!esAdminActual()) return;
   try {
+    await stockLimCargar();
     const { data, error } = await conTimeout(Promise.resolve(supabase.rpc("admin_stock_pines")), 10000);
     if (error || !Array.isArray(data)) return;
     let prev = {}; try { prev = JSON.parse(localStorage.getItem("zarela_stock_prev") || "{}"); } catch (_) {}
@@ -6586,11 +6643,12 @@ async function stockVigilar() {
     data.filter((p) => ETIQUETA_STOCK[p.paquete_id]).forEach((p) => {
       const n = Number(p.disponibles) || 0; ahora[p.paquete_id] = n;
       const antes = prev[p.paquete_id];
-      if (n === 1 && antes !== 1) avisar.push(p);
+      const la = limPk(p.paquete_id).alarma;
+      if (n > 0 && n <= la && (antes === undefined || antes > la)) avisar.push(p);
       else if (n === 0 && typeof antes === "number" && antes > 0) avisar.push(p);
     });
     let ult = 0; try { ult = Number(localStorage.getItem("zarela_stock_ult") || 0); } catch (_) {}
-    if (!avisar.length && Date.now() - ult > 1800000) data.filter((p) => ETIQUETA_STOCK[p.paquete_id] && Number(p.disponibles) === 1).forEach((p) => avisar.push(p));   // recordatorio cada 30 min mientras siga en 1
+    if (!avisar.length && Date.now() - ult > 1800000) data.filter((p) => ETIQUETA_STOCK[p.paquete_id] && Number(p.disponibles) > 0 && Number(p.disponibles) <= limPk(p.paquete_id).alarma).forEach((p) => avisar.push(p));   // recordatorio cada 30 min mientras siga en 1
     try { localStorage.setItem("zarela_stock_prev", JSON.stringify(ahora)); } catch (_) {}
     if (avisar.length) { try { localStorage.setItem("zarela_stock_ult", String(Date.now())); } catch (_) {} alarmaStock(avisar); }
   } catch (_) {}

@@ -2847,3 +2847,17 @@ html.z-oculto *,html.z-oculto *::before,html.z-oculto *::after{animation-play-st
 
 /* v45 */
 .cli-num{font-size:22px;font-weight:900;color:#7fffc0;margin:4px 0 6px}
+
+/* v46 */
+.camp-top.off:not(.bloq){animation:zBrillo 1.8s ease-in-out infinite;border-color:rgba(25,230,140,.7)}
+@media (max-width:600px){.camp-top.off:not(.bloq){animation:zLatido 1.8s ease-in-out infinite}}
+.sb-okv{color:#4ef38d!important;font-weight:800}
+.lp-btns{display:grid;gap:6px;margin:6px 0}
+.lp-btns button{border:1px solid rgba(127,214,255,.35);background:rgba(255,255,255,.05);color:#dff6ff;border-radius:12px;padding:7px 9px;cursor:pointer;display:grid;gap:1px;text-align:left;font:inherit}
+.lp-btns button strong{font-size:12.5px}.lp-btns button small{font-size:10.5px;opacity:.75}
+.lp-btns button.on{background:rgba(243,186,47,.14);border-color:#f3ba2f}
+.lp-panel{margin-top:6px;display:grid;gap:6px}
+.lp-det summary{cursor:pointer;font-size:12px;font-weight:700;color:#7fd6ff}
+.lp-filas{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px}
+.lp-fila{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:3px 6px}
+.lp-fila input{width:54px}
