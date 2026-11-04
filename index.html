@@ -1126,9 +1126,9 @@
 
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="adm-top">
-  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 41</small></span>
+  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 42</small></span>
   <label class="adm-soporte" title="Lo que ven tus clientes arriba del chat"><span>Estado ante clientes:</span>
-  <select id="adm-soporte" aria-label="Estado que ven los clientes"><option value="en_linea">🟢 En línea</option><option value="desconectada">⚪ Desconectada</option><option value="oculto">🙈 No mostrar nada</option></select></label>
+  <select id="adm-soporte" aria-label="Estado que ven los clientes"><option value="en_linea">🟢 En línea (si estoy en la página)</option><option value="desconectada">⚪ Desconectada</option><option value="oculto">🙈 No mostrar nada</option></select></label>
   <button type="button" class="adm-salir" onclick="salirModoAdmin()" aria-label="Volver al modo normal"><i class="fa-solid fa-arrow-left"></i> <span>Volver al modo normal</span></button>
   </div>
 
@@ -1323,6 +1323,13 @@
   <audio id="musica-fondo" loop preload="none" data-src="musica.mp3"></audio>
   
   <div id="reproductor" class="reproductor">
+  <div class="mus-panel" id="mus-panel">
+  <div class="mus-cab"><span class="mus-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div class="mus-tt"><b id="mus-titulo">Música Zarela</b><small>Tocá el disco para pausar</small></div><em id="mus-cont"></em></div>
+  <input type="range" id="mus-pos" min="0" max="1" value="0" step="1" aria-label="Posición del tema">
+  <div class="mus-t" id="mus-t">0:00 / 0:00</div>
+  <label class="mus-volf">🔈 <input type="range" id="mus-vol" min="0" max="1" step="0.05" value="1" aria-label="Volumen"></label>
+  <div class="mus-lista" id="mus-lista" hidden></div>
+  </div>
   <button type="button" class="mus-lado" onclick="cambiarTema(-1)" aria-label="Tema anterior"><i class="fa-solid fa-backward-step"></i></button>
   <button id="btn-musica" class="btn-musica-flotante" onclick="toggleMusica()" aria-label="Reproducir Música">
   <img data-src="disco.jpg" id="imagen-disco" alt="Disco de Música" onerror="this.style.opacity='0';">
@@ -1380,7 +1387,7 @@ function irAlChat(){
 <div class="al-cuerpo">
 <p>Es el nombre que ve todo el mundo en el <b>Top de recargas</b> y en <b>Últimas compras</b>. Elegí el que quieras: no puede repetirse con el de otra persona.</p>
 <label for="al-in">Tu nombre</label>
-<input id="al-in" type="text" maxlength="20" autocomplete="off" placeholder="Ej: Julián JP">
+<input id="al-in" type="text" maxlength="20" autocomplete="off" placeholder="Ej: tu apodo">
 <small>De 3 a 20 letras o números. Sin links.</small>
 <div class="al-prev">Así te van a ver: <b id="al-prev"></b></div>
 <button type="button" id="al-ok" class="al-ok">Guardar mi nombre</button>

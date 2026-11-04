@@ -473,9 +473,21 @@ function actualizarEnlaceWhatsApp(el, paquete, precio) {
 // ------------------------- MÚSICA ------------------------------------
 // Lista de temas: musica.mp3, musica2.mp3, musica3.mp3… (hasta musica12.mp3). Solo hay que subir los archivos
 // a la carpeta de la página con esos nombres: el reproductor los encuentra solo.
-let listaMusica = null, temaActual = 0, ocultarMusicaT = null;
+let listaMusica = null, temaActual = 0, ocultarMusicaT = null, titulosMusica = {};
 async function armarListaMusica() {
   if (listaMusica) return listaMusica;
+  try {   // opcional: musica.json con los nombres → [{"archivo":"musica.mp3","titulo":"Mi tema"}]
+    const rj = await fetch("musica.json", { cache: "no-cache" });
+    if (rj.ok) {
+      const j = await rj.json();
+      if (Array.isArray(j) && j.length) {
+        const ok = (f) => /^[\w .\-()]+\.(mp3|m4a|ogg|wav)$/i.test(f);
+        const lst = j.map((x) => String((x && x.archivo) || x)).filter(ok);
+        j.forEach((x) => { if (x && x.archivo && x.titulo) titulosMusica[String(x.archivo)] = String(x.titulo).slice(0, 40); });
+        if (lst.length) { listaMusica = lst; return listaMusica; }
+      }
+    }
+  } catch (_) {}
   const candidatos = ["musica.mp3", ...Array.from({ length: 11 }, (_, i) => `musica${i + 2}.mp3`)];
   const ok = await Promise.all(candidatos.map((f) => fetch(f, { method: "HEAD" }).then((r) => r.ok, () => false)));
   listaMusica = candidatos.filter((_, i) => ok[i]);
@@ -489,14 +501,38 @@ function marcarReproduccion(sonando) {
 function mostrarControlesMusica() {
   $("reproductor")?.classList.add("abierto");
   clearTimeout(ocultarMusicaT);
-  ocultarMusicaT = setTimeout(() => $("reproductor")?.classList.remove("abierto"), 5000);
+  ocultarMusicaT = setTimeout(() => $("reproductor")?.classList.remove("abierto"), 9000);
+  armarListaMusica().then(pintarPanelMusica);
 }
+const fmtT = (x) => { x = Math.max(0, Math.floor(x || 0)); return Math.floor(x / 60) + ":" + String(x % 60).padStart(2, "0"); };
+function pintarPanelMusica() {
+  const l = $("mus-lista"); if (!l || !listaMusica) return;
+  l.replaceChildren(); l.hidden = listaMusica.length < 2;
+  listaMusica.forEach((f, i) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "mus-it" + (i === temaActual ? " on" : "");
+    b.innerHTML = "<i>" + (i === temaActual ? "♪" : String(i + 1)) + "</i><span></span>"; b.lastChild.textContent = titulosMusica[f] || ("Tema " + (i + 1));
+    b.addEventListener("click", () => { mostrarControlesMusica(); ponerTema(i); });
+    l.appendChild(b);
+  });
+  const t = $("mus-titulo"); if (t) t.textContent = titulosMusica[listaMusica[temaActual]] || ("Tema " + (temaActual + 1));
+  const c = $("mus-cont"); if (c) c.textContent = (temaActual + 1) + " / " + listaMusica.length;
+}
+(function ligarPanelMusica() {
+  const a = $("musica-fondo"), p = $("mus-panel"), pos = $("mus-pos"), vol = $("mus-vol"); if (!a || !p) return;
+  a.addEventListener("timeupdate", () => { if (!$("reproductor")?.classList.contains("abierto")) return; if (pos && document.activeElement !== pos) { pos.max = String(Math.floor(a.duration || 0) || 1); pos.value = String(Math.floor(a.currentTime || 0)); } const t = $("mus-t"); if (t) t.textContent = fmtT(a.currentTime) + " / " + fmtT(a.duration); });
+  pos?.addEventListener("input", () => { try { a.currentTime = Number(pos.value); } catch (_) {} });
+  try { const v = parseFloat(localStorage.getItem("zarela_vol")); if (v >= 0 && v <= 1) a.volume = v; if (vol) vol.value = String(a.volume); } catch (_) {}
+  vol?.addEventListener("input", () => { a.volume = Number(vol.value); try { localStorage.setItem("zarela_vol", String(a.volume)); } catch (_) {} });
+  const parar = () => clearTimeout(ocultarMusicaT), seguir = () => { clearTimeout(ocultarMusicaT); ocultarMusicaT = setTimeout(() => $("reproductor")?.classList.remove("abierto"), 6000); };
+  p.addEventListener("pointerenter", parar); p.addEventListener("pointerdown", parar); p.addEventListener("pointerleave", seguir); p.addEventListener("change", seguir);
+})();
 async function ponerTema(n, reproducir = true) {
   const audio = $("musica-fondo"); if (!audio) return;
   const lista = await armarListaMusica();
   temaActual = (n + lista.length) % lista.length;
   audio.src = lista[temaActual];
   audio.loop = lista.length === 1;
+  pintarPanelMusica();
   if (reproducir) {
     try { await audio.play(); marcarReproduccion(true); }
     catch (err) { console.warn("No se pudo reproducir la música:", err); marcarReproduccion(false); mostrarAviso("No se encontró el archivo de música.", "error"); }
@@ -3647,10 +3683,13 @@ async function comprarPaquete(ev, paqueteId, moneda = "USD") {
 
     if (estado === "completada") {
       const numCliente = await numeroDeCompra(orden.orden_id);
+      let nj = "";
+      try { const rn = await conTimeout(Promise.resolve(supabase.rpc("nombre_id", { p_id: id })), 3000); nj = rn && rn.data ? String(rn.data).slice(0, 40) : ""; } catch (_) {}
+      if (nj) recordarNombre(id, nj); else nj = nombreGuardado(id);
       mostrarDialogo({
         tono: "ok", icono: "✅", titulo: "¡Compra exitosa!",
-        texto: `Tus ${nombrePaquete} 💎 fueron acreditados a tu ID de Free Fire ${id}. Reiniciá el juego para verlos.`,
-        filas: [...(numCliente ? [["Compra", "#" + numCliente]] : []), ["Saldo " + monedaOrden, formatoMoneda(monedaOrden, saldos[monedaOrden])]],
+        texto: `Tus ${nombrePaquete} 💎 fueron acreditados a tu ID de Free Fire ${id}${nj ? " (" + nj + ")" : ""}. Reiniciá el juego para verlos.`,
+        filas: [...(numCliente ? [["Compra", "#" + numCliente]] : []), ...(nj ? [["Jugador", nj]] : []), ["Saldo " + monedaOrden, formatoMoneda(monedaOrden, saldos[monedaOrden])]],
         botones: [{ texto: "Genial", primario: true, verde: true }],
       });
     } else if (estado === "fallida") {
@@ -4208,6 +4247,7 @@ Object.assign(window, { rrEditor });
 async function actualizarEstadoServicio() {
   if (document.hidden) return;
   const ok = await servidorDisponible();
+  if (servidorLento === ok) { servidorLento = !ok; try { pintarSoporte(soporteBase); } catch (_) {} }
   const z = $("zt-estado");
   if (z) { z.classList.toggle("lento", !ok); z.querySelector("b").textContent = ok ? "Recargas activas" : "Recargas demoradas"; }
   const sb = document.querySelector(".status-indicator");
@@ -4596,6 +4636,7 @@ function pintarTopCarrusel(data) {
   const medallas = ["🥇", "🥈", "🥉", "4°", "5°"];
   const crear = (r, i) => {
     const c = document.createElement("div"); c.className = "st-item st" + i;
+    { const lv = nivelDe(r.diamantes); if (lv >= 0) c.classList.add("lv" + lv); }   // cada uno con el fondo de su nivel
     const nombre = r.nombre || "Cliente";
     let av;
     const letra = () => { const e = document.createElement("span"); e.className = "st-av"; e.style.background = `linear-gradient(135deg,${colores[i][0]},${colores[i][1]})`; e.textContent = (nombre[0] || "C").toUpperCase(); return e; };
@@ -6201,14 +6242,16 @@ const tipFin = () => { tipUlt = 0; tipEnviar(0); };
 document.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target && (e.target.id === "chat-user-input" || e.target.id === "admin-respuesta")) tipFin(); }, true);
 document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest(".btn-send, #admin-btn-responder")) tipFin(); }, true);
 
-let soporteEstado = "en_linea", soporteCanal = null;
+let soporteEstado = "en_linea", soporteCanal = null, soporteBase = "en_linea", servidorLento = false;
 const SOPORTE_TXT = { en_linea: "En línea · Soporte", desconectada: "Desconectada · Soporte", oculto: "" };
-function pintarSoporte(e) {
-  if (!Object.prototype.hasOwnProperty.call(SOPORTE_TXT, e)) e = "en_linea";
+function pintarSoporte(base) {
+  if (!Object.prototype.hasOwnProperty.call(SOPORTE_TXT, base)) base = "en_linea";
+  soporteBase = base;
+  const e = (servidorLento && base !== "oculto") ? "desconectada" : base;   // recargas demoradas (compu apagada): se ve "Desconectada" sola
   soporteEstado = e;
   const w = $("chat-widget"); if (w) w.dataset.soporte = e;
   const t = $("chat-soporte-txt"); if (t) { t.textContent = SOPORTE_TXT[e]; t.hidden = e === "oculto"; }
-  const sel = $("adm-soporte"); if (sel && sel.value !== e && document.activeElement !== sel) sel.value = e;
+  const sel = $("adm-soporte"); if (sel && sel.value !== base && document.activeElement !== sel) sel.value = base;
 }
 async function leerSoporte() { try { const { data, error } = await supabase.rpc("soporte_estado"); if (!error && data) pintarSoporte(String(data)); } catch (_) {} }
 function soporteConectar() {
@@ -6230,6 +6273,8 @@ document.addEventListener("change", async (ev) => {
     mostrarAviso(e === "en_linea" ? "Tus clientes te ven en línea." : e === "desconectada" ? "Tus clientes te ven desconectada." : "Tus clientes no ven ningún estado.", "ok");
   } catch (err) { mostrarAviso(/PGRST202|does not exist|42883/i.test(String(err.message || err.code)) ? "Falta ejecutar novedades_clientes_v22.sql en Supabase." : "No se pudo cambiar el estado.", "error"); leerSoporte(); }
 });
+async function soporteLatido() { if (!esAdminActual()) return; try { await supabase.rpc("admin_soporte_latido"); } catch (_) {} }   // "estoy en la página": sin esto, "En línea" no se muestra
+setInterval(soporteLatido, 30000); setTimeout(soporteLatido, 4000);
 setTimeout(() => { soporteConectar(); leerSoporte(); }, 2500);
 setInterval(leerSoporte, 30000);
 
@@ -6297,6 +6342,11 @@ setTimeout(pintarSfxMenu, 1500);
 // =====================================================================
 // v41: "Mi nombre en el Top" (único por persona)
 // =====================================================================
+function ejemploAlias(u) {   // ejemplo sacado del propio nombre de Google o del mail del cliente (nunca el de otra persona)
+  const m = (u && u.user_metadata) || {};
+  const tomar = (t) => { const w = String(t || "").split(/[\s._\-+0-9]+/).find((x) => /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]{3,}$/.test(x)); return w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : ""; };
+  return tomar(m.full_name || m.name) || tomar(String((u && u.email) || "").split("@")[0]) || ["Pablito 5", "Gamer 7", "Estrella 12"][Math.floor(Math.random() * 3)];
+}
 async function abrirAlias() {
   if (!usuarioActual) return;
   try { if ($("sidebar-menu")?.classList.contains("open")) toggleMenu(); } catch (_) {}
@@ -6304,6 +6354,7 @@ async function abrirAlias() {
   m.hidden = false; $("al-nota").textContent = ""; $("al-ok").disabled = false;
   const inp = $("al-in");
   inp.value = ""; inp.disabled = false; $("al-prev").textContent = nombreCompleto(usuarioActual);
+  inp.placeholder = "Ej: " + ejemploAlias(usuarioActual);
   try {
     const r = await conTimeout(Promise.resolve(supabase.rpc("mi_alias")), 6000);
     const d = r && r.data;
