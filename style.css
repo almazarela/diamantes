@@ -2762,3 +2762,13 @@ body.modo-admin .op-form-campos .op-btn{padding:5px 10px;font-size:.72rem}
 .hoy-rv-si{border-color:#19e68c;color:#9dffc9}.hoy-rv-no{border-color:#ff6b7a;color:#ffb3bb}
 .hoy-rv-si:hover,.hoy-rv-no:hover{filter:brightness(1.2)}
 .hoy-rv-f .hoy-rv-si{margin-left:auto}
+
+/* v39 · nombres de ID */
+.nom-card{grid-column:1/-1}
+.nom-fila{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;border:1px solid rgba(120,200,255,.35);background:rgba(120,200,255,.07);border-radius:12px;padding:8px 10px;margin-top:8px}
+.nom-fila.cambio{border-color:#f3ba2f;background:rgba(243,186,47,.1)}
+.nom-id{display:flex;align-items:center;gap:6px}
+.nom-nota{flex:1 1 100%;opacity:.8}
+.nom-ed{display:flex;gap:6px;flex:1 1 100%}
+.nom-in{flex:1;min-width:0;border-radius:10px;border:1px solid rgba(120,200,255,.5);background:rgba(255,255,255,.08);color:inherit;padding:7px 10px;font:inherit}
+.nom-ok{border:0;border-radius:10px;padding:7px 12px;background:#2ecc71;color:#06210f;font-weight:700;cursor:pointer;white-space:nowrap}
