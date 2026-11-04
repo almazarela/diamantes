@@ -219,16 +219,20 @@ function reiniciarAutoplay() {
 // ------------------------- MÉTODO DE PAGO ----------------------------
 function seleccionarMetodo(metodo) {
   const esMP = metodo === "mp";
+  try { const yaEra = $("card-mp")?.classList.contains("active") === esMP; if (!yaEra) sfx("abrir"); } catch (_) {}
   $("card-mp")?.classList.toggle("active", esMP);
   $("card-binance")?.classList.toggle("active", !esMP);
   const gMP = $("grid-mp");
   const gBN = $("grid-binance");
   if (gMP) gMP.style.display = esMP ? "block" : "none";
   if (gBN) gBN.style.display = esMP ? "none" : "block";
+  const g = esMP ? gMP : gBN;   // los paquetes bajan con suavidad, uno detrás de otro
+  if (g) { g.classList.remove("z-baja"); void g.offsetWidth; g.classList.add("z-baja"); }
 }
 
 // ------------------------- VERIFICAR JUGADOR -------------------------
 let jugadorVerificado = null;
+let verifSinNombre = 0;   // última vez que no se pudo traer el nombre (0 = andaba bien)
 
 function estadoVerificacion(texto, clase) {
   const el = $("verify-status");
@@ -357,13 +361,14 @@ async function verificarJugador() {
   const modoManual = (motivo) => {
     if (mi !== verifSeq) return;
     console.warn("Verificación automática no disponible:", motivo);
+    verifSinNombre = Date.now();
     pintarJugador({}, id, false);
     jugadorVerificado = { id, nombre: null, validado: false };
     estadoVerificacion("ID cargado. Revisá que sea correcto antes de comprar.", "ok");
   };
 
   try {
-    const res = await postWebhook({ tipo_evento: "VERIFICAR_JUGADOR", id_jugador: id, playerId: id, region: "SAC" }, 25000);
+    const res = await postWebhook({ tipo_evento: "VERIFICAR_JUGADOR", id_jugador: id, playerId: id, region: "SAC" }, 9000);
     if (mi !== verifSeq) return;   // el usuario cambió el ID o volvió a tocar Verificar
     if (!res.ok) return modoManual("HTTP " + res.status);
 
@@ -380,6 +385,7 @@ async function verificarJugador() {
     if (!tieneEvidencia(info)) return modoManual("el webhook no devolvió datos del jugador");
 
     pintarJugador(info, id, true);
+    verifSinNombre = 0;
     jugadorVerificado = { id, nombre: info.nombre || null, validado: true };
     estadoVerificacion("ID verificado correctamente.", "ok");
   } catch (err) {
@@ -3681,7 +3687,7 @@ document.addEventListener("DOMContentLoaded", () => {
 Object.assign(window, {
   cerrarChatAdmin,
   toggleMenu, agregarPinesStock,
-  abrirModalSeleccionCarga, cerrarModalSeleccionCarga,
+  abrirModalSeleccionCarga, cerrarModalSeleccionCarga, avisarTarjetaProximamente,
   copiarDato, elegirMonto,
   abrirModalBinance, cerrarModalBinance,
   abrirModalMercadoPagoSaldo, cerrarModalMercadoPagoSaldo,
@@ -5488,6 +5494,25 @@ document.addEventListener("DOMContentLoaded", () => { pintarInstalar(); $("sb-in
 // =====================================================================
 // v24: botón rojo ❓ de "algo está fallando" (solo administrador) con guía de cómo arreglarlo
 // =====================================================================
+// Cosas que están a medio hacer (se muestran al final del «Estado del sistema» para que nada se olvide). Editá esta lista cuando algo se termine.
+const PENDIENTES_DESARROLLO = [
+  { id: "tarjeta", titulo: "Cargar saldo con tarjeta: el botón existe pero todavía no funciona", detalle: "Dice «Próximamente». Falta elegir el medio de cobro y conectarlo para que acredite solo.", pasos: ["Decidir qué proveedor de cobro con tarjeta vas a usar.", "Pasárselo a Claude para conectarlo (los datos de la tarjeta los maneja el proveedor, nunca la página)."] },
+  { id: "whatsapp", titulo: "Atención por WhatsApp: falta definir el enlace", detalle: "En el menú el botón dice «Próximamente» y no hace nada.", pasos: ["Cuando tengas el número o el enlace de WhatsApp Business, pasáselo a Claude."] },
+  { id: "descuento", titulo: "Compras con descuento (Pago Store): se revisa a mano", detalle: "No hay forma automática y segura de saber qué IDs tienen el 50 %. La página recuerda los IDs que ya revisaste para no hacerlos esperar de nuevo.", pasos: ["Usá «Ya la cargué» o «Sin descuento» en cada pedido: así el ID queda registrado."] },
+  { id: "referidos", titulo: "Programa de referidos: pospuesto", detalle: "Quedó para más adelante por el tema de cuentas múltiples y montos.", pasos: ["Cuando quieras retomarlo, decímelo y lo planificamos."] },
+];
+// Convierte el texto técnico de un error en algo entendible
+function traducirError(m) {
+  const t = String(m || "");
+  let r;
+  if ((r = /(?:Uncaught )?ReferenceError:\s*([\w$]+) is not defined/i.exec(t))) return { titulo: `Un botón llama a algo que no existe («${r[1]}»)`, detalle: "Es un fallo de programación: algún botón o función de la página no quedó conectado.", pasos: ["Tocá «Copiar informe» y mandámelo, así lo arreglo.", "Mientras tanto, ese botón puntual no va a funcionar; el resto de la página sí."] };
+  if ((r = /Cannot read propert(?:y|ies) of (?:null|undefined)(?: \(reading '([^']+)'\))?/i.exec(t))) return { titulo: "La página intentó usar algo que no estaba en pantalla" + (r[1] ? ` («${r[1]}»)` : ""), detalle: "Pasa cuando una parte se dibuja tarde o falta. Casi siempre es pasajero.", pasos: ["Recargá con Ctrl+F5.", "Si se repite, mandame el informe."] };
+  if (/Failed to fetch|NetworkError|Load failed|network/i.test(t)) return { titulo: "Se cortó la conexión con el servidor un momento", detalle: "Internet inestable o el servidor tardó en contestar.", pasos: ["Si todo anda, ignorarlo.", "Si se repite mucho, revisá tu internet y que n8n / Docker estén abiertos."] };
+  if (/ResizeObserver/i.test(t)) return { titulo: "Aviso menor del navegador al cambiar el tamaño de la ventana", detalle: "No afecta nada.", pasos: ["Se puede ignorar."] };
+  if (/timeout|AbortError|tiempo agotado/i.test(t)) return { titulo: "Algo tardó demasiado en responder", detalle: "Un servicio (n8n, Supabase o el buscador de ID) no contestó a tiempo.", pasos: ["Fijate que n8n y Docker estén abiertos.", "Si se repite, mandame el informe."] };
+  if (/JWT|auth|sesi[oó]n/i.test(t)) return { titulo: "Problema con la sesión iniciada", detalle: "La sesión venció o se cortó.", pasos: ["Cerrá sesión y volvé a entrar con Google."] };
+  return { titulo: "Fallo técnico de la página", detalle: "No lo reconozco como algo conocido.", pasos: ["Recargá con Ctrl+F5.", "Si vuelve, mandame el informe con lo que estabas haciendo."] };
+}
 const erroresPagina = [];
 window.addEventListener("error", (e) => { erroresPagina.push({ t: Date.now(), m: String(e.message || "error").slice(0, 200), d: (e.filename || "").split("/").pop() + ":" + (e.lineno || "") }); if (erroresPagina.length > 20) erroresPagina.shift(); });
 window.addEventListener("unhandledrejection", (e) => { erroresPagina.push({ t: Date.now(), m: String((e.reason && e.reason.message) || e.reason || "promesa rechazada").slice(0, 200), d: "promesa" }); if (erroresPagina.length > 20) erroresPagina.shift(); });
@@ -5556,11 +5581,37 @@ async function saludReunir() {
   if ($("zt-estado")?.classList.contains("lento")) out.push({ id: "servicio-lento", nivel: "bajo", icono: "🐢", titulo: "La página muestra «Recargas demoradas»",
     detalle: "Los clientes ven que las recargas están tardando más de lo normal (hay pedidos sin resolver hace rato).", pasos: ["Resolvé las órdenes pendientes de arriba: el aviso se apaga solo cuando no quedan.", "Si no hay ninguna pendiente, esperá 1–2 minutos y se actualiza."], ir: irPanelAdmin("ordenes"), irTxt: "Ir a Órdenes" });
   // --- Errores de la propia página
+  // --- Errores de la propia página, explicados en castellano (el texto técnico queda abajo para pasárselo a Claude)
   const recientes = erroresPagina.filter((x) => ahora - x.t < 30 * 60000);
-  if (recientes.length) out.push({ id: "pag-errores", nivel: "bajo", icono: "🐞", titulo: `La página registró ${recientes.length} error${recientes.length > 1 ? "es" : ""} técnico${recientes.length > 1 ? "s" : ""}`,
-    detalle: "Último: " + recientes[recientes.length - 1].m + " (" + recientes[recientes.length - 1].d + "). Casi siempre es pasajero (mala señal, extensión del navegador).",
-    pasos: ["Recargá con Ctrl+F5 y mirá si vuelve a aparecer.", "Si vuelve, copiá el informe (botón de abajo) y mandámelo con lo que estabas haciendo."], ir: null });
-  const orden = { alto: 0, medio: 1, bajo: 2 };
+  if (recientes.length) {
+    const grupos = new Map();
+    recientes.forEach((x) => { const k = x.m; const g = grupos.get(k) || { m: x.m, d: x.d, n: 0, ult: 0 }; g.n++; g.ult = Math.max(g.ult, x.t); grupos.set(k, g); });
+    out.push({ id: "pag-errores", nivel: "bajo", icono: "🐞", titulo: `La página registró ${recientes.length} error${recientes.length > 1 ? "es" : ""} técnico${recientes.length > 1 ? "s" : ""} (${grupos.size} distinto${grupos.size > 1 ? "s" : ""})`,
+      detalle: "Son fallos de la propia página (no tienen que ver con el stock ni con las recargas). Cada uno está explicado abajo.",
+      pasos: ["Recargá con Ctrl+F5 y fijate si vuelven a aparecer.", "Si vuelven, tocá «Copiar informe» y mandámelo para que los arregle."], ir: null });
+    [...grupos.values()].sort((x, y) => y.ult - x.ult).slice(0, 5).forEach((g, i) => {
+      const t = traducirError(g.m);
+      out.push({ id: "pag-err-" + i, nivel: "bajo", icono: "🔧", titulo: t.titulo + (g.n > 1 ? ` (se repitió ${g.n} veces)` : ""),
+        detalle: t.detalle + " · Último hace " + textoMin(Math.max(0, Math.round((ahora - g.ult) / 60000))) + ". Texto técnico para Claude: " + g.m + " (" + g.d + ")",
+        pasos: t.pasos, ir: null });
+    });
+  }
+  // --- Piezas de Supabase nuevas que todavía no ejecutaste
+  const faltaRpc = async (nombre, args) => { try { const r = await conTimeout(supabase.rpc(nombre, args), 8000); const c = String((r.error && (r.error.code || r.error.message)) || ""); return /PGRST202|42883|does not exist|Could not find/i.test(c); } catch (_) { return false; } };
+  const [f22, f23] = await Promise.all([faltaRpc("soporte_estado"), faltaRpc("admin_promo_marcar_id", { p_id: "0", p_estado: "probar" })]);
+  if (f22) out.push({ id: "sql-v22", nivel: "medio", icono: "🧩", titulo: "Falta ejecutar novedades_clientes_v22.sql",
+    detalle: "Sin esa pieza no funcionan los segundos a elección del modo «Estoy disponible» ni el estado En línea / Desconectada.",
+    pasos: ["Abrí Supabase → SQL Editor.", "Pegá el contenido del archivo novedades_clientes_v22.sql (está en Downloads\\canje-fix) y tocá Run."], ir: null });
+  if (f23) out.push({ id: "sql-v23", nivel: "medio", icono: "🧩", titulo: "Falta ejecutar novedades_clientes_v23.sql",
+    detalle: "Sin esa pieza la página no se acuerda de los IDs que ya revisaste en Pago Store, y todos los pedidos esperan.",
+    pasos: ["Abrí Supabase → SQL Editor.", "Pegá el contenido del archivo novedades_clientes_v23.sql (está en Downloads\\canje-fix) y tocá Run."], ir: null });
+  // --- El buscador de nombre / banner / icono del ID
+  if (verifSinNombre) out.push({ id: "verif-nombre", nivel: "medio", icono: "🪪", titulo: "No se está pudiendo traer el nombre, banner e icono del ID",
+    detalle: "El ID se carga igual y se puede comprar, pero la tarjeta muestra solo el número. Los servicios gratuitos que consultamos están caídos o sin cuentas, y Garena protege su propia consulta con una verificación para humanos.",
+    pasos: ["No hace falta hacer nada para poder vender: el cliente confirma su ID a mano.", "Para tenerlo estable hace falta una clave de un servicio de consulta (por ejemplo, una clave gratis de siambhau, que se pide por Telegram). Pasásela a Claude y la prueba."], ir: null });
+  // --- Lo que está a medio hacer (para que no se te olvide)
+  PENDIENTES_DESARROLLO.forEach((p) => out.push({ id: "todo-" + p.id, nivel: "info", icono: "📝", titulo: p.titulo, detalle: p.detalle, pasos: p.pasos, ir: null }));
+  const orden = { alto: 0, medio: 1, bajo: 2, info: 3 };
   return out.sort((a, b) => orden[a.nivel] - orden[b.nivel]);
 }
 async function saludRevisar() {
@@ -5760,7 +5811,7 @@ const nombresId = new Map();
 async function nombreDeId(id) {
   if (nombresId.has(id)) return nombresId.get(id);
   try {
-    const res = await postWebhook({ tipo_evento: "VERIFICAR_JUGADOR", id_jugador: id, playerId: id, region: "SAC" }, 25000);
+    const res = await postWebhook({ tipo_evento: "VERIFICAR_JUGADOR", id_jugador: id, playerId: id, region: "SAC" }, 9000);
     if (!res.ok) return null;
     const info = normalizarJugador(await conTimeout(res.json(), 8000));
     const n = info && info.nombre ? String(info.nombre) : null;
@@ -5780,6 +5831,8 @@ async function promoConfig(activo = null, segundos = null, latido = false) {
     return data;
   } catch (e) { if (activo !== null) throw e; return null; }
 }
+// Recuerda los IDs que ya revisaste en Pago Store (sin descuento o ya usado): sus próximos pedidos salen directo con PIN, sin espera
+function promoMarcarId(id) { try { Promise.resolve(supabase.rpc("admin_promo_marcar_id", { p_id: String(id || ""), p_estado: "sin_descuento" })).catch(() => {}); } catch (_) {} }
 // Si salís de Pendientes o apagás: lo que esperaba sale al instante con tu PIN
 async function promoApagarAuto() {
   if (!promoModo) return;
@@ -5835,7 +5888,7 @@ async function pintarHoy() {
   segInp.addEventListener("input", () => { const v = parseInt(segInp.value, 10); if (v > 0) promoSegBorrador = v; });
   caja.querySelector(".hoy-seg small").textContent = d.modo ? "Fijo mientras esté prendido. Para cambiarlo, apagá y volvé a prender." : "Elegilo antes de prender (15 a 600).";
   caja.querySelector(".hoy-promo-d").textContent = d.modo
-    ? `ESTÁS DISPONIBLE: cada pedido nuevo espera hasta ${fmtSeg(d.segundos)} acá (cada uno con su propio reloj). Si lo comprás vos con descuento, apretá «Ya la cargué». Si no hacés nada, sale solo con tu PIN. Si apagás o salís de Pendientes, lo que esté esperando sale con PIN al instante.`
+    ? `ESTÁS DISPONIBLE: cada pedido nuevo espera hasta ${fmtSeg(d.segundos)} acá (cada uno con su propio reloj). Si lo comprás vos con descuento, apretá «Ya la cargué». Si no hacés nada, sale solo con tu PIN. Si apagás o salís de Pendientes, lo que esté esperando sale con PIN al instante. Los IDs que ya revisaste salen directo con PIN, sin espera, por 30 días.`
     : "Apagado: todos los pedidos salen al instante con tus PIN. Prendelo cuando estés frente a la compu y quieras aprovechar el 50 %.";
   chk.addEventListener("change", async () => {
     const quiere = chk.checked;
@@ -5864,8 +5917,8 @@ async function pintarHoy() {
       f.querySelector("small").textContent = `Pago Store → República Dominicana → ese ID → ${o.diamantes} → PayPal. Si no tiene descuento, tocá «Sin descuento».`;
       f.querySelector(".hoy-copiar").addEventListener("click", async () => { try { await navigator.clipboard.writeText(String(o.id_jugador)); mostrarAviso("ID copiado: " + o.id_jugador, "ok"); } catch (_) { mostrarAviso("No se pudo copiar.", "error"); } });
       nombreDeId(o.id_jugador).then((n) => { const e = f.querySelector(".hoy-nom"); if (e && n) e.textContent = "· " + n; });
-      f.querySelector(".hoy-ok").addEventListener("click", async () => { const { error } = await supabase.rpc("admin_promo_cargada", { p_orden_id: o.id }); mostrarAviso(error ? "No se pudo cerrar (¿ya salió con PIN?)." : "Listo: orden acreditada y el PIN volvió a tu stock.", error ? "error" : "ok"); pintarHoy(); });
-      f.querySelector(".hoy-pin").addEventListener("click", async () => { const { error } = await supabase.rpc("admin_promo_mandar_pin", { p_orden_id: o.id }); mostrarAviso(error ? "No se pudo enviar." : "Enviada con PIN.", error ? "error" : "ok"); pintarHoy(); });
+      f.querySelector(".hoy-ok").addEventListener("click", async () => { const { error } = await supabase.rpc("admin_promo_cargada", { p_orden_id: o.id }); if (!error) promoMarcarId(o.id_jugador); mostrarAviso(error ? "No se pudo cerrar (¿ya salió con PIN?)." : "Listo: orden acreditada y el PIN volvió a tu stock.", error ? "error" : "ok"); pintarHoy(); });
+      f.querySelector(".hoy-pin").addEventListener("click", async () => { const { error } = await supabase.rpc("admin_promo_mandar_pin", { p_orden_id: o.id }); if (!error) promoMarcarId(o.id_jugador); mostrarAviso(error ? "No se pudo enviar." : "Enviada con PIN.", error ? "error" : "ok"); pintarHoy(); });
       w.appendChild(f);
     });
     c.appendChild(w);
