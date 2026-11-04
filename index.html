@@ -570,29 +570,40 @@
   </header>
   
   <!-- MODAL GENERAL DE SELECCIÓN DE CARGA DE SALDO -->
-  <div id="modal-seleccion-carga" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
-  <div style="background:#161822; border:1px solid #f3ba2f; border-radius:16px; padding:24px; width:90%; max-width:400px; text-align:center; box-shadow:0 0 25px rgba(243,186,47,0.3); position:relative;">
-  <button onclick="cerrarModalSeleccionCarga()" style="position:absolute; top:12px; right:15px; background:none; border:none; color:#aaa; font-size:18px; cursor:pointer;">✕</button>
-  <i class="fa-solid fa-wallet" style="font-size:36px; color:#f3ba2f; margin-bottom:8px;"></i>
-  <h3 style="color:#fff; font-family:'Orbitron', sans-serif; margin-bottom:6px;">Elegí método para Cargar Saldo</h3>
-  <p style="color:#aaa; font-size:12px; margin-bottom:15px;">Seleccioná con qué medio de pago deseas acreditar saldo en tu cuenta.</p>
-  
-  <div style="display:flex; flex-direction:column; gap:10px;">
-  <button onclick="abrirModalBinance()" style="width:100%; padding:12px; background:linear-gradient(135deg, #f3ba2f, #f0a500); border:none; border-radius:8px; color:#000; font-weight:bold; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-  <i class="fa-brands fa-bitcoin"></i> BINANCE ( USDT )
+  <div id="modal-seleccion-carga" class="cg-modal" style="display:none;" onclick="if(event.target===this)cerrarModalSeleccionCarga()">
+  <div class="cg-card" role="dialog" aria-modal="true" aria-labelledby="cg-tit">
+  <button type="button" class="cg-x" onclick="cerrarModalSeleccionCarga()" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+  <div class="cg-head">
+  <span class="cg-wallet"><i class="fa-solid fa-wallet"></i></span>
+  <div><h3 id="cg-tit">Cargar saldo</h3><p>Elegí cómo querés pagar</p></div>
+  </div>
+  <div class="cg-saldos" aria-label="Tu saldo actual">
+  <div class="cg-s cg-s-mp"><small>Tu saldo Mercado Pago</small><b id="cg-s-ars">$0</b></div>
+  <div class="cg-s cg-s-bn"><small>Tu saldo Binance</small><b id="cg-s-usd">$0</b></div>
+  </div>
+  <div class="cg-ops">
+  <button type="button" class="cg-op cg-op-mp" onclick="abrirModalMercadoPagoSaldo()">
+  <span class="cg-ico"><i class="fa-solid fa-bolt"></i></span>
+  <span class="cg-txt"><b>Mercado Pago</b><small>Pagás en pesos argentinos (ARS)</small></span>
+  <i class="fa-solid fa-chevron-right cg-fl"></i>
   </button>
-  <button onclick="abrirModalMercadoPagoSaldo()" style="width:100%; padding:12px; background:linear-gradient(135deg, #009ee3, #0073a8); border:none; border-radius:8px; color:#fff; font-weight:bold; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-  <i class="fa-solid fa-bolt"></i> MERCADO PAGO ( ARS )
+  <button type="button" class="cg-op cg-op-bn" onclick="abrirModalBinance()">
+  <span class="cg-ico"><i class="fa-brands fa-bitcoin"></i></span>
+  <span class="cg-txt"><b>Binance</b><small>Pagás en dólares digitales (USDT)</small></span>
+  <i class="fa-solid fa-chevron-right cg-fl"></i>
   </button>
-  <button onclick="abrirModalConvertir()" style="width:100%; padding:11px; background:transparent; border:1px solid #4a5580; border-radius:8px; color:#cfd8f5; font-weight:700; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-  <i class="fa-solid fa-right-left"></i> Convertir mis pesos a dólares
+  <button type="button" class="cg-op cg-op-cv" onclick="abrirModalConvertir()">
+  <span class="cg-ico"><i class="fa-solid fa-right-left"></i></span>
+  <span class="cg-txt"><b>Convertir mis pesos a dólares</b><small>Pasá tu saldo de pesos a USD</small></span>
+  <i class="fa-solid fa-chevron-right cg-fl"></i>
   </button>
-  <button type="button" class="cg-tarjeta" aria-disabled="true" onclick="avisarTarjetaProximamente()">
-  <span class="cg-t-ico"><i class="fa-solid fa-credit-card"></i></span>
-  <span class="cg-t-txt"><b>Cargar con tarjeta</b><small>Se acredita solo, al instante</small></span>
-  <span class="cg-t-badge">Próximamente</span>
+  <button type="button" class="cg-op cg-op-tj" aria-disabled="true" onclick="avisarTarjetaProximamente()">
+  <span class="cg-ico"><i class="fa-solid fa-credit-card"></i></span>
+  <span class="cg-txt"><b>Cargar con tarjeta</b><small>Se acredita solo, al instante</small></span>
+  <span class="cg-badge">Próximamente</span>
   </button>
   </div>
+  <p class="cg-pie">Elegí un medio y te mostramos los pasos para cargar.</p>
   </div>
   </div>
   
@@ -1110,7 +1121,7 @@
 
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="adm-top">
-  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 36</small></span>
+  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 37</small></span>
   <label class="adm-soporte" title="Lo que ven tus clientes arriba del chat"><span>Estado ante clientes:</span>
   <select id="adm-soporte" aria-label="Estado que ven los clientes"><option value="en_linea">🟢 En línea</option><option value="desconectada">⚪ Desconectada</option><option value="oculto">🙈 No mostrar nada</option></select></label>
   <button type="button" class="adm-salir" onclick="salirModoAdmin()" aria-label="Volver al modo normal"><i class="fa-solid fa-arrow-left"></i> <span>Volver al modo normal</span></button>

@@ -119,7 +119,15 @@ function cerrarTodosLosModales() {
   ["modal-seleccion-carga", "modal-binance", "modal-mercadopago", "modal-convertir"].forEach((id) => mostrarModal(id, false));
 }
 function avisarTarjetaProximamente() { mostrarAviso("💳 Muy pronto vas a poder cargar saldo con tarjeta, sin esperar a nadie.", "info"); }
-function abrirModalSeleccionCarga() { cerrarTodosLosModales(); mostrarModal("modal-seleccion-carga", true); }
+function abrirModalSeleccionCarga() {
+  cerrarTodosLosModales();
+  try {   // muestra tu saldo actual arriba (lo mismo que ves en la cabecera)
+    const ars = $("header-balance-ars"), usd = $("header-balance-amount");
+    if ($("cg-s-ars") && ars) $("cg-s-ars").textContent = ars.textContent || "$0";
+    if ($("cg-s-usd") && usd) $("cg-s-usd").textContent = "$" + String(usd.textContent || "0").replace(/^\$/, "");
+  } catch (_) {}
+  mostrarModal("modal-seleccion-carga", true);
+}
 function cerrarModalSeleccionCarga() { mostrarModal("modal-seleccion-carga", false); }
 function abrirModalBinance() { cerrarTodosLosModales(); mostrarModal("modal-binance", true); }
 function cerrarModalBinance() { mostrarModal("modal-binance", false); }
@@ -5579,7 +5587,7 @@ async function saludReunir() {
     detalle: "Sin esa pieza, el panel no puede confirmar qué respondió n8n a cada envío.", pasos: ["Supabase → SQL Editor.", "Pegá el contenido de n8n_envio_fix.sql y tocá Run (se puede repetir sin problema)."], ir: irPanelAdmin("ordenes"), irTxt: "Ir a Órdenes" });
   // --- Estado del servicio
   if ($("zt-estado")?.classList.contains("lento")) out.push({ id: "servicio-lento", nivel: "bajo", icono: "🐢", titulo: "La página muestra «Recargas demoradas»",
-    detalle: "Los clientes ven que las recargas están tardando más de lo normal (hay pedidos sin resolver hace rato).", pasos: ["Resolvé las órdenes pendientes de arriba: el aviso se apaga solo cuando no quedan.", "Si no hay ninguna pendiente, esperá 1–2 minutos y se actualiza."], ir: irPanelAdmin("ordenes"), irTxt: "Ir a Órdenes" });
+    detalle: "Los clientes ven ese cartel cuando hay pedidos sin resolver hace rato, o cuando n8n tarda más de 5 segundos en contestar el «ping» (por ejemplo, si el flujo del verificador de ID está lento o apagado).", pasos: ["Resolvé las órdenes pendientes de arriba: el aviso se apaga solo cuando no quedan.", "Importá en n8n el flujo id_del_jugador_FIX9.json (responde el ping al instante) y dejalo Activo en lugar del anterior.", "Si no hay ninguna pendiente, esperá 1–2 minutos y se actualiza."], ir: irPanelAdmin("ordenes"), irTxt: "Ir a Órdenes" });
   // --- Errores de la propia página
   // --- Errores de la propia página, explicados en castellano (el texto técnico queda abajo para pasárselo a Claude)
   const recientes = erroresPagina.filter((x) => ahora - x.t < 30 * 60000);
@@ -5598,13 +5606,13 @@ async function saludReunir() {
   }
   // --- Piezas de Supabase nuevas que todavía no ejecutaste
   const faltaRpc = async (nombre, args) => { try { const r = await conTimeout(supabase.rpc(nombre, args), 8000); const c = String((r.error && (r.error.code || r.error.message)) || ""); return /PGRST202|42883|does not exist|Could not find/i.test(c); } catch (_) { return false; } };
-  const [f22, f23] = await Promise.all([faltaRpc("soporte_estado"), faltaRpc("admin_promo_marcar_id", { p_id: "0", p_estado: "probar" })]);
+  const [f22, f23] = await Promise.all([faltaRpc("soporte_estado"), faltaRpc("admin_promo_ids_por_revisar")]);
   if (f22) out.push({ id: "sql-v22", nivel: "medio", icono: "🧩", titulo: "Falta ejecutar novedades_clientes_v22.sql",
     detalle: "Sin esa pieza no funcionan los segundos a elección del modo «Estoy disponible» ni el estado En línea / Desconectada.",
     pasos: ["Abrí Supabase → SQL Editor.", "Pegá el contenido del archivo novedades_clientes_v22.sql (está en Downloads\\canje-fix) y tocá Run."], ir: null });
-  if (f23) out.push({ id: "sql-v23", nivel: "medio", icono: "🧩", titulo: "Falta ejecutar novedades_clientes_v23.sql",
-    detalle: "Sin esa pieza la página no se acuerda de los IDs que ya revisaste en Pago Store, y todos los pedidos esperan.",
-    pasos: ["Abrí Supabase → SQL Editor.", "Pegá el contenido del archivo novedades_clientes_v23.sql (está en Downloads\\canje-fix) y tocá Run."], ir: null });
+  if (f23) out.push({ id: "sql-v23", nivel: "medio", icono: "🧩", titulo: "Falta ejecutar novedades_clientes_v24.sql",
+    detalle: "Sin esa pieza la página no se acuerda de los IDs de Pago Store ni arma la lista de IDs por revisar.",
+    pasos: ["Abrí Supabase → SQL Editor.", "Pegá el contenido del archivo novedades_clientes_v24.sql (está en Downloads\\canje-fix) y tocá Run."], ir: null });
   // --- El buscador de nombre / banner / icono del ID
   if (verifSinNombre) out.push({ id: "verif-nombre", nivel: "medio", icono: "🪪", titulo: "No se está pudiendo traer el nombre, banner e icono del ID",
     detalle: "El ID se carga igual y se puede comprar, pero la tarjeta muestra solo el número. Los servicios gratuitos que consultamos están caídos o sin cuentas, y Garena protege su propia consulta con una verificación para humanos.",
@@ -5778,7 +5786,8 @@ document.addEventListener("DOMContentLoaded", () => {
 // v29: "Pendientes" del administrador + guía animada para clientes nuevos
 // =====================================================================
 async function hoyDatos() {
-  const d = { chats: [], ords: [], stock: [], espera: [], modo: promoModo, segundos: promoSeg, hoyOk: 0, hoyDia: 0, err: [] };
+  const d = { chats: [], ords: [], stock: [], espera: [], revisar: [], modo: promoModo, segundos: promoSeg, hoyOk: 0, hoyDia: 0, err: [] };
+  try { const rv = await supabase.rpc("admin_promo_ids_por_revisar"); if (!rv.error && Array.isArray(rv.data)) d.revisar = rv.data; } catch (_) {}
   { const cfg = await promoConfig(null, null, true); if (cfg) { d.modo = !!cfg.activo; d.segundos = Number(cfg.segundos) || 90; } }
   resumenAdmin.forEach((r, id) => { if (r.noLeidos > 0) d.chats.push({ id, n: r.noLeidos, ultima: r.ultima }); });
   d.chats.sort((a, b) => b.ultima - a.ultima);
@@ -5888,7 +5897,7 @@ async function pintarHoy() {
   segInp.addEventListener("input", () => { const v = parseInt(segInp.value, 10); if (v > 0) promoSegBorrador = v; });
   caja.querySelector(".hoy-seg small").textContent = d.modo ? "Fijo mientras esté prendido. Para cambiarlo, apagá y volvé a prender." : "Elegilo antes de prender (15 a 600).";
   caja.querySelector(".hoy-promo-d").textContent = d.modo
-    ? `ESTÁS DISPONIBLE: cada pedido nuevo espera hasta ${fmtSeg(d.segundos)} acá (cada uno con su propio reloj). Si lo comprás vos con descuento, apretá «Ya la cargué». Si no hacés nada, sale solo con tu PIN. Si apagás o salís de Pendientes, lo que esté esperando sale con PIN al instante. Los IDs que ya revisaste salen directo con PIN, sin espera, por 30 días.`
+    ? `ESTÁS DISPONIBLE: cada pedido nuevo espera hasta ${fmtSeg(d.segundos)} acá (cada uno con su propio reloj). Si lo comprás vos con descuento, apretá «Ya la cargué». Si no hacés nada, sale solo con tu PIN. Si apagás o salís de Pendientes, lo que esté esperando sale con PIN al instante. La primera compra de cada ID sale siempre con PIN; solo esperan acá los IDs que ya marcaste con descuento (10 días).`
     : "Apagado: todos los pedidos salen al instante con tus PIN. Prendelo cuando estés frente a la compu y quieras aprovechar el 50 %.";
   chk.addEventListener("change", async () => {
     const quiere = chk.checked;
@@ -5922,6 +5931,25 @@ async function pintarHoy() {
       w.appendChild(f);
     });
     c.appendChild(w);
+  }
+  if (d.revisar.length) {
+    const rv = document.createElement("div"); rv.className = "hoy-revisar";
+    rv.innerHTML = `<div class="hoy-rv-t"><b>🔎 IDs por revisar en Pago Store</b><span class="hoy-rv-n"></span></div><p class="hoy-rv-d">Clientes que ya recargaron con PIN. Cuando tengas un rato, mirá en Pago Store → República Dominicana → ese ID si tiene el 50 % y marcalo. Solo los que marques con descuento van a esperar por vos en su próxima compra.</p><div class="hoy-rv-l"></div>`;
+    rv.querySelector(".hoy-rv-n").textContent = String(d.revisar.length);
+    const lista = rv.querySelector(".hoy-rv-l");
+    d.revisar.slice(0, 12).forEach((r) => {
+      const f = document.createElement("div"); f.className = "hoy-rv-f";
+      f.innerHTML = `<b></b><span class="hoy-nom"></span><button type="button" class="hoy-copiar" title="Copiar el ID" aria-label="Copiar el ID">📋</button><button type="button" class="hoy-rv-si">✅ Tiene descuento</button><button type="button" class="hoy-rv-no">❌ No tiene</button>`;
+      f.querySelector("b").textContent = "ID " + r.id_jugador;
+      f.querySelector(".hoy-copiar").addEventListener("click", async () => { try { await navigator.clipboard.writeText(String(r.id_jugador)); mostrarAviso("ID copiado: " + r.id_jugador, "ok"); } catch (_) { mostrarAviso("No se pudo copiar.", "error"); } });
+      nombreDeId(r.id_jugador).then((n) => { const e = f.querySelector(".hoy-nom"); if (e && n) e.textContent = "· " + n; });
+      const marcar = async (estado) => { const { error } = await supabase.rpc("admin_promo_marcar_id", { p_id: String(r.id_jugador), p_estado: estado }); mostrarAviso(error ? "No se pudo guardar." : estado === "con_descuento" ? "Anotado: su próxima compra te va a esperar a vos." : "Anotado: sus próximas compras salen directo con PIN.", error ? "error" : "ok"); pintarHoy(); };
+      f.querySelector(".hoy-rv-si").addEventListener("click", () => marcar("con_descuento"));
+      f.querySelector(".hoy-rv-no").addEventListener("click", () => marcar("sin_descuento"));
+      lista.appendChild(f);
+    });
+    if (d.revisar.length > 12) { const m = document.createElement("small"); m.className = "hoy-mas"; m.textContent = `Y ${d.revisar.length - 12} más (aparecen al ir marcando).`; lista.appendChild(m); }
+    c.appendChild(rv);
   }
   const grid = document.createElement("div"); grid.className = "hoy-grid";
   grid.append(
