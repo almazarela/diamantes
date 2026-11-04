@@ -21,8 +21,9 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0a1430">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-  <link rel="shortcut icon" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
+  <link rel="shortcut icon" href="favicon-64.png">
   <script type="module" src="script.js"></script>
   
 <style>
@@ -593,13 +594,13 @@
   </div>
   <div class="cg-ops">
   <button type="button" class="cg-op cg-op-mp" onclick="abrirModalMercadoPagoSaldo()">
-  <span class="cg-ico"><i class="fa-solid fa-bolt"></i></span>
-  <span class="cg-txt"><b>Mercado Pago</b><small>Pagás en pesos argentinos (ARS)</small></span>
+  <span class="cg-ico"><i class="fa-solid fa-handshake"></i></span>
+  <span class="cg-txt"><b>Mercado Pago</b><small>Pagás en pesos argentinos (ARS)</small></span><span class="cg-moneda">🇦🇷 PESOS</span>
   <i class="fa-solid fa-chevron-right cg-fl"></i>
   </button>
   <button type="button" class="cg-op cg-op-bn" onclick="abrirModalBinance()">
   <span class="cg-ico"><i class="fa-brands fa-bitcoin"></i></span>
-  <span class="cg-txt"><b>Binance</b><small>Pagás en dólares digitales (USDT)</small></span>
+  <span class="cg-txt"><b>Binance</b><small>Pagás en dólares digitales (USDT)</small></span><span class="cg-moneda">💲 DÓLARES</span>
   <i class="fa-solid fa-chevron-right cg-fl"></i>
   </button>
   <button type="button" class="cg-op cg-op-cv" onclick="abrirModalConvertir()">
@@ -701,8 +702,11 @@
   <div id="sb-perfil" class="sb-perfil" hidden>
   <span class="sb-avatar" id="sb-avatar">A</span>
   <div class="sb-perfil-txt"><strong id="sb-nombre">Mi cuenta</strong><small id="sb-email"></small><span class="sb-niv" id="sb-niv" hidden></span></div>
+  <span class="sb-perfil-fl" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>
   </div>
+  <div id="sb-cuentas" class="sb-cuentas" hidden></div>
 
+  <div id="sb-cuentas-out" class="sb-cuentas" hidden></div>
   <div id="sidebar-auth-btn-area" class="sb-login">
   <button class="btn-google-login" onclick="loginConGoogle()">
   <i class="fa-brands fa-google" style="color: #ea4335;"></i> Iniciar Sesión con Google
@@ -720,7 +724,7 @@
   </button>
   <button type="button" class="sb-accion sb-aviso" onclick="abrirAviso()">
   <span class="sb-ico"><i class="fa-solid fa-bell"></i></span>
-  <span class="sb-txt"><b>Avisos de recarga</b><small>Mail automático · WhatsApp opcional</small></span>
+  <span class="sb-txt"><b>Avisos de recarga</b><small>✉️ Mail automático ✓ · 💬 WhatsApp próximamente</small></span>
   <i class="fa-solid fa-chevron-right sb-flecha"></i>
   </button>
   <button type="button" class="sb-accion sb-hist sb-hist2" onclick="abrirHistorial()">
@@ -780,7 +784,6 @@
   </div>
 
   <div class="sidebar-footer">
-  <div id="sb-cuentas" class="sb-cuentas" hidden></div>
   <button type="button" id="sb-logout" class="sb-logout" hidden><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</button>
   <p>© Centro de Recargas FF - Argentina</p>
   </div>
@@ -1144,7 +1147,7 @@
 
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="adm-top">
-  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 52</small></span>
+  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 53</small></span>
   <label class="adm-soporte" title="Lo que ven tus clientes arriba del chat"><span>Estado ante clientes:</span>
   <select id="adm-soporte" aria-label="Estado que ven los clientes"><option value="en_linea">🟢 En línea (si estoy en la página)</option><option value="desconectada">⚪ Desconectada</option><option value="oculto">🙈 No mostrar nada</option></select></label>
   <button type="button" class="adm-salir" onclick="salirModoAdmin()" aria-label="Volver al modo normal"><i class="fa-solid fa-arrow-left"></i> <span>Volver al modo normal</span></button>
@@ -1235,7 +1238,10 @@
   <label>🥉 Bronce desde<input type="number" id="cobro-nivel_1" inputmode="numeric" min="1"></label>
   <label>🥈 Plata desde<input type="number" id="cobro-nivel_2" inputmode="numeric" min="1"></label>
   <label>🥇 Oro desde<input type="number" id="cobro-nivel_3" inputmode="numeric" min="1"></label>
+  <label>💠 Platino desde<input type="number" id="cobro-nivel_p" inputmode="numeric" min="1"></label>
   <label>💎 Diamante desde<input type="number" id="cobro-nivel_4" inputmode="numeric" min="1"></label>
+  <label>🔥 Heroico desde<input type="number" id="cobro-nivel_h" inputmode="numeric" min="1"></label>
+  <label>⚜️ Maestro desde<input type="number" id="cobro-nivel_m" inputmode="numeric" min="1"></label>
   <label>👑 Leyenda desde<input type="number" id="cobro-nivel_5" inputmode="numeric" min="1"></label>
   </div>
   </details>
@@ -1418,13 +1424,8 @@ function irAlChat(){
 <div class="nh-card">
 <div class="nh-cab"><b>🔔 Avisos de recarga</b><button type="button" id="av-x" aria-label="Cerrar">✕</button></div>
 <div class="al-cuerpo">
-<div class="av-mail"><span>✉️</span><div>Siempre te avisamos por <b>mail</b> a <b id="av-mail-d">tu cuenta de Google</b> cuando se acredita tu recarga.</div></div>
-<p>¿Querés que <b>además</b> te escribamos por <b>WhatsApp</b>? Es opcional.</p>
-<label for="av-in">Tu WhatsApp (con código de país)</label>
-<input id="av-in" type="tel" inputmode="tel" maxlength="20" autocomplete="off" placeholder="Ej: 5491112345678">
-<small class="av-ayuda">Código de país + número, sin 0 ni 15. Ej. Argentina: 54 9 11 …</small>
-<button type="button" id="av-ok" class="al-ok">Guardar WhatsApp</button>
-<button type="button" id="av-no" class="al-sec" hidden>Quitar WhatsApp</button>
+<div class="av-mail"><span>✉️</span><div><b class="av-act">✓ Mail automático ACTIVADO</b><br>Te avisamos a <b id="av-mail-d">tu cuenta de Google</b> cuando se acredita tu recarga. No tenés que hacer nada.</div></div>
+<div class="av-wa"><span>💬</span><div><b>WhatsApp</b> <em class="av-prox">Próximamente</em><br>Pronto vas a poder recibir también el aviso por WhatsApp.</div></div>
 <small id="av-nota" class="al-nota"></small>
 </div></div></div>
 <div id="op-inv" class="op-inv" hidden role="dialog" aria-label="Dejar una opinión">

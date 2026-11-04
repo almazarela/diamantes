@@ -4498,7 +4498,7 @@ function montarAyudaPagos() {
 // =====================================================================
 // v3: datos de cobro editables, conversión ARS -> USD, chip "Mis compras"
 // =====================================================================
-const COBRO_DEF = { alias_mp: "almazarela.com", cvu_mp: "0000003100098290851840", titular_mp: "Julian Pereyra", binance_id: "1252553144", tasa_ars_usd: "1700", nivel_1: "110", nivel_2: "1000", nivel_3: "3000", nivel_4: "7000", nivel_5: "15000", binance_min: "1000" };
+const COBRO_DEF = { alias_mp: "almazarela.com", cvu_mp: "0000003100098290851840", titular_mp: "Julian Pereyra", binance_id: "1252553144", tasa_ars_usd: "1700", nivel_1: "110", nivel_2: "1000", nivel_3: "3000", nivel_p: "5000", nivel_4: "7000", nivel_h: "10000", nivel_m: "12500", nivel_5: "15000", binance_min: "1000" };
 let cobro = { ...COBRO_DEF };
 function aplicarCobro() {
   const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
@@ -4527,7 +4527,7 @@ function rellenarCobro() {
 async function guardarCobro() {
   const btn = $("cobro-guardar"); btn.disabled = true;
   try {
-    const nv = [1, 2, 3, 4, 5].map((i) => Number($("cobro-nivel_" + i)?.value));
+    const nv = ["nivel_1", "nivel_2", "nivel_3", "nivel_p", "nivel_4", "nivel_h", "nivel_m", "nivel_5"].map((k) => Number($("cobro-" + k)?.value));
     if (!(Number($("cobro-binance_min")?.value) > 0)) { mostrarAviso("Poné cuántos diamantes hay que cargar para desbloquear Binance (un número mayor a 0).", "error"); return; }
     if (nv.some((x, i) => !(x > 0) || (i && x <= nv[i - 1]))) { mostrarAviso("Los niveles tienen que ser números que van subiendo (cada uno mayor al anterior).", "error"); return; }
     let n = 0;
@@ -4692,7 +4692,8 @@ Object.assign(window, { alternarBloqueo });
 // =====================================================================
 const NIVELES = [
   { n: "Bronce", ico: "🥉", k: "nivel_1" }, { n: "Plata", ico: "🥈", k: "nivel_2" }, { n: "Oro", ico: "🥇", k: "nivel_3" },
-  { n: "Diamante", ico: "💎", k: "nivel_4" }, { n: "Leyenda", ico: "👑", k: "nivel_5" },
+  { n: "Platino", ico: "💠", k: "nivel_p" }, { n: "Diamante", ico: "💎", k: "nivel_4" }, { n: "Heroico", ico: "🔥", k: "nivel_h" },
+  { n: "Maestro", ico: "⚜️", k: "nivel_m" }, { n: "Leyenda", ico: "👑", k: "nivel_5" },
 ];
 const minNivel = (i) => Number(cobro[NIVELES[i].k]) || Number(COBRO_DEF[NIVELES[i].k]);
 function nivelDe(total) {
@@ -5020,7 +5021,7 @@ function pintarMarcosPropios() {
   const per = document.querySelector(".cu-perfil");
   if (per) per.className = "cu-perfil" + (i >= 0 ? " nv-" + i : "");
   const sbp = $("sb-perfil");
-  if (sbp) { sbp.classList.remove("nv-0", "nv-1", "nv-2", "nv-3", "nv-4"); if (i >= 0) sbp.classList.add("nv-" + i); }
+  if (sbp) { sbp.classList.remove("nv-0", "nv-1", "nv-2", "nv-3", "nv-4", "nv-5", "nv-6", "nv-7"); if (i >= 0) sbp.classList.add("nv-" + i); }
 }
 
 // ---- Precios Binance bloqueados hasta recargar el mínimo
@@ -6596,7 +6597,7 @@ Object.assign(window, { abrirAviso });
 // =====================================================================
 const CUENTAS_KEY = "zarela_cuentas";
 const cuentasLeer = () => { try { const a = JSON.parse(localStorage.getItem(CUENTAS_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (_) { return []; } };
-const cuentasGuardar = (a) => { try { localStorage.setItem(CUENTAS_KEY, JSON.stringify(a.slice(0, 2))); } catch (_) {} };
+const cuentasGuardar = (a) => { try { localStorage.setItem(CUENTAS_KEY, JSON.stringify(a.slice(0, 3))); } catch (_) {} };
 function cuentaRecordar(session) {
   if (!session || !session.user) return;
   const u = session.user;
@@ -6621,13 +6622,17 @@ async function agregarCuenta() {
     if (error) throw error;
   } catch (_) { mostrarAviso("No se pudo abrir el inicio de sesión.", "error"); }
 }
+let cuentasAbiertas = false;
 function pintarCuentas() {
-  const box = $("sb-cuentas"); if (!box) return;
+  const dentro = $("sb-cuentas"), fuera = $("sb-cuentas-out"); if (!dentro || !fuera) return;
   const lista = cuentasLeer(), actual = usuarioActual ? usuarioActual.id : null;
   const otras = lista.filter((x) => x.id !== actual);
+  const box = actual ? dentro : fuera, otro = actual ? fuera : dentro;
+  otro.hidden = true; otro.replaceChildren();
+  const perfil = $("sb-perfil"); if (perfil) { perfil.classList.toggle("abre", !!actual); perfil.setAttribute("role", actual ? "button" : ""); perfil.tabIndex = actual ? 0 : -1; perfil.classList.toggle("abierto", !!actual && cuentasAbiertas); }
   if (!actual && !otras.length) { box.hidden = true; box.replaceChildren(); return; }
-  box.hidden = false; box.replaceChildren();
-  const t = document.createElement("div"); t.className = "cu-tit"; t.textContent = actual ? "Cambiar de cuenta" : "Cuentas guardadas"; box.appendChild(t);
+  box.hidden = actual ? !cuentasAbiertas : false; box.replaceChildren();
+  const t = document.createElement("div"); t.className = "cu-tit"; t.textContent = actual ? "Tus cuentas en este dispositivo" : "Entrar con una cuenta guardada"; box.appendChild(t);
   const fila = (c, esActual) => {
     const r = document.createElement("div"); r.className = "cu-fila" + (esActual ? " on" : "");
     const av = document.createElement("span"); av.className = "cu-av"; if (c.foto) av.style.backgroundImage = `url("${String(c.foto).replace(/["\\)]/g, "")}")`; else av.textContent = (c.nombre || c.email || "?").slice(0, 1).toUpperCase();
@@ -6642,10 +6647,15 @@ function pintarCuentas() {
   };
   if (actual) { const yo = lista.find((x) => x.id === actual) || { nombre: nombreCompleto(usuarioActual), email: usuarioActual.email, foto: fotoDe(usuarioActual) }; box.appendChild(fila(yo, true)); }
   otras.forEach((c) => box.appendChild(fila(c, false)));
-  if (lista.length < 2 || (!actual && otras.length < 2)) {
+  if (lista.length < 3) {
     const ad = document.createElement("button"); ad.type = "button"; ad.className = "cu-add"; ad.textContent = "➕ Agregar otra cuenta"; ad.addEventListener("click", agregarCuenta); box.appendChild(ad);
   }
 }
+document.addEventListener("DOMContentLoaded", () => {
+  const p = $("sb-perfil"); if (!p) return;
+  const tog = () => { if (!usuarioActual) return; cuentasAbiertas = !cuentasAbiertas; pintarCuentas(); };
+  p.addEventListener("click", tog); p.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tog(); } });
+});
 supabase.auth.onAuthStateChange((_e, session) => { if (session) cuentaRecordar(session); setTimeout(pintarCuentas, 80); });
 document.addEventListener("DOMContentLoaded", () => setTimeout(pintarCuentas, 300));
 Object.assign(window, { cambiarCuenta, agregarCuenta });
