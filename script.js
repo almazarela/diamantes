@@ -375,7 +375,6 @@ async function verificarJugador() {
   // Nombre confirmado por Zarela (registro propio): sale en una fracción de segundo, sin esperar a los servicios externos
   let confirmado = "";
   const regP = conTimeout(Promise.resolve(supabase.rpc("nombre_id", { p_id: id })), 4000).then((r) => (r && r.data ? String(r.data).slice(0, 40) : ""), () => "");
-  try { Promise.resolve(supabase.rpc("nombre_visto", { p_id: id, p_nombre: null })).catch(() => {}); } catch (_) {}   // el ID le llega al admin
   regP.then((n) => {
     if (!n || mi !== verifSeq || jugadorVerificado) return;
     confirmado = n; recordarNombre(id, n);
@@ -408,7 +407,7 @@ async function verificarJugador() {
     }
     pintarJugador({}, id, false);
     jugadorVerificado = { id, nombre: null, validado: false };
-    estadoVerificacion("ID cargado. Tu nombre y tu foto van a aparecer acá en unos minutos. Podés comprar tranquilo: la recarga va a ese ID.", "ok");
+    estadoVerificacion("ID cargado. Todavía no conocemos tu nombre: la próxima vez que recargues, va a aparecer acá. Podés comprar tranquilo, la recarga va a ese ID.", "ok");
   };
 
   try {
@@ -431,7 +430,6 @@ async function verificarJugador() {
     pintarJugador(info, id, true);
     verifSinNombre = 0;
     recordarNombre(id, info.nombre);
-    if (info.nombre) { try { Promise.resolve(supabase.rpc("nombre_visto", { p_id: id, p_nombre: String(info.nombre) })).catch(() => {}); } catch (_) {} }   // sugerencia / aviso si cambió
     jugadorVerificado = { id, nombre: info.nombre || null, validado: true };
     estadoVerificacion("ID verificado correctamente.", "ok");
   } catch (err) {
@@ -5824,7 +5822,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // v29: "Pendientes" del administrador + guía animada para clientes nuevos
 // =====================================================================
 async function hoyDatos() {
-  const d = { chats: [], ords: [], stock: [], espera: [], nombres: [], modo: promoModo, segundos: promoSeg, hoyOk: 0, hoyDia: 0, err: [] };
+  const d = { chats: [], ords: [], stock: [], espera: [], modo: promoModo, segundos: promoSeg, hoyOk: 0, hoyDia: 0, err: [] };
   { const cfg = await promoConfig(null, null, true); if (cfg) { d.modo = !!cfg.activo; d.segundos = Number(cfg.segundos) || 90; } }
   resumenAdmin.forEach((r, id) => { if (r.noLeidos > 0) d.chats.push({ id, n: r.noLeidos, ultima: r.ultima }); });
   d.chats.sort((a, b) => b.ultima - a.ultima);
@@ -5845,10 +5843,9 @@ async function hoyDatos() {
     stockPaquetes = Array.isArray(r.data) ? r.data : stockPaquetes;
     d.stock = stockPaquetes.filter((p) => ETIQUETA_STOCK[p.paquete_id] && (Number(p.disponibles) || 0) < 5).map((p) => ({ nombre: ETIQUETA_STOCK[p.paquete_id], n: Number(p.disponibles) || 0 }));
   } catch (_) { d.err.push("stock"); }
-  try { const r = await conTimeout(Promise.resolve(supabase.rpc("admin_nombres")), 8000); if (!r.error && Array.isArray(r.data)) d.nombres = r.data; } catch (_) {}
   return d;
 }
-const hoyTotal = (d) => d.chats.length + d.ords.length + d.stock.length + d.espera.length + (d.nombres ? d.nombres.length : 0);
+const hoyTotal = (d) => d.chats.length + d.ords.length + d.stock.length + d.espera.length;
 async function actualizarBadgeHoy() {
   if (!esAdminActual() || !document.body.classList.contains("modo-admin") || document.hidden) return;
   const d = await hoyDatos(), b = $("hoy-n"); if (!b) return;
@@ -5910,7 +5907,7 @@ async function pintarHoy() {
   const mi = ++hoySeq;
   const d = await hoyDatos(); if (mi !== hoySeq || vistaAdmin !== "hoy") return;
   const b = $("hoy-n"); if (b) { const n = hoyTotal(d); b.hidden = n === 0; b.textContent = String(n); }
-  if (document.activeElement && document.activeElement.classList && (document.activeElement.classList.contains("hoy-seg-in") || document.activeElement.classList.contains("nom-in"))) return;   // no te saco del casillero mientras escribís
+  if (document.activeElement && document.activeElement.classList && (document.activeElement.classList.contains("hoy-seg-in"))) return;   // no te saco del casillero mientras escribís
   const filasPrevias = new Map([...c.querySelectorAll(".hoy-esp-fila")].map((f) => [f.dataset.id, f]));   // se reutilizan: la barra no parpadea
   promoUltModo = d.modo;
   c.replaceChildren();
@@ -5977,30 +5974,6 @@ async function pintarHoy() {
     tarjeta("🧾", "Órdenes por atender", d.ords.length, "alto", d.ords.map((o) => [`#${o.id} · ${o.diamantes || "?"} 💎 · ID ${o.id_jugador || "-"}`, (/REVISAR A MANO/i.test(o.envio_error || "") ? "⚠ revisar a mano · " : o.estado === "error_envio" ? "no llegó a n8n · " : "") + minOrd(o), () => mostrarVistaAdmin("ordenes")]), "Todas las órdenes están al día.", ["Ir a Órdenes", () => mostrarVistaAdmin("ordenes")]),
     tarjeta("📦", "Stock de PIN bajo", d.stock.length, "aviso", d.stock.map((p) => [`Paquete ${p.nombre} 💎`, p.n === 0 ? "sin PIN" : `quedan ${p.n}`, () => mostrarVistaAdmin("stock")]), "Hay PIN suficientes en todos los paquetes.", ["Ir a Stock", () => mostrarVistaAdmin("stock")]),
   );
-  if (d.nombres && d.nombres.length) {
-    const nb = document.createElement("div"); nb.className = "hoy-card aviso nom-card";
-    nb.innerHTML = `<div class="hoy-cab"><span>🪪</span><b>Nombres de ID por confirmar</b><em></em></div><p class="hoy-mas">Buscá el ID en Pago Store, copiá el nombre, pegalo y tocá Confirmar. La próxima vez que ese ID entre, el cliente ve el nombre al instante.</p>`;
-    nb.querySelector("em").textContent = String(d.nombres.length);
-    d.nombres.forEach((x) => {
-      const f = document.createElement("div"); f.className = "nom-fila" + (x.cambio ? " cambio" : "");
-      f.innerHTML = `<div class="nom-id"><b></b><button type="button" class="hoy-copiar" title="Copiar el ID" aria-label="Copiar el ID">📋</button></div><small class="nom-nota"></small><div class="nom-ed"><input class="nom-in" type="text" maxlength="40" placeholder="Nombre en Pago Store" autocomplete="off"><button type="button" class="nom-ok">✔ Confirmar</button></div>`;
-      f.querySelector("b").textContent = "ID " + x.id_jugador;
-      const nota = f.querySelector(".nom-nota"), inp = f.querySelector(".nom-in");
-      if (x.cambio) { nota.textContent = `⚠️ Cambió de nombre: tenías «${x.nombre}» y ahora aparece «${x.detectado}». Revisalo en Pago Store.`; inp.value = x.detectado || ""; }
-      else if (x.detectado) { nota.textContent = `Un servicio dice: «${x.detectado}» (verificalo).`; inp.value = x.detectado; }
-      else nota.textContent = "Todavía sin nombre.";
-      f.querySelector(".hoy-copiar").addEventListener("click", async () => { try { await navigator.clipboard.writeText(String(x.id_jugador)); mostrarAviso("ID copiado: " + x.id_jugador, "ok"); } catch (_) { mostrarAviso("No se pudo copiar.", "error"); } });
-      f.querySelector(".nom-ok").addEventListener("click", async () => {
-        const v = inp.value.trim(); if (!v) { mostrarAviso("Escribí el nombre primero.", "error"); inp.focus(); return; }
-        const { error } = await supabase.rpc("admin_nombre_confirmar", { p_id: x.id_jugador, p_nombre: v });
-        if (error) { mostrarAviso(/PGRST202|does not exist|42883/i.test(String(error.message || error.code)) ? "Falta ejecutar novedades_clientes_v26.sql en Supabase." : "No se pudo guardar.", "error"); return; }
-        nombresId.set(x.id_jugador, v);
-        mostrarAviso("Nombre confirmado: " + v, "ok"); pintarHoy();
-      });
-      nb.appendChild(f);
-    });
-    c.appendChild(nb);
-  }
   const hoy = document.createElement("div"); hoy.className = "hoy-card info";
   hoy.innerHTML = `<div class="hoy-cab"><span>📈</span><b>Hoy</b></div><p class="hoy-num"></p><small class="hoy-mas">Contado sobre tus últimas 60 órdenes.</small><button type="button" class="hoy-ir">🩺 Revisar errores y cómo arreglarlos</button>`;
   hoy.querySelector(".hoy-num").textContent = `${d.hoyOk} recarga${d.hoyOk === 1 ? "" : "s"} acreditada${d.hoyOk === 1 ? "" : "s"} · ${fmtNum(d.hoyDia)} 💎`;
