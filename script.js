@@ -6012,7 +6012,7 @@ function promoTick() {
 }
 setInterval(promoTick, 1000);
 // ---- Clientes registrados (hoy / total) con buscador
-let cliDatos = null, cliTs = 0, cliCargando = false; const cliQ = { hoy: "", total: "" }, cliN = { hoy: 6, total: 6 };
+let cliDatos = null, cliTs = 0, cliCargando = false; const cliQ = { hoy: "", total: "" }, cliN = { hoy: 4, total: 4 };
 async function cliCargar() {
   if (cliCargando) return; cliCargando = true;
   try {
@@ -6057,10 +6057,10 @@ function tarjetaClientes(abrirChat, modo) {
         b.append(av, tx, fe); b.title = "Abrir chat"; b.addEventListener("click", () => abrirChat(f.id)); lista.appendChild(b);
       });
       if (filas.length > lim) { const m = document.createElement("button"); m.type = "button"; m.className = "cli-mas"; m.textContent = `Ver más (${filas.length - lim})`; m.addEventListener("click", () => { cliN[modo] += 10; llenar(); }); lista.appendChild(m); }
-      else if (lim > 6) { const m = document.createElement("button"); m.type = "button"; m.className = "cli-mas"; m.textContent = "Ver menos"; m.addEventListener("click", () => { cliN[modo] = 6; llenar(); }); lista.appendChild(m); }
+      else if (lim > 4) { const m = document.createElement("button"); m.type = "button"; m.className = "cli-mas"; m.textContent = "Ver menos"; m.addEventListener("click", () => { cliN[modo] = 4; llenar(); }); lista.appendChild(m); }
     };
     llenar();
-    q.addEventListener("input", () => { cliQ[modo] = q.value; cliN[modo] = 6; llenar(); });
+    q.addEventListener("input", () => { cliQ[modo] = q.value; cliN[modo] = 4; llenar(); });
   };
   if (cliDatos) pintar(); else t.innerHTML = `<div class="hoy-cab"><span>${ico}</span><b>${titulo}</b></div><p class="hoy-vacio">Cargando…</p>`;
   if (!cliDatos || Date.now() - cliTs > 60000) cliCargar().then(() => { if (t.isConnected && document.activeElement !== t.querySelector(".cli-q")) pintar(); });
@@ -6223,7 +6223,7 @@ async function pintarHoy() {
   const sm = document.createElement("summary"); sm.textContent = "⚙️ Más datos y herramientas"; mas.appendChild(sm);
   mas.addEventListener("toggle", () => { hoyMasAbierto = mas.open; });
   const g2 = document.createElement("div"); g2.className = "hoy-grid";
-  g2.append(hoy, tarjetaClientes(abrirChat, "hoy"), tarjetaClientes(abrirChat, "total"), tarjetaReglasPerfil(), tarjetaLimitesPin(), tarjetaAvisosWa());
+  g2.append(hoy, tarjetaLimitesPin(), tarjetaAvisosWa(), tarjetaClientes(abrirChat, "hoy"), tarjetaClientes(abrirChat, "total"), tarjetaReglasPerfil());
   mas.appendChild(g2); c.appendChild(mas);
   if (d.err.length) { const p = document.createElement("p"); p.className = "hoy-mas"; p.textContent = "No se pudo leer: " + d.err.join(", ") + ". Tocá 🔄 para reintentar."; c.appendChild(p); }
   if (!hoyTotal(d) && !d.err.length) { const ok = document.createElement("p"); ok.className = "hoy-todo"; ok.textContent = "✅ Todo al día. No tenés nada pendiente."; c.prepend(ok); }
@@ -7440,11 +7440,77 @@ const NOV = (function novedades() {
   const AJUSTES = [["ref_amigo_pct", "Bono del amigo invitado (% de su 1ª recarga)"], ["ref_amigo_tope_ars", "…tope en pesos ($)"], ["ref_amigo_tope_usd", "…tope en dólares (US$)"], ["ref_puntos", "Puntos que gana quien invita"], ["pts_unidad_ars", "1 punto cada ($ pesos recargados)"], ["pts_unidad_usd", "1 punto cada (US$ recargados)"], ["pts_valor_ars", "Valor de 1 punto ($ pesos)"], ["pts_min", "Mínimo de puntos para canjear"]];
   const aLocal = (iso) => { if (!iso) return ""; const d = new Date(iso); if (isNaN(d)) return ""; const p = (n) => String(n).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "T" + p(d.getHours()) + ":" + p(d.getMinutes()); };
   async function rpcAdm(fn, args, ok) { try { const { error } = await supabase.rpc(fn, args); if (error) throw error; if (ok) mostrarAviso(ok, "exito"); return true; } catch (e) { mostrarAviso("No se pudo: " + ((e && e.message) || "revisá el SQL v40"), "error"); return false; } }
+  const nvAbiertas = new Set(["fotos", "hist"]);
+  const AYUDA = {
+    fotos: { t: "📷 Fotos nuevas en chats privados", resumen: "Te avisa cuando tus clientes se mandan fotos entre amigos. Las fotos salen libres, vos solo las podés mirar.",
+      que: "Los clientes que son amigos pueden mandarse fotos en su chat privado. No esperan tu aprobación, pero acá te aparece el aviso (y un número rojo en la pestaña Novedades).",
+      donde: "Los clientes la ven en su chat privado, botón 📷 al lado de donde escriben.",
+      pasos: ["Cuando alguien manda una foto, aparece un número rojo en «Novedades».", "Abrí este apartado: ves quiénes se escribieron.", "Tocá «Ver chat» para leer toda la conversación con las fotos.", "Si todo está bien, no hagas nada: el aviso se apaga solo al abrirla.", "Si algo está mal, buscá a la persona en «Chats privados» y silenciala 1 hora."],
+      mock: '<div class="mk-chat"><div class="mk-b">Mirá mi skin 😎</div><div class="mk-img">📷 foto</div></div>' },
+    hist: { t: "✨ Historias de clientes", resumen: "Las historias son fotos o frases que duran 24 horas. Acá elegís si salen libres o si las aprobás vos antes.",
+      que: "Los clientes que ya recargaron suben una historia (foto o frase corta). Podés dejarlas LIBRES (salen enseguida) o CON APROBACIÓN (las fotos esperan tu OK; los textos siempre se filtran solos).",
+      donde: "Los clientes las ven en el carrusel de arriba (la diapositiva «Historias») con círculos como en Instagram: tocan y se abre a pantalla completa.",
+      pasos: ["Elegí abajo «Con aprobación» o «Libres» y tocá Guardar.", "Con aprobación: las fotos nuevas aparecen acá como «POR APROBAR».", "Tocá «Aprobar» (esa persona pasa a ser de confianza) o «Rechazar».", "Con 4 reportes de clientes, una historia se oculta sola.", "Con «＋ Subir historia oficial» publicás vos una historia de Zarela."],
+      mock: '<div class="mk-circ"><i>＋</i><i>💎</i><i>J</i><i>M</i></div><small>Círculos de historias en el carrusel</small>' },
+    histmsg: { t: "💌 Mensajes de historias", resumen: "Los mensajes raros que le escriben a una historia esperan tu decisión.",
+      que: "Cuando alguien le escribe un mensaje a la historia de otro, se filtra solo. Los mensajes sospechosos y los que le escriben a tus historias oficiales llegan acá.",
+      donde: "El cliente escribe desde el visor de la historia (campo «Escribí un mensaje…»).", pasos: ["Abrí este apartado.", "Leé el mensaje.", "«Entregar» lo manda a la persona; «Descartar» lo borra."], mock: '<div class="mk-b">Escribí un mensaje… ➤</div>' },
+    chats: { t: "💬 Chats privados entre amigos", resumen: "Los amigos se escriben entre sí. Acá revisás lo dudoso y podés leer cualquier conversación.",
+      que: "Dos clientes que son amigos pueden chatear. El sistema bloquea links, teléfonos y ventas, y esconde insultos para que los revises vos.",
+      donde: "En el botón verde «Chat» → lista «Mis amigos» → tocan un amigo.",
+      pasos: ["«Por revisar»: mensajes dudosos o reportados. Tocá Aprobar o Rechazar.", "«Todas las conversaciones»: tocá «Leer» para ver cualquier chat entre dos personas.", "«Fotos en los chats»: elegí si están apagadas, revisadas o libres (ahora: libres).", "Podés silenciar 1 hora a quien moleste."],
+      mock: '<div class="mk-chat"><div class="mk-b">¿Jugamos el torneo? 🏆</div><div class="mk-b mk-m">Dale 🔥 ✓✓</div></div>' },
+    interr: { t: "🎛️ Interruptores", resumen: "Prendés o apagás cada novedad para todos tus clientes.",
+      que: "Hay 4 funciones: Historias, Cupones, Referidos y Puntos. Cada una puede estar 🟢 Activa (todos la usan), 🕓 Próximamente (los clientes ven la etiqueta pero no la pueden usar) o ⚫ Apagada (no se ve). Vos siempre las podés probar.",
+      donde: "En el menú lateral (☰): «Cupones y puntos» muestra la etiqueta «Próximamente» si está en ese estado. Historias aparece en el carrusel.",
+      pasos: ["Elegí el estado en la lista de cada fila.", "Si ponés «Próximamente», podés elegir una fecha y hora: se activa SOLA a esa hora.", "Tocá «Guardar» en esa fila.", "Probá entrando como cliente: tiene que verse lo que elegiste."],
+      mock: '<div class="mk-menu"><b>🎁 Cupones y puntos</b> <em>Próximamente</em></div>' },
+    verif: { t: "✔ Insignia de verificación", resumen: "El tilde azul al lado del nombre. Vos decidís requisitos, precio y a quién se la das.",
+      que: "Es un tilde azul que aparece junto al nombre del cliente en comentarios, chats y su perfil. Sirve para destacar clientes de confianza, y si querés, como extra pago.",
+      donde: "Los clientes la piden desde su perfil (menú ☰ → «Mi perfil») en el botón «Pedir mi insignia». Si no cumplen las recargas mínimas, el botón está apagado.",
+      pasos: ["Poné el Estado en «Activa».", "Elegí cuántas recargas mínimas pide, el precio (0 = gratis) y la duración (0 = de por vida).", "Los pedidos llegan a «📨 Pedidos»: tocá «Dar ✔» (si tiene precio, cobrá antes por el chat de soporte).", "También podés buscar a alguien por nombre o #ID y dársela directo.", "Para sacarla: «Quitar» en la lista de verificadas."],
+      mock: '<div class="mk-b"><b>Juli JP</b> <span class="vf">✔</span></div>' },
+    cup: { t: "🎟️ Cupones", resumen: "Códigos de regalo: un % de la primera recarga como saldo.",
+      que: "Creás un código (ej. ZARELA10). El cliente lo canjea una vez y, cuando completa su primera recarga, recibe un % de esa recarga como saldo (con un tope para que no pierdas).",
+      donde: "Menú ☰ → «Cupones y puntos» → «Tengo un código».",
+      pasos: ["Escribí el CÓDIGO, el % (ej. 3), el tope en pesos y en dólares, y cuántos usos máximos.", "Opcional: una fecha de vencimiento.", "Tocá «Guardar cupón».", "En la lista podés Editar, Pausar o Borrar.", "Pasale el código a quien quieras (o ponelo en una promo)."],
+      mock: '<div class="mk-menu"><b>🎟️ Tengo un código</b><br><span class="mk-in">ZARELA10</span> <em>Canjear</em></div>' },
+    ajustes: { t: "⚙️ Ajustes de premios", resumen: "Los números de los premios: referidos y puntos. Mantenelos chicos.",
+      que: "Define cuánto regalás. Referidos: un amigo usa el código de otro y recibe un % de su 1ª recarga; quien lo invitó gana puntos. Puntos: cada cliente suma 1 punto por cada $ que recarga y los canjea por saldo.",
+      donde: "Menú ☰ → «Cupones y puntos»: ahí ven su código para invitar, sus puntos y el botón para canjear.",
+      pasos: ["Ejemplo: bono 3 % con tope $1500 → si el amigo recarga $20.000 recibe $600.", "Ejemplo: 1 punto cada $1000 y cada punto vale $10 → recargar $50.000 da 50 puntos = $500.", "«Mínimo de puntos» = desde cuántos puntos pueden canjear.", "Cuidado con los márgenes: tu costo de 1.000 💎 es $11.616.", "Tocá «Guardar ajustes». Los premios se pagan solo cuando la recarga queda COMPLETADA."],
+      mock: '<div class="mk-menu"><b>⭐ Mis puntos</b><br>50 puntos · valen $500</div>' },
+    promos: { t: "📅 Promos programadas", resumen: "Mensajes que se publican SOLOS a una hora y en los días que elijas.",
+      que: "Escribís un mensaje (ej. «¡50 % de descuento hoy!») y elegís a qué hora y qué días se publica solo, sin que estés conectada.",
+      donde: "Si marcás «Chat», queda fijado arriba del chat Mundial con tu nombre. Si marcás «Historia», sale como historia oficial de Zarela por 24 horas.",
+      pasos: ["Escribí el texto.", "Elegí la hora.", "Tildá los días (Lun, Mar, Mié, Jue, Vie, Sáb, Dom): solo salen los días con tilde ✔.", "Elegí dónde: Chat y/o Historia.", "Tocá «Agregar promo». En la lista podés «Publicar ahora», pausar o borrar."],
+      mock: '<div class="mk-b">📌 <b>Alma Zarela · Soporte</b><br>¡50 % de descuento hoy! 💎</div>' },
+  };
+  function abrirAyuda(id) {
+    const a = AYUDA[id]; if (!a) return;
+    let m = E("nv-ayuda"); if (!m) { m = el("div", "nh-modal nv-ayuda"); m.id = "nv-ayuda"; document.body.appendChild(m); m.addEventListener("click", (e) => { if (e.target === m) m.hidden = true; }); }
+    m.innerHTML = ""; m.hidden = false;
+    const c = el("div", "nv-ay-card"); const top = el("div", "nv-ay-top"); top.appendChild(el("b", "", a.t)); const x = el("button", "", "✕"); x.type = "button"; x.onclick = () => { m.hidden = true; }; top.appendChild(x); c.appendChild(top);
+    const sec = (tit, txt) => { c.appendChild(el("h5", "", tit)); c.appendChild(el("p", "", txt)); };
+    sec("¿Qué hace?", a.que); sec("¿Dónde lo ven los clientes?", a.donde);
+    c.appendChild(el("h5", "", "Paso a paso")); const ol = el("ol"); a.pasos.forEach((p) => ol.appendChild(el("li", "", p))); c.appendChild(ol);
+    if (a.mock) { c.appendChild(el("h5", "", "Así lo ven los clientes (ejemplo)")); const mk = el("div", "nv-mock"); mk.innerHTML = a.mock; c.appendChild(mk); }
+    m.appendChild(c);
+  }
   async function adminCargar() {
     const r = E("nv-admin"); if (!r) return;
     await cargarCfg();
     r.innerHTML = "";
-    const caja = (tit, ayuda) => { const d = el("div", "nv-caja"); d.appendChild(el("h4", "", tit)); if (ayuda) d.appendChild(el("p", "adm-ayuda", ayuda)); r.appendChild(d); return d; };
+    const idDe = (t) => t.includes("Interruptores") ? "interr" : t.includes("Ajustes") ? "ajustes" : t.includes("Cupones") ? "cup" : t.includes("Promos") ? "promos" : t.includes("Historias:") ? "hist" : t.includes("Mensajes de historias") ? "histmsg" : t.includes("Chats privados") ? "chats" : t.includes("Fotos nuevas") ? "fotos" : t.includes("Insignia") ? "verif" : t;
+    const lista = [];
+    const caja = (tit, ayuda) => {
+      const id = idDe(tit), d = el("details", "nv-caja"); d.dataset.id = id; const sm = el("summary", "nv-sum"); sm.appendChild(el("span", "nv-st", tit));
+      const bd = el("em", "nv-sbd"); bd.id = "nv-bd-" + id; bd.hidden = true; sm.appendChild(bd);
+      const q = el("button", "nv-q", "?"); q.type = "button"; q.title = "¿Para qué sirve? Tocá y te explico"; q.setAttribute("aria-label", "Ayuda"); q.onclick = (e) => { e.preventDefault(); e.stopPropagation(); abrirAyuda(id); }; sm.appendChild(q); d.appendChild(sm);
+      const body = el("div", "nv-cb"); if (AYUDA[id] && AYUDA[id].resumen) body.appendChild(el("p", "adm-ayuda", AYUDA[id].resumen)); else if (ayuda) body.appendChild(el("p", "adm-ayuda", ayuda)); d.appendChild(body);
+      d.open = nvAbiertas.has(id); d.addEventListener("toggle", () => { if (d.open) nvAbiertas.add(id); else nvAbiertas.delete(id); });
+      lista.push([id, d]); return body;
+    };
     // interruptores
     const c1 = caja("🎛️ Interruptores", "Activo = lo ven todos. Próximamente = los clientes ven la etiqueta (y se activa solo a la hora que pongas). Apagado = lo oculta. Vos siempre podés probarlo.");
     FLAGS.forEach(([k, n]) => {
@@ -7481,14 +7547,20 @@ const NOV = (function novedades() {
     // promos programadas
     const c4 = caja("📅 Promos programadas", "Se publican solas a la hora elegida: quedan fijadas arriba del chat mundial y/o salen como historia oficial de Zarela (24 h).");
     const lp = el("div", "nv-lista"); c4.appendChild(lp);
-    const fp = el("div", "nv-form"); const pT = el("input"); pT.placeholder = "Texto de la promo (máx. 80 si va a historia)"; pT.maxLength = 300; pT.style.minWidth = "220px";
-    const pH = el("input"); pH.type = "time"; pH.value = "18:00"; pH.style.maxWidth = "110px";
-    const dias = el("div", "nv-dias"); const NOM = ["L", "M", "X", "J", "V", "S", "D"]; const dchk = NOM.map((n, k) => { const l = el("label", "nv-d"); const c = el("input"); c.type = "checkbox"; c.checked = k < 5; l.appendChild(c); l.appendChild(el("span", "", n)); dias.appendChild(l); return c; });
-    const pC = el("label", "nv-d"); const pCi = el("input"); pCi.type = "checkbox"; pCi.checked = true; pC.appendChild(pCi); pC.appendChild(el("span", "", "Chat"));
-    const pS = el("label", "nv-d"); const pSi = el("input"); pSi.type = "checkbox"; pSi.checked = true; pS.appendChild(pSi); pS.appendChild(el("span", "", "Historia"));
-    const bp = el("button", "nv-btn", "Agregar promo"); bp.type = "button";
-    bp.onclick = async () => { const d = []; dchk.forEach((c, k) => { if (c.checked) d.push(k + 1); }); if (!pT.value.trim() || !d.length) { mostrarAviso("Poné el texto y al menos un día.", "info"); return; } const { error } = await supabase.from("promos_prog").insert({ titulo: "", texto: pT.value.trim(), hora: pH.value || "18:00", dias: d, a_chat: pCi.checked, a_historia: pSi.checked, activo: true }); if (error) { mostrarAviso("No se pudo (¿SQL v40?)", "error"); return; } pT.value = ""; cargarPro(); };
-    [pT, pH, dias, pC, pS, bp].forEach((x) => fp.appendChild(x)); c4.appendChild(fp);
+    const fp = el("div", "nv-pform");
+    const paso = (n, t, nodo) => { const w = el("div", "nv-paso"); w.appendChild(el("span", "nv-pn", n)); const x = el("div", "nv-pc"); x.appendChild(el("b", "", t)); x.appendChild(nodo); w.appendChild(x); fp.appendChild(w); };
+    const pT = el("input"); pT.placeholder = "Ej: ¡Hoy 50 % de descuento en diamantes! 💎"; pT.maxLength = 300; pT.style.width = "100%";
+    const pH = el("input"); pH.type = "time"; pH.value = "18:00"; pH.style.maxWidth = "120px";
+    const NOM = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+    const dias = el("div", "nv-dias"); const dchk = NOM.map((n, k) => { const l = el("label", "nv-d"); const c = el("input"); c.type = "checkbox"; c.checked = k < 5; l.appendChild(c); l.appendChild(el("span", "", n)); dias.appendChild(l); return c; });
+    const dd = el("div", ""); dd.appendChild(dias); dd.appendChild(el("small", "adm-ayuda", "Solo sale en los días con tilde ✔."));
+    const pC = el("label", "nv-d nv-dg"); const pCi = el("input"); pCi.type = "checkbox"; pCi.checked = true; pC.appendChild(pCi); pC.appendChild(el("span", "", "💬 Chat (fijado arriba del Mundial)"));
+    const pS = el("label", "nv-d nv-dg"); const pSi = el("input"); pSi.type = "checkbox"; pSi.checked = true; pS.appendChild(pSi); pS.appendChild(el("span", "", "✨ Historia oficial (24 h)"));
+    const dn = el("div", "nv-dias"); dn.appendChild(pC); dn.appendChild(pS);
+    paso("1", "¿Qué dice el mensaje?", pT); paso("2", "¿A qué hora?", pH); paso("3", "¿Qué días?", dd); paso("4", "¿Dónde se publica?", dn);
+    const bp = el("button", "nv-btn nv-grande", "Agregar promo"); bp.type = "button";
+    bp.onclick = async () => { const d = []; dchk.forEach((c, k) => { if (c.checked) d.push(k + 1); }); if (!pT.value.trim() || !d.length) { mostrarAviso("Poné el texto y al menos un día.", "info"); return; } if (!pCi.checked && !pSi.checked) { mostrarAviso("Elegí dónde se publica: Chat o Historia.", "info"); return; } const { error } = await supabase.from("promos_prog").insert({ titulo: "", texto: pT.value.trim(), hora: pH.value || "18:00", dias: d, a_chat: pCi.checked, a_historia: pSi.checked, activo: true }); if (error) { mostrarAviso("No se pudo guardar la promo.", "error"); return; } pT.value = ""; mostrarAviso("Promo agregada ✔", "exito"); cargarPro(); };
+    fp.appendChild(bp); c4.appendChild(fp);
     async function cargarPro() {
       lp.innerHTML = ""; try { const { data, error } = await supabase.from("promos_prog").select("*").order("id"); if (error) throw error; if (!data.length) lp.appendChild(el("p", "adm-ayuda", "No hay promos programadas.")); data.forEach((p) => {
         const f = el("div", "nv-item"); f.appendChild(el("b", "", (p.hora || "").slice(0, 5) + " · " + p.dias.map((d) => NOM[d - 1]).join(" ")));
@@ -7501,11 +7573,16 @@ const NOV = (function novedades() {
     cargarPro();
     // historias
     const c5 = caja("✨ Historias: para aprobar y activas", "Al aprobar una foto, esa persona pasa a ser «de confianza»: sus próximas fotos salen sin esperar (el texto siempre se filtra solo). Con 4 reportes una historia se oculta sola.");
+    const fmh = el("div", "nv-fila"); fmh.appendChild(el("b", "", "📸 Las fotos de los clientes salen…"));
+    const sh = el("select"); [["aprobacion", "🔎 Con aprobación (las revisás vos)"], ["libre", "🟢 Libres (salen enseguida)"]].forEach(([v, t]) => { const o = el("option", "", t); o.value = v; sh.appendChild(o); }); sh.value = cfg.hist_modo || "aprobacion";
+    const bh = el("button", "nv-btn", "Guardar"); bh.type = "button"; bh.onclick = async () => { if (await rpcAdm("admin_nov_config", { p_clave: "hist_modo", p_valor: sh.value }, "Guardado ✔")) cfg.hist_modo = sh.value; };
+    fmh.appendChild(sh); fmh.appendChild(bh); c5.appendChild(fmh);
     const lh = el("div", "nv-lista"); c5.appendChild(lh);
     async function cargarHis() {
       lh.innerHTML = ""; try {
         const { data, error } = await supabase.from("historias").select("*").or("estado.eq.pendiente,and(estado.eq.aprobada,expira_at.gt." + new Date().toISOString() + ")").order("created_at", { ascending: false }).limit(60); if (error) throw error;
         const pend = data.filter((h) => h.estado === "pendiente"); const bd = E("nv-pend-n"); if (bd) { bd.textContent = pend.length; bd.hidden = !pend.length; }
+        const bd2 = E("nv-bd-hist"); if (bd2) { bd2.textContent = pend.length + " por aprobar"; bd2.hidden = !pend.length; }
         if (!data.length) lh.appendChild(el("p", "adm-ayuda", "No hay historias por ahora."));
         data.forEach((h) => { const f = el("div", "nv-item nv-his"); if (h.imagen_path) { const im = el("img"); im.src = urlImg(h.imagen_path); im.alt = ""; f.appendChild(im); }
           const t = el("div", "nv-his-t"); t.appendChild(el("b", "", h.nombre + (h.estado === "pendiente" ? " · POR APROBAR" : h.oculto ? " · OCULTA (reportes)" : ""))); t.appendChild(el("span", "", h.texto || "(solo foto)")); f.appendChild(t);
@@ -7610,6 +7687,10 @@ const NOV = (function novedades() {
     iB.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); bB.click(); } });
     cargarVerifAdm();
     const nuevoH = el("button", "nv-btn", "＋ Subir historia oficial"); nuevoH.type = "button"; nuevoH.onclick = abrirCreador; c5.appendChild(nuevoH);
+    const ORDEN = ["fotos", "hist", "histmsg", "chats", "interr", "verif", "cup", "ajustes", "promos"];
+    lista.sort((a, b) => ORDEN.indexOf(a[0]) - ORDEN.indexOf(b[0]));
+    const guia = el("p", "nv-guia", "Ordenado de lo más importante a lo menos importante. Tocá el título para abrir o cerrar cada apartado, y el ❓ rojo para que te explique qué hace y cómo lo ven los clientes.");
+    r.appendChild(guia); lista.forEach(([, d]) => r.appendChild(d));
   }
   window.novAdminCargar = adminCargar;
   // punto rojo con el número de fotos nuevas (pestaña Novedades y acceso en Pendientes)
@@ -7849,9 +7930,14 @@ const NOV = (function novedades() {
   const el = (t, c, txt) => { const e = document.createElement(t); if (c) e.className = c; if (txt !== undefined) e.textContent = txt; return e; };
   const FONDOS = [["f1", "linear-gradient(135deg,#0f2a5c,#2b7bff)"], ["f2", "linear-gradient(135deg,#3b0f33,#ec4899)"], ["f3", "linear-gradient(135deg,#0b3d2e,#19e68c)"], ["f4", "linear-gradient(135deg,#2a1a5e,#a855f7)"], ["f5", "linear-gradient(135deg,#5a2a00,#f59e0b)"], ["f6", "linear-gradient(135deg,#4a0d0d,#ef4444)"], ["f7", "linear-gradient(135deg,#102a43,#38bdf8,#19e68c)"], ["f8", "linear-gradient(135deg,#0b0b12,#4b5563)"]];
   const ORO = "linear-gradient(135deg,#3a2a00,#c98f0a 45%,#ffe58a 75%,#c98f0a)";
-  const fondoCss = (k, oro) => (oro && !k ? ORO : (FONDOS.find((x) => x[0] === k) || (oro ? ["", ORO] : FONDOS[0]))[1]);
+  const NIVRGB = ["226,150,86", "205,218,238", "255,205,70", "110,235,225", "70,160,255", "255,95,40", "190,100,255", "255,190,70"];
+  const nivCss = (i) => "linear-gradient(135deg,rgba(" + NIVRGB[i] + ",.85),rgba(" + NIVRGB[i] + ",.25) 55%,#0b0b12)";
+  const fondoCss = (k, oro) => { const m = /^n([0-7])$/.exec(k || ""); if (m) return nivCss(Number(m[1])); return oro && !k ? ORO : (FONDOS.find((x) => x[0] === k) || (oro ? ["", ORO] : FONDOS[0]))[1]; };
+  const urlPortada = (p) => { try { return supabase.storage.from("chatfotos").getPublicUrl(p).data.publicUrl; } catch (_) { return ""; } };
+  const coverCss = (p) => (p.portada ? "linear-gradient(rgba(0,0,0,.15),rgba(0,0,0,.15)),url('" + urlPortada(p.portada) + "') center/cover" : fondoCss(p.fondo, p.es_soporte));
+  const comprimir = (file) => new Promise((res, rej) => { const im = new Image(), u = URL.createObjectURL(file); im.onload = () => { const k = Math.min(1, 1100 / Math.max(im.width, im.height)); const cv = document.createElement("canvas"); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k); cv.getContext("2d").drawImage(im, 0, 0, cv.width, cv.height); cv.toBlob((b) => (b ? res(b) : rej()), "image/jpeg", 0.72); URL.revokeObjectURL(u); }; im.onerror = rej; im.src = u; });
   const fmtN = (n) => Number(n || 0).toLocaleString("es-AR");
-  const ERR = { LINK: "No se permiten links ni redes en tu descripción 🚫", TELEFONO: "No pongas teléfonos 🚫", VENTA: "Esa descripción no está permitida 🚫", TEXTO_INVALIDO: "Hasta 140 letras.", NO_DISPONIBLE: "La insignia todavía no está disponible.", REQUISITO: "Todavía no cumplís los requisitos." };
+  const ERR = { LINK: "No se permiten links ni redes en tu descripción 🚫", RUTA_INVALIDA: "Esa foto no se pudo usar.", TELEFONO: "No pongas teléfonos 🚫", VENTA: "Esa descripción no está permitida 🚫", TEXTO_INVALIDO: "Hasta 140 letras.", NO_DISPONIBLE: "La insignia todavía no está disponible.", REQUISITO: "Todavía no cumplís los requisitos." };
   const msgErr = (e, d) => { const m = String((e && e.message) || ""); const k = Object.keys(ERR).find((x) => m.includes(x)); return k ? ERR[k] : d; };
   const yo = () => (usuarioActual ? usuarioActual.id : null);
   const cerrar = () => { const m = E("pf-modal"); if (m) m.hidden = true; };
@@ -7875,7 +7961,8 @@ const NOV = (function novedades() {
 
   function pintarPerfil(p, editando) {
     const card = E("pf-card"); card.innerHTML = ""; card.className = "pf-card" + (p.es_soporte ? " pf-oro" : "");
-    const cov = el("div", "pf-cover"); cov.style.background = fondoCss(p.fondo, p.es_soporte); card.appendChild(cov); card.appendChild(botonX());
+    const cov = el("div", "pf-cover"); cov.style.background = coverCss(p); card.appendChild(cov);
+    const vol = el("button", "pf-volver", "‹ Volver"); vol.type = "button"; vol.onclick = cerrar; card.appendChild(vol); card.appendChild(botonX());
     const av = el("div", "pf-av"); av.appendChild(miniAv(p.nombre, p.foto, "pf-av-i")); card.appendChild(av);
     const cu = el("div", "pf-cuerpo"); card.appendChild(cu);
     // nombre + sellos
@@ -7904,9 +7991,11 @@ const NOV = (function novedades() {
       const e = el("button", "al-ok", "✏️ Editar perfil"); e.type = "button"; e.onclick = () => pintarPerfil(p, true); ac.appendChild(e);
       if (!p.es_soporte) pintarVerif(cu, p);
     } else {
-      const lk = el("button", "pf-like" + (p.mi_like ? " on" : ""), (p.mi_like ? "❤️" : "🤍") + " Me gusta"); lk.type = "button";
+      const txtLk = () => (p.mi_like ? "❤️ Ya le diste Me gusta hoy" : "🤍 Me gusta");
+      const lk = el("button", "pf-like" + (p.mi_like ? " on" : ""), txtLk()); lk.type = "button"; lk.disabled = !!p.mi_like; lk.title = "Podés darle un Me gusta por día a cada persona";
       lk.onclick = async () => { if (!usuarioActual) { mostrarAviso("Ingresá con Google para dar Me gusta.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
-        try { const { data, error } = await supabase.rpc("perfil_like", { p_user: p.id }); if (error) throw error; p.mi_like = data.mi_like; p.likes = data.likes; lk.className = "pf-like" + (p.mi_like ? " on" : ""); lk.textContent = (p.mi_like ? "❤️" : "🤍") + " Me gusta"; dl.firstChild.textContent = fmtN(p.likes); } catch (_) { mostrarAviso("No se pudo ahora.", "error"); } };
+        try { const { data, error } = await supabase.rpc("perfil_like", { p_user: p.id }); if (error) throw error; p.mi_like = true; p.likes = data.likes; lk.className = "pf-like on"; lk.textContent = txtLk(); lk.disabled = true; dl.firstChild.textContent = fmtN(p.likes); mostrarAviso("❤️ ¡Listo! Mañana podés darle otro.", "exito"); }
+        catch (e) { if (String((e && e.message) || "").includes("YA_HOY")) { p.mi_like = true; lk.className = "pf-like on"; lk.textContent = txtLk(); lk.disabled = true; mostrarAviso("Hoy ya le diste Me gusta. ¡Volvé mañana! ❤️", "info"); } else mostrarAviso("No se pudo ahora.", "error"); } };
       ac.appendChild(lk);
       if (p.es_soporte) { const w = el("button", "al-ok", "💬 Escribir a Soporte"); w.type = "button"; w.onclick = () => { cerrar(); window.abrirChatSoporte && window.abrirChatSoporte(); }; ac.appendChild(w); }
       else {
@@ -7945,13 +8034,31 @@ const NOV = (function novedades() {
     cu.appendChild(el("label", "pf-lab", "Descripción")); cu.appendChild(bio);
     let tit = null; if (p.es_soporte) { cu.appendChild(el("label", "pf-lab", "Título (debajo de tu nombre)")); tit = el("input", "pf-in"); tit.maxLength = 40; tit.value = p.titulo || ""; tit.placeholder = "Ej: Dueña · Soporte de Recargas Zarela"; cu.appendChild(tit); }
     cu.appendChild(el("label", "pf-lab", "Fondo de tu perfil"));
-    let sel = p.fondo || ""; const sw = el("div", "pf-sw");
-    const mk = (k, css) => { const b = el("button", "pf-fb" + (sel === k ? " on" : "")); b.type = "button"; b.style.background = css; b.onclick = () => { sel = k; sw.querySelectorAll(".pf-fb").forEach((x) => x.classList.remove("on")); b.classList.add("on"); const c = E("pf-card").querySelector(".pf-cover"); if (c) c.style.background = fondoCss(k, p.es_soporte); }; sw.appendChild(b); };
+    let sel = p.fondo || "", portada = null, subiendo = false; const sw = el("div", "pf-sw");
+    const cover = () => E("pf-card").querySelector(".pf-cover");
+    const mk = (k, css, bloq, tit) => { const b = el("button", "pf-fb" + (sel === k && !p.portada ? " on" : "") + (bloq ? " bloq" : "")); b.type = "button"; b.style.background = css; if (tit) b.title = tit;
+      b.onclick = () => { if (bloq) { mostrarAviso(tit, "info"); return; } sel = k; portada = ""; p.portada = null; sw.querySelectorAll(".pf-fb").forEach((x) => x.classList.remove("on")); b.classList.add("on"); const c = cover(); if (c) c.style.background = fondoCss(k, p.es_soporte); }; sw.appendChild(b); };
     if (p.es_soporte) mk("", ORO); FONDOS.forEach(([k, css]) => mk(k, css)); cu.appendChild(sw);
+    if (!p.es_soporte) {
+      const miNiv = nivelDe(Number(p.diamantes) || 0);
+      cu.appendChild(el("label", "pf-lab", "Fondos de tus niveles 🏆"));
+      const sw2 = el("div", "pf-sw"); cu.appendChild(sw2);
+      NIVELES.forEach((n, i) => { const b = el("button", "pf-fb" + (sel === "n" + i && !p.portada ? " on" : "") + (i > miNiv ? " bloq" : "")); b.type = "button"; b.style.background = nivCss(i); b.textContent = i > miNiv ? "🔒" : n.ico; const tit = i > miNiv ? "Se desbloquea al llegar al nivel " + n.n : "Nivel " + n.n;
+        b.title = tit; b.onclick = () => { if (i > miNiv) { mostrarAviso(tit, "info"); return; } sel = "n" + i; portada = ""; p.portada = null; document.querySelectorAll("#pf-card .pf-fb").forEach((x) => x.classList.remove("on")); b.classList.add("on"); const c = cover(); if (c) c.style.background = nivCss(i); }; sw2.appendChild(b); });
+    }
+    cu.appendChild(el("label", "pf-lab", "O poné tu propia foto de portada 📷"));
+    const fr = el("div", "pf-acc"); const fi = el("input"); fi.type = "file"; fi.accept = "image/*"; fi.hidden = true;
+    const bf = el("button", "pf-sec", "📷 Elegir foto de portada"); bf.type = "button"; bf.onclick = () => fi.click();
+    const bq = el("button", "pf-sec", "Quitar portada"); bq.type = "button"; bq.hidden = !p.portada; bq.onclick = () => { portada = ""; p.portada = null; bq.hidden = true; const c = cover(); if (c) c.style.background = fondoCss(sel, p.es_soporte); };
+    fi.onchange = async () => { const f = fi.files && fi.files[0]; fi.value = ""; if (!f) return; subiendo = true; bf.textContent = "Subiendo…";
+      try { const blob = await comprimir(f); const path = usuarioActual.id + "/portada-" + Date.now() + ".jpg"; const { error } = await supabase.storage.from("chatfotos").upload(path, blob, { contentType: "image/jpeg", upsert: false }); if (error) throw error; portada = path; p.portada = path; bq.hidden = false; const c = cover(); if (c) c.style.background = coverCss(p); sw.querySelectorAll(".pf-fb").forEach((x) => x.classList.remove("on")); }
+      catch (_) { mostrarAviso("No se pudo subir la foto. Probá con otra.", "error"); }
+      subiendo = false; bf.textContent = "📷 Elegir foto de portada"; };
+    fr.append(bf, bq, fi); cu.appendChild(fr);
     cu.appendChild(el("p", "pf-chico", "Tu foto es la de tu cuenta de Google. Si la cambiás ahí, acá se actualiza sola."));
     const ac = el("div", "pf-acc"); cu.appendChild(ac);
     const g = el("button", "al-ok", "Guardar"); g.type = "button";
-    g.onclick = async () => { g.disabled = true; try { const { error } = await supabase.rpc("mi_perfil_guardar", { p_bio: bio.value, p_fondo: sel, p_titulo: tit ? tit.value : null }); if (error) throw error; mostrarAviso("Perfil guardado ✔", "exito"); abrirPerfil(p.id); } catch (e) { mostrarAviso(msgErr(e, "No se pudo guardar."), "error"); g.disabled = false; } };
+    g.onclick = async () => { if (subiendo) return; g.disabled = true; try { const { error } = await supabase.rpc("mi_perfil_guardar", { p_bio: bio.value, p_fondo: sel, p_titulo: tit ? tit.value : null, p_portada: portada }); if (error) throw error; mostrarAviso("Perfil guardado ✔", "exito"); abrirPerfil(p.id); } catch (e) { mostrarAviso(msgErr(e, "No se pudo guardar."), "error"); g.disabled = false; } };
     const c = el("button", "pf-sec", "Cancelar"); c.type = "button"; c.onclick = () => pintarPerfil(p, false);
     ac.appendChild(g); ac.appendChild(c);
   }
