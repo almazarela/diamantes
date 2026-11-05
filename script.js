@@ -1454,10 +1454,11 @@ function tocarActividad(id) {
   renderListaClientes();
 }
 
-function menuNoLeidos(ancla, get, set) {
+function menuNoLeidos(ancla, get, set, extras) {
   document.querySelectorAll(".nl-menu").forEach((x) => x.remove());
   const m = document.createElement("div"); m.className = "nl-menu";
   [["Todos los chats", false], ["🔵 Solo no leídos", true]].forEach(([t, v]) => { const b = document.createElement("button"); b.type = "button"; b.textContent = t + (get() === v ? "  ✔" : ""); b.className = get() === v ? "on" : ""; b.onclick = (e) => { e.stopPropagation(); set(v); m.remove(); }; m.appendChild(b); });
+  (extras || []).forEach(([t, fn]) => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.onclick = (e) => { e.stopPropagation(); m.remove(); fn(); }; m.appendChild(b); });
   ancla.parentNode.style.position = "relative"; ancla.parentNode.appendChild(m);
   setTimeout(() => document.addEventListener("click", () => m.remove(), { once: true }), 0);
 }
@@ -5634,7 +5635,7 @@ setInterval(() => {
 supabase.auth.onAuthStateChange((_e, session) => { if (session && (session.user.email || "").toLowerCase() === CONFIG.ADMIN_EMAIL.toLowerCase()) setTimeout(() => { try { supabase.rpc("admin_marcar_entregados").then(() => {}, () => {}); } catch (_) {} }, 1200); });
 
 const FONDOS_CHAT = [
-  { id: "ninguno", n: "Oscuro", css: "linear-gradient(170deg,#0b0d18,#04050a)" },
+  { id: "ninguno", n: "Cristal transparente", css: "linear-gradient(160deg,rgba(255,255,255,.55),rgba(255,255,255,.15))" },
   { id: "cristal", n: "Cristal azul", css: "radial-gradient(circle at 20% 0%,rgba(80,150,230,.2),transparent 55%),linear-gradient(160deg,#0a1a38,#04070f)" },
   { id: "orion", n: "Verde Orión", css: "radial-gradient(ellipse at 50% -10%,rgba(25,230,140,.26),transparent 62%),linear-gradient(180deg,#07291d,#020a07)" },
   { id: "rosa", n: "Rosa oscuro", css: "radial-gradient(circle at 80% 0%,rgba(255,92,138,.22),transparent 55%),linear-gradient(160deg,#25091a,#0a040a)" },
@@ -5645,7 +5646,7 @@ const claveFondo = "zarela_chat_fondo";
 function fondoGuardado() { try { return JSON.parse(localStorage.getItem(claveFondo) || "null"); } catch (_) { return null; } }
 function aplicarFondoChat() {
   const f = fondoGuardado(); let css = "";
-  if (f?.tipo === "preset") css = (FONDOS_CHAT.find((x) => x.id === f.id) || {}).css || "";
+  if (f?.tipo === "preset" && f.id !== "ninguno") css = (FONDOS_CHAT.find((x) => x.id === f.id) || {}).css || "";
   else if (f?.tipo === "foto" && f.data) css = `linear-gradient(rgba(3,5,14,.6),rgba(3,5,14,.6)),url(${f.data}) center/cover`;
   document.documentElement.style.setProperty("--chat-fondo", css || "none");
   document.body.classList.toggle("chat-con-fondo", !!css);
@@ -6522,7 +6523,7 @@ function pintarSoporte(base) {
   soporteEstado = e;
   if (e === "en_linea") { try { $("chat-aviso-off")?.remove(); } catch (_) {} }
   const w = $("chat-widget"); if (w) w.dataset.soporte = e;
-  const t = $("chat-soporte-txt"); if (t) { t.textContent = SOPORTE_TXT[e]; t.hidden = e === "oculto"; }
+  const t = $("chat-soporte-txt"); if (t) { t.innerHTML = e === "oculto" ? "" : '<span class="of-tag">✔ Oficial</span> · ' + (e === "en_linea" ? "En línea" : "Desconectada"); t.hidden = e === "oculto"; }
   const sel = $("adm-soporte"); if (sel && sel.value !== base && document.activeElement !== sel) sel.value = base;
 }
 async function leerSoporte() { try { const { data, error } = await supabase.rpc("soporte_estado"); if (!error && data) pintarSoporte(String(data)); } catch (_) {} }
@@ -7875,6 +7876,15 @@ const NOV = (function novedades() {
     const top = Math.max(hb, 0) + 10, h = Math.max(300, Math.min(470, innerHeight - top - 16));  // anclado
     rs.setProperty("--cx", Math.round(c.left) + "px"); rs.setProperty("--cw", Math.round(c.width) + "px");
     rs.setProperty("--cy", top + "px"); rs.setProperty("--ch", h + "px");
+    // v60g: el chat va ANCLADO a la página (a la altura de "Ingresar ID") y sube/baja con ella. Opción: dejarlo flotante.
+    const card = document.querySelector("h3.h3-cristal") && document.querySelector("h3.h3-cristal").closest(".card");
+    const ay = card ? Math.round(card.getBoundingClientRect().top + scrollY) : top;
+    rs.setProperty("--cya", ay + "px"); rs.setProperty("--cx", Math.round(c.left + scrollX) + "px");
+    const b = document.body, abierto = b.classList.contains("hub-abierto") || b.classList.contains("dm-abierto") || b.classList.contains("cm-abierto") || b.classList.contains("soporte-abierto");
+    if (!abierto) { tempDecidido = false; flotaTemp = false; }
+    else if (!tempDecidido) { tempDecidido = true; const vis = (ay - scrollY) < innerHeight - 150 && (ay + h - scrollY) > hb + 150; flotaTemp = !vis; }
+    b.classList.toggle("chat-fixed", flotaUser || flotaTemp); b.classList.toggle("chat-flota-user", flotaUser);
+    if (flotaUser || flotaTemp) rs.setProperty("--cx", Math.round(c.left) + "px");
     const ancho = null; // v60d: el chat ya no se esconde en la burbuja
     let mini = false;
     if (ancho) { const y = ancho.getBoundingClientRect().top; mini = y < top + h + 12; }
@@ -7884,6 +7894,17 @@ const NOV = (function novedades() {
     if (mini && !antes && !forzadoMini && (activo || document.body.classList.contains("soporte-abierto"))) { try { todoCerrado(); } catch (_) {} }
   }
   let forzadoMini = false;
+  let flotaUser = false; try { flotaUser = localStorage.getItem("zarela_chat_flota") === "1"; } catch (_) {}
+  let flotaTemp = false, tempDecidido = false;
+  function alternarFlota() { flotaUser = !flotaUser; try { localStorage.setItem("zarela_chat_flota", flotaUser ? "1" : "0"); } catch (_) {} tempDecidido = false; fijarChat(); }
+  { // arrastrar el chat cuando está en modo flotante (desde su barra de arriba)
+    let d = null;
+    document.addEventListener("pointerdown", (e) => { if (!flotaUser || !esPC()) return; const hd = e.target.closest && e.target.closest(".cm-top,.chat-widget-header"); if (!hd || e.target.closest("button,a,input,select")) return; const p = hd.closest(".cm-panel,.hub-panel,.dm-panel,.chat-widget-card"); if (!p) return; const r = p.getBoundingClientRect(); d = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, w: r.width, h: r.height }; });
+    document.addEventListener("pointermove", (e) => { if (!d) return; const l = Math.min(Math.max(0, d.l + e.clientX - d.x), innerWidth - d.w), t = Math.min(Math.max(0, d.t + e.clientY - d.y), innerHeight - d.h); const rs = document.documentElement.style; rs.setProperty("--fx", Math.round(l) + "px"); rs.setProperty("--fy", Math.round(t) + "px"); });
+    document.addEventListener("pointerup", () => { if (!d) return; d = null; try { const rs = document.documentElement.style; localStorage.setItem("zarela_chat_pos", JSON.stringify([rs.getPropertyValue("--fx"), rs.getPropertyValue("--fy")])); } catch (_) {} });
+    try { const g = JSON.parse(localStorage.getItem("zarela_chat_pos") || "null"); if (g) { document.documentElement.style.setProperty("--fx", g[0]); document.documentElement.style.setProperty("--fy", g[1]); } } catch (_) {}
+    new MutationObserver(() => pedirFijar()).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  }
   let fcT = 0; const pedirFijar = () => { if (!fcT) fcT = requestAnimationFrame(() => { fcT = 0; fijarChat(); }); };
   addEventListener("scroll", pedirFijar, { passive: true }); addEventListener("resize", pedirFijar);
   setTimeout(fijarChat, 300); setTimeout(fijarChat, 1500); setTimeout(fijarChat, 4000);
@@ -7912,7 +7933,7 @@ const NOV = (function novedades() {
   }
   function fila(av, tit, sub, meta, n, fijado, fn) {
     const b = el("button", "hub-fila" + (fijado ? " fij" : "")); b.type = "button"; b.appendChild(av);
-    const t = el("div", "hub-t"); const h = el("div", "hub-h"); h.appendChild(el("b", "", tit));  t.appendChild(h); t.appendChild(el("small", "", sub)); b.appendChild(t);
+    const t = el("div", "hub-t"); const h = el("div", "hub-h"); { const bb = el("b", "", tit.replace(" ✔ Oficial", "")); if (/ ✔ Oficial$/.test(tit)) { bb.appendChild(el("span", "vf-of", "✔")); bb.appendChild(el("span", "of-tag", "Oficial")); } h.appendChild(bb); }  t.appendChild(h); t.appendChild(el("small", "", sub)); b.appendChild(t);
     const m = el("div", "hub-m"); if (meta) m.appendChild(el("small", "", meta)); if (n) m.appendChild(el("em", "hub-n", n > 99 ? "99+" : String(n))); b.appendChild(m); b.onclick = fn; if (n) b.classList.add("nl"); if (soloNL && !n) b.hidden = true; return b;
   }
   let soloNL = false;
@@ -8009,7 +8030,7 @@ const NOV = (function novedades() {
   }
   function iniciar() {
     E("hub-x")?.addEventListener("click", () => { todoCerrado(); });
-    E("hub-menu")?.addEventListener("click", (e) => { e.stopPropagation(); menuNoLeidos(E("hub-menu"), () => soloNL, (v) => { soloNL = v; pintarHub(); }); });
+    E("hub-menu")?.addEventListener("click", (e) => { e.stopPropagation(); menuNoLeidos(E("hub-menu"), () => soloNL, (v) => { soloNL = v; pintarHub(); }, esPC() ? [[flotaUser ? "📍 Anclar el chat a la página" : "🪟 Dejar el chat flotante (movible)", alternarFlota]] : []); });
     E("hub-amg")?.addEventListener("click", () => window.abrirAmigos && window.abrirAmigos(""));
     E("chat-volver")?.addEventListener("click", () => { try { if (!esPC()) alternarChat(false); } catch (_) {} window.abrirHub(); });
     E("dm-back")?.addEventListener("click", () => window.abrirHub());

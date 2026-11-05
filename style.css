@@ -3229,7 +3229,7 @@ body.modo-admin .cm-fab{display:flex!important;bottom:84px}
 
 /* ===== v58 · chat fijo arriba a la derecha (PC) ===== */
 @media (min-width:801px){
- body:not(.modo-admin) .chat-widget-card.chat-v2,body:not(.modo-admin) .cm-panel,body:not(.modo-admin) .hub-panel,body:not(.modo-admin) .dm-panel{position:fixed!important;left:var(--cx,auto)!important;top:var(--cy,113px)!important;width:var(--cw,310px)!important;height:var(--ch,460px)!important;right:auto!important;bottom:auto!important;max-height:none}
+ body:not(.modo-admin) .chat-widget-card.chat-v2,body:not(.modo-admin) .cm-panel,body:not(.modo-admin) .hub-panel,body:not(.modo-admin) .dm-panel{position:absolute!important;left:var(--cx,auto)!important;top:var(--cya,113px)!important;width:var(--cw,310px)!important;height:var(--ch,460px)!important;right:auto!important;bottom:auto!important;max-height:none}
  body:not(.modo-admin):not(.soporte-abierto) .chat-widget-card.chat-v2{visibility:hidden}
  body:not(.modo-admin):not(.soporte-abierto):not(.hub-abierto):not(.dm-abierto):not(.cm-abierto) .chat-fab{display:flex;position:fixed;right:24px;bottom:100px;top:auto;z-index:900;align-items:center;gap:8px;padding:13px 18px;border:none;border-radius:999px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#04170c;font-weight:800;font-size:.95rem;box-shadow:0 6px 20px rgba(0,0,0,.5),0 0 16px rgba(34,197,94,.5);cursor:pointer}
 }
@@ -3479,3 +3479,30 @@ body:not(.modo-admin) #adm-flota{display:none}
 .hub-t small{color:#d3def5!important}
 .hub-sep{height:6px;padding:0!important;background:rgba(255,255,255,.08)!important}
 .hs-panel{-webkit-backdrop-filter:blur(12px) saturate(1.6)!important;backdrop-filter:blur(12px) saturate(1.6)!important}
+
+/* ===== v60g ===== */
+@media (min-width:801px){
+ body:not(.modo-admin).chat-fixed .chat-widget-card.chat-v2,body:not(.modo-admin).chat-fixed .cm-panel,body:not(.modo-admin).chat-fixed .hub-panel,body:not(.modo-admin).chat-fixed .dm-panel{position:fixed!important;left:var(--fx,var(--cx))!important;top:var(--fy,var(--cy,113px))!important}
+ body.chat-flota-user .cm-top,body.chat-flota-user .chat-widget-header{cursor:grab;user-select:none}
+}
+/* insignias: ✔ blanca dentro del círculo azul (como Instagram) y "Oficial" en naranja */
+.vf-of{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;margin:0 4px;border-radius:50%;background:linear-gradient(135deg,#38bdf8,#2563eb);color:#fff;font-size:9px;font-weight:900;line-height:1;vertical-align:middle;box-shadow:0 0 6px rgba(56,189,248,.55)}
+.of-tag{display:inline-block;background:linear-gradient(135deg,#ffb300,#ff6d00);color:#1a0d00;font-size:.64rem;font-weight:800;padding:1px 8px;border-radius:99px;vertical-align:middle;margin-left:2px}
+.chat-agente-txt small{color:#e6efff}
+.cm-sello{background:linear-gradient(135deg,#ffb300,#ff6d00)!important;color:#1a0d00!important}
+/* vidrio también en el chat de soporte y en la parte de abajo del Mundial */
+.chat-widget-card.chat-v2{background:linear-gradient(160deg,rgba(255,255,255,.14),rgba(20,28,64,.46) 60%,rgba(10,14,36,.55))!important;-webkit-backdrop-filter:blur(26px) saturate(1.6);backdrop-filter:blur(26px) saturate(1.6);border:1px solid rgba(255,255,255,.34)!important}
+.chat-v2 .chat-widget-header{background:rgba(255,255,255,.10)!important;border-bottom:1px solid rgba(255,255,255,.22)!important}
+.chat-v2 .chat-messages-area{background:transparent!important}
+.chat-chips,.chat-v2 .chat-input-area{background:transparent!important}
+.chat-chips button{background:rgba(255,255,255,.12)!important;border-color:rgba(255,255,255,.3)!important;color:#fff!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.chat-v2 .admin-msg{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.28)}
+.chat-v2 .chat-input-area input{background:rgba(255,255,255,.12)!important;border-color:rgba(255,255,255,.32)!important;color:#fff}
+.cm-form,.cm-reglas,.cm-av{background:transparent!important}
+.cm-form input{background:rgba(255,255,255,.12)!important;border-color:rgba(255,255,255,.32)!important}
+.cm-reglas{color:#cfd9f0!important}
+.cm-lista{background:transparent}
+.cm-fondo{flex:0 0 auto;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:.85rem;margin-left:auto}
+.cm-fondo+.cm-amg{margin-left:6px!important}
+/* fondo personalizado elegido por la persona */
+body.chat-con-fondo .cm-panel,body.chat-con-fondo .dm-panel,body.chat-con-fondo .hub-panel{background:var(--chat-fondo)!important}
