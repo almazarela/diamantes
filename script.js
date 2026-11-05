@@ -6250,7 +6250,7 @@ async function pintarHoy() {
       f.querySelector(".hoy-copiar").addEventListener("click", async () => { try { await navigator.clipboard.writeText(String(o.id_jugador)); mostrarAviso("ID copiado: " + o.id_jugador, "ok"); } catch (_) { mostrarAviso("No se pudo copiar.", "error"); } });
       nombreDeId(o.id_jugador).then((n) => { const e = f.querySelector(".hoy-nom"); if (e && n) e.textContent = "· " + n; });
       f.querySelector(".hoy-ok").addEventListener("click", async () => { const { error } = await supabase.rpc("admin_promo_cargada", { p_orden_id: o.id }); if (!error) promoMarcarId(o.id_jugador, o.diamantes, "cargado"); mostrarAviso(error ? "No se pudo cerrar (¿ya salió con PIN?)." : "Listo: orden acreditada y el PIN volvió a tu stock.", error ? "error" : "ok"); pintarHoy(); });
-      f.querySelector(".hoy-pin").addEventListener("click", async () => { const { error } = await supabase.rpc("admin_promo_mandar_pin", { p_orden_id: o.id }); if (!error) promoMarcarId(o.id_jugador, o.diamantes, "pin"); mostrarAviso(error ? "No se pudo enviar." : "Enviada con PIN.", error ? "error" : "ok"); pintarHoy(); });
+      f.querySelector(".hoy-pin").addEventListener("click", async (ev) => { const bt = ev.currentTarget; if (bt.disabled) return; f.querySelectorAll("button").forEach((x) => { x.disabled = true; }); const { error } = await supabase.rpc("admin_promo_mandar_pin", { p_orden_id: o.id }); if (error) f.querySelectorAll("button").forEach((x) => { x.disabled = false; }); else promoMarcarId(o.id_jugador, o.diamantes, "pin"); mostrarAviso(error ? "No se pudo enviar." : "Enviada con PIN. (Se envía una sola vez)", error ? "error" : "ok"); pintarHoy(); });
       w.appendChild(f);
     });
     c.appendChild(w);
@@ -7255,7 +7255,11 @@ const NOV = (function novedades() {
     try { const { data } = await conTimeout(supabase.rpc("he_recargado", { uid: usuarioActual.id }), 6000); puedeSubir = data === true; } catch (_) { puedeSubir = false; }
     return puedeSubir;
   }
-  const sinVer = () => grupos.filter((g) => g.user_id !== miId() || g.oficial).map((g) => ({ ...g, items: g.items.filter((h) => !visto(h.id)) })).filter((g) => g.items.length);
+  const sinVer = () => {
+    const l = grupos.filter((g) => g.user_id !== miId() || g.oficial).map((g) => (g.oficial ? g : { ...g, items: g.items.filter((h) => !visto(h.id)) })).filter((g) => g.items.length);
+    return [...l.filter((g) => g.oficial), ...l.filter((g) => !g.oficial)];   // Zarela siempre primero, anclada
+  };
+  const ofiTag = (cls) => el("em", cls, "Oficial");
 
   // ---- lámina del carrusel
   function pintarSlide() {
@@ -7271,7 +7275,7 @@ const NOV = (function novedades() {
     const nueva = el("button", "sh-b sh-nueva"); nueva.type = "button"; nueva.appendChild(el("span", "sh-c", "＋")); nueva.appendChild(el("small", "", "Tu historia")); nueva.onclick = abrirCreador;
     // PC: varias burbujas con la foto de cada cliente
     const pc = el("div", "sh-pc"); pc.appendChild(nueva.cloneNode(true)); pc.firstChild.onclick = abrirCreador;
-    nuevas.slice(0, 6).forEach((g, i) => { const b = el("button", "sh-b" + (g.oficial ? " sh-ofi" : "")); b.type = "button"; const c = el("span", "sh-c"); c.appendChild(avatarGrupo(g)); b.appendChild(c); b.appendChild(el("small", "", g.oficial ? "Zarela" : g.nombre)); b.onclick = () => abrirVisor(nuevas.slice(i)); pc.appendChild(b); });
+    nuevas.slice(0, 6).forEach((g, i) => { const b = el("button", "sh-b" + (g.oficial ? " sh-ofi" : "")); b.type = "button"; const c = el("span", "sh-c"); c.appendChild(avatarGrupo(g)); b.appendChild(c); b.appendChild(el("small", "", g.oficial ? "Zarela" : g.nombre)); if (g.oficial) b.appendChild(ofiTag("sh-of")); b.onclick = () => abrirVisor(nuevas.slice(i)); pc.appendChild(b); });
     const todas = el("button", "sh-todas", "Ver todas ›"); todas.type = "button"; todas.onclick = abrirPanel; pc.appendChild(todas);
     if (!nuevas.length) pc.appendChild(el("span", "sh-vacio", "Ya viste todas las de hoy 🎉"));
     // celular: una sola burbuja que abre todo
@@ -7286,12 +7290,12 @@ const NOV = (function novedades() {
     const g0 = E("hsp-grid"); g0.innerHTML = "";
     const mi = miId();
     const nb = el("button", "hsp-it hsp-nueva"); nb.type = "button"; const nc = el("span", "hsp-c", "＋"); nb.appendChild(nc); nb.appendChild(el("small", "", "Tu historia")); nb.onclick = () => { cerrarPanel(); abrirCreador(); }; g0.appendChild(nb);
-    const orden = [...grupos].sort((a, b) => (visto(a.items[a.items.length - 1].id) - visto(b.items[b.items.length - 1].id)) || (b.ult - a.ult));
+    const orden = [...grupos].sort((a, b) => ((b.oficial ? 1 : 0) - (a.oficial ? 1 : 0)) || (visto(a.items[a.items.length - 1].id) - visto(b.items[b.items.length - 1].id)) || (b.ult - a.ult));
     orden.forEach((g) => {
       const todoVisto = g.items.every((h) => visto(h.id)), mia = mi && g.user_id === mi && !g.oficial;
       const b = el("button", "hsp-it" + (todoVisto ? " vista" : "") + (g.oficial ? " ofi" : "")); b.type = "button";
       const c = el("span", "hsp-c"); c.appendChild(avatarGrupo(g)); b.appendChild(c);
-      b.appendChild(el("small", "", mia ? "Tu historia" : g.oficial ? "Zarela" : g.nombre + (amigosSet.has(g.user_id) ? " 🤝" : "")));
+      b.appendChild(el("small", "", mia ? "Tu historia" : g.oficial ? "Zarela" : g.nombre + (amigosSet.has(g.user_id) ? " 🤝" : ""))); if (g.oficial) b.appendChild(ofiTag("hsp-of"));
       b.onclick = () => abrirVisor(orden.slice(orden.indexOf(g)), true);
       g0.appendChild(b);
     });
@@ -7838,7 +7842,7 @@ const NOV = (function novedades() {
     const top = Math.max(hb, 0) + 10, h = Math.max(300, Math.min(470, innerHeight - top - 16));
     rs.setProperty("--cx", Math.round(c.left) + "px"); rs.setProperty("--cw", Math.round(c.width) + "px");
     rs.setProperty("--cy", top + "px"); rs.setProperty("--ch", h + "px");
-    const ancho = document.body.classList.contains("col-der") ? null : (document.getElementById("top-mes") || document.getElementById("auth-section"));
+    const ancho = null; // v60d: el chat ya no se esconde en la burbuja
     let mini = false;
     if (ancho) { const y = ancho.getBoundingClientRect().top; mini = y < top + h + 12; }
     const antes = document.body.classList.contains("chat-mini");
@@ -7991,7 +7995,7 @@ const NOV = (function novedades() {
     setInterval(() => { if (!document.hidden) { pintarPunto(); if (activo === "hub") pintarHub(); } }, 20000);
     setTimeout(pintarPunto, 4000);
     // PC: la lista de chats es lo primero que se ve en el lugar del chat
-    setTimeout(() => { if (esPC() && !document.body.classList.contains("col-der") && !activo && !document.body.classList.contains("tour-on") && !document.body.classList.contains("chat-mini")) window.abrirHub(); }, 500);
+    setTimeout(() => { if (esPC() && !activo && !document.body.classList.contains("tour-on") && !document.body.classList.contains("chat-mini")) window.abrirHub(); }, 500);
   }
   supabase.auth.onAuthStateChange(() => { setTimeout(() => { pintarPunto(); if (activo === "hub") pintarHub(); }, 700); });
   document.addEventListener("DOMContentLoaded", iniciar);
@@ -8199,6 +8203,12 @@ const NOV = (function novedades() {
     mod("#dm-zoom", (n) => n.click()), mod("#al-modal", clic("al-x")), mod("#pf-modal", () => document.querySelector("#pf-card .pf-x, #pf-card .pf-volver")?.click()),
     mod("#am-modal", clic("am-x")), mod("#pr-modal", clic("pr-x")), mod("#hc-modal", clic("hc-x")), mod("#ha-modal", clic("ha-x")),
     mod("#hs-visor", clic("hs-x")), mod("#hs-panel", clic("hsp-x")), mod("#bv-modal", clic("bv-x")), mod("#nv-ayuda", (n) => { n.hidden = true; }),
+    mod("#modal-compra", () => cerrarCompra()), mod("#modal-seleccion-carga", () => mostrarModal("modal-seleccion-carga", false)), mod("#modal-binance", () => mostrarModal("modal-binance", false)),
+    mod("#modal-mercadopago", () => mostrarModal("modal-mercadopago", false)), mod("#modal-convertir", () => mostrarModal("modal-convertir", false)),
+    mod("#salud-modal", (n) => { n.hidden = true; }), mod("#nh-modal", (n) => { n.hidden = true; }), mod("#av-modal", (n) => { n.hidden = true; }), mod("#pd-modal", (n) => { n.hidden = true; }),
+    mod("#dm-ids", (n) => { n.hidden = true; }), mod("#op-inv", (n) => { n.hidden = true; }),
+    [() => { const n = document.getElementById("sidebar-menu"); return n && n.classList.contains("open") ? n : null; }, () => toggleMenu()],
+    [() => { const n = document.getElementById("hist-panel"); return n && !n.hidden ? n : null; }, () => alternarHistorial(false)],
     pan("#dm-panel", clic("dm-back")), pan("#cm-panel", clic("cm-x")), pan("#hub-panel", clic("hub-x")),
   ];
   function capaAbierta() {
@@ -8223,23 +8233,4 @@ const NOV = (function novedades() {
   document.addEventListener("DOMContentLoaded", () => {
     new MutationObserver(revisar).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["hidden", "class"] });
   });
-})();
-
-
-// ===== v60c · PC: "Top de recargas", "Cuenta Revendedor" y "Opiniones" suben a la columna derecha (vacía) =====
-(function columnaDerecha() {
-  const IDS = ["top-mes", "auth-section", "opiniones"], marcas = {};
-  const mq = matchMedia("(min-width: 801px)");
-  function ubicar() {
-    const col = document.querySelector(".right-widgets-col"); if (!col) return;
-    IDS.forEach((id) => {
-      const n = document.getElementById(id); if (!n) return;
-      if (!marcas[id]) { marcas[id] = document.createComment(id); n.parentNode.insertBefore(marcas[id], n); }
-      if (mq.matches) { if (n.parentNode !== col) col.appendChild(n); }
-      else if (n.parentNode === col && marcas[id].parentNode) marcas[id].parentNode.insertBefore(n, marcas[id].nextSibling);
-    });
-    document.body.classList.toggle("col-der", mq.matches);
-  }
-  document.addEventListener("DOMContentLoaded", () => { ubicar(); setTimeout(ubicar, 800); });
-  (mq.addEventListener ? mq.addEventListener("change", ubicar) : mq.addListener(ubicar));
 })();

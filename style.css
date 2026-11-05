@@ -3408,12 +3408,23 @@ em.est-raro{flex:1 1 100%;font-style:normal;font-weight:700;font-size:.76rem;col
 #adm-flota.min #admin-chat-view{display:none!important}
 body:not(.modo-admin) #adm-flota{display:none}
 @media (max-width:800px){#adm-flota{right:8px;left:8px;width:auto;height:70dvh;bottom:8px}#adm-flota.min{left:auto}}
-/* PC: columna derecha con Top de recargas, Cuenta Revendedor y Opiniones; contenido principal más a la izquierda */
-@media (min-width:801px){
-  body:not(.modo-admin) .container{max-width:1040px;margin-left:max(14px,calc(50% - 610px));margin-right:auto}
-  body:not(.modo-admin) .main-layout-grid{grid-template-columns:minmax(0,1fr) 330px;align-items:start}
-  body.col-der:not(.modo-admin) .right-widgets-col{display:flex;flex-direction:column;gap:14px;min-width:0;position:static}
-  body.col-der .right-widgets-col>.card{margin:0;width:100%;box-sizing:border-box;padding:14px}
-  body.col-der .right-widgets-col>#top-mes[hidden]{display:none}
-  body.col-der .right-widgets-col .comments-section{max-height:none}
-}
+
+/* ===== v60d · Historias estilo cristal (iPhone) ===== */
+.hs-panel{background:linear-gradient(160deg,rgba(255,255,255,.30),rgba(255,255,255,.10) 55%,rgba(200,220,255,.18))!important;-webkit-backdrop-filter:blur(34px) saturate(1.8);backdrop-filter:blur(34px) saturate(1.8);color:#fff}
+.hsp-cab{border-bottom:1px solid rgba(255,255,255,.28)!important;text-shadow:0 1px 6px rgba(0,0,0,.35);padding-top:max(14px,env(safe-area-inset-top))}
+.hsp-cab b{font-size:1.15rem;letter-spacing:.2px}
+.hsp-cab button{background:rgba(255,255,255,.24)!important;border:1px solid rgba(255,255,255,.4)!important;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.hsp-grid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))!important;gap:14px 10px!important}
+.hsp-it{background:linear-gradient(160deg,rgba(255,255,255,.28),rgba(255,255,255,.08));border:1px solid rgba(255,255,255,.38)!important;border-radius:22px;padding:12px 4px 10px!important;box-shadow:0 8px 24px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.55);color:#fff!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);text-shadow:0 1px 4px rgba(0,0,0,.45)}
+.hsp-it small{font-weight:600;font-size:.74rem!important;max-width:88px!important}
+.hsp-it.vista{opacity:.78}.hsp-it.vista .hsp-c{opacity:.8}
+.hsp-it.ofi{background:linear-gradient(160deg,rgba(255,224,130,.38),rgba(255,255,255,.1));border-color:rgba(255,214,102,.8)!important;box-shadow:0 8px 28px rgba(245,158,11,.35),inset 0 1px 0 rgba(255,255,255,.6)}
+.hsp-of,.sh-of{font-style:normal;font-size:.62rem;font-weight:800;letter-spacing:.3px;background:linear-gradient(135deg,#ffb300,#ff6d00);color:#1a0d00;border-radius:99px;padding:1px 9px;text-shadow:none;box-shadow:0 2px 8px rgba(255,140,0,.45)}
+/* tira del carrusel */
+.sh-in{margin:4px auto;max-width:96%;border-radius:22px;background:linear-gradient(160deg,rgba(255,255,255,.26),rgba(255,255,255,.07));border:1px solid rgba(255,255,255,.42);box-shadow:0 10px 34px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.6);-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6)}
+.sh-t{text-shadow:0 1px 8px rgba(0,0,0,.4);letter-spacing:.3px}
+.sh-b{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+.sh-b small{font-weight:600}
+.sh-todas,.sh-mini{background:rgba(255,255,255,.24);border-color:rgba(255,255,255,.5)}
+.hs-panel{background:linear-gradient(160deg,rgba(236,242,255,.46),rgba(160,175,220,.40) 55%,rgba(130,140,200,.46))!important;-webkit-backdrop-filter:blur(44px) saturate(1.8)!important;backdrop-filter:blur(44px) saturate(1.8)!important}
+.hsp-cab b{white-space:nowrap;font-size:1.05rem}.hsp-cab button{white-space:nowrap}
