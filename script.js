@@ -3554,10 +3554,14 @@ async function esperarOrden(ordenId, alDemorar) {
 
 // ¿Está encendido el servidor que entrega las recargas? (una consulta liviana, ~0,5 s; si no responde en 5 s se da por apagado)
 async function servidorDisponible() {
-  try {
-    const r = await postWebhook({ ping: true }, 5000);
-    return r.ok || r.status < 500;
-  } catch (_) { return false; }
+  for (let i = 0; i < 2; i++) {
+    try {
+      const r = await postWebhook({ ping: true }, 8000);
+      if (r.ok || r.status < 500) return true;
+    } catch (_) {}
+    if (i === 0) await new Promise((x) => setTimeout(x, 700));
+  }
+  return false;
 }
 
 function irAlChat(texto) {
@@ -4074,7 +4078,7 @@ function pintarTopLista(data) {
       if (nv >= 0) { cajaN = document.createElement("span"); cajaN.className = "nvb nvb-" + nv; cajaN.title = "Nivel " + NIVELES[nv].n; n.appendChild(cajaN); }
       cajaN.appendChild(t);
       if (nv >= 0) { const ic = document.createElement("span"); ic.className = "nvb-ico"; ic.textContent = NIVELES[nv].ico; cajaN.appendChild(ic); const tt = document.createElement("span"); tt.className = "nvb-t"; tt.textContent = NIVELES[nv].n; cajaN.appendChild(tt); }
-      if (r.es_soporte) { const b = document.createElement("span"); b.className = "op-badge"; b.textContent = "Soporte"; n.appendChild(b); }
+      if (r.es_soporte) { const b = document.createElement("span"); b.className = "op-badge"; b.textContent = "✔ Oficial"; n.appendChild(b); }
       const d = document.createElement("span"); d.className = "dia"; d.textContent = fmtNum(r.diamantes) + " 💎";
       if (nv >= 0) { av.classList.add("av-en-nvb"); cajaN.insertBefore(av, cajaN.firstChild); li.append(p, n, d); }   // la insignia envuelve también la foto
       else li.append(p, av, n, d);
@@ -6434,7 +6438,7 @@ document.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target 
 document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest(".btn-send, #admin-btn-responder")) tipFin(); }, true);
 
 let soporteEstado = "en_linea", soporteCanal = null, soporteBase = "en_linea", servidorLento = false;
-const SOPORTE_TXT = { en_linea: "En línea · Soporte", desconectada: "Desconectada · Soporte", oculto: "" };
+const SOPORTE_TXT = { en_linea: "✔ Oficial · En línea", desconectada: "✔ Oficial · Desconectada", oculto: "" };
 function pintarSoporte(base) {
   if (!Object.prototype.hasOwnProperty.call(SOPORTE_TXT, base)) base = "en_linea";
   soporteBase = base;
@@ -6956,7 +6960,7 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
   const ERR = {
     REPETIDO: "Ese mensaje ya lo mandaste hace un momento 🙂",
     MUY_RAPIDO: "Esperá unos segundos entre mensajes ⏳", LINK: "No se permiten links ni redes en el chat 🚫",
-    TELEFONO: "No se permiten teléfonos en el chat 🚫", VENTA: "No se permite vender ni ofrecer cosas en el chat 🚫",
+    TELEFONO: "No se permiten teléfonos en el chat 🚫", PROMO: "No se puede hacer publicidad ni ofrecer recargas acá 🚫", VENTA: "No se permite vender ni ofrecer cosas en el chat 🚫",
     SILENCIADO: "Estás silenciado por un rato 🤫", TEXTO_INVALIDO: "Escribí un mensaje de hasta 200 letras.", NO_AUTENTICADO: "Ingresá con Google para escribir.",
   };
   let sala = "general", abierto = false, msgs = [], fijados = {}, puede = null, canal = null, timer = 0, ultimoId = 0, sinLeer = 0, enviando = false;
@@ -7003,7 +7007,7 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
         const fotoM = m.tipo === "admin" ? (perfilSoporte && perfilSoporte.avatar_url) || (pp && pp.foto) : pp && pp.foto;
         const avM = miniAv(n.textContent, fotoM, "cm-av"); if (m.user_id) { avM.onclick = n.onclick; avM.style.cursor = "pointer"; } cab.appendChild(avM);
         cab.appendChild(m.tipo === "user" ? conBanner(n, m.user_id, true) : (m.tipo === "admin" ? conBanner(n, m.user_id, false) : n));
-        if (m.tipo === "admin") { const s = document.createElement("span"); s.className = "cm-sello"; s.textContent = "💬 Soporte"; cab.appendChild(s); }
+        if (m.tipo === "admin") { const s = document.createElement("span"); s.className = "cm-sello"; s.textContent = "✔ Oficial"; cab.appendChild(s); }
         
         const h = document.createElement("small"); h.textContent = hora(m.created_at); cab.appendChild(h);
         d.appendChild(cab);
@@ -7023,7 +7027,7 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
       l.appendChild(d);
     });
     const fj = fijados[sala], pf = E("cm-fijado");
-    if (pf) { pf.hidden = !fj; if (fj) { pf.querySelector("span").textContent = fj; pf.querySelector("b").textContent = "Alma Zarela · Soporte"; } }
+    if (pf) { pf.hidden = !fj; if (fj) { pf.querySelector("span").textContent = fj; pf.querySelector("b").textContent = "Alma Zarela ✔ Oficial"; } }
     if (abajo || l.dataset.nuevo !== "1") { l.scrollTop = l.scrollHeight; l.dataset.nuevo = "1"; }
   }
   async function admAcc(fn, args, ok) {
@@ -7283,7 +7287,7 @@ const NOV = (function novedades() {
     const { h, g } = cola[ci], mi = miId(), mia = mi && h.user_id === mi && !h.oficial;
     marcarVisto(h.id);
     const del = E("hs-av"); del.innerHTML = ""; del.appendChild(avatarGrupo(g, "hs-av-s"));
-    E("hs-nom").textContent = g.oficial ? "Zarela" : g.nombre;
+    E("hs-nom").textContent = g.oficial ? "Alma Zarela ✔ Oficial" : g.nombre;
     try { E("hs-hora").textContent = new Date(h.created_at).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }); } catch (_) {}
     const mis = cola.filter((x) => x.g === g), pos = mis.findIndex((x) => x.h === h);
     const bar = E("hs-barras"); bar.innerHTML = ""; mis.forEach((_, k) => bar.appendChild(el("i", k < pos ? "ok" : k === pos ? "act" : "")));
@@ -7313,7 +7317,8 @@ const NOV = (function novedades() {
       if (!data.length) cu.appendChild(el("p", "adm-ayuda", "Todavía no subiste historias."));
       data.forEach((h) => {
         const f = el("div", "ha-it"); const top = el("div", "ha-top"); if (h.imagen_path) { const im = el("img"); im.src = urlImg(h.imagen_path); im.alt = ""; top.appendChild(im); } else top.appendChild(el("span", "ha-col c" + (h.color % 6)));
-        const t = el("div", "ha-t"); t.appendChild(el("b", "", h.texto || "(foto)")); t.appendChild(el("small", "", "👁 " + h.vistas + " vieron · " + (h.estado === "pendiente" ? "en revisión" : "activa"))); top.appendChild(t); f.appendChild(top);
+        const t = el("div", "ha-t"); t.appendChild(el("b", "", h.texto || "(foto)")); const pe = h.estado === "pendiente"; f.classList.add(pe ? "st-rev" : "st-act"); const sm = el("small", "", "👁 " + h.vistas + " vieron · "); sm.appendChild(el("em", pe ? "est-rev" : "est-act", pe ? "en revisión" : "activa")); t.appendChild(sm); top.appendChild(t); f.appendChild(top);
+        if ((h.vistos || []).length) { const vv = el("div", "ha-re"); h.vistos.forEach((x) => { const sp = el("span", x.oficial ? "ha-of" : "", x.nombre + (x.oficial ? " ✔ Oficial" : "")); vv.appendChild(sp); }); f.appendChild(vv); }
         if (h.reacciones.length) { const r = el("div", "ha-re"); h.reacciones.forEach((x) => r.appendChild(el("span", "", x.emoji + " " + x.nombre))); f.appendChild(r); }
         h.mensajes.forEach((m) => { const d = el("div", "ha-msg"); d.appendChild(el("b", "", m.nombre + ": ")); d.appendChild(document.createTextNode(m.texto)); f.appendChild(d); });
         if (!h.reacciones.length && !h.mensajes.length) f.appendChild(el("small", "ha-nada", "Todavía sin reacciones ni mensajes."));
@@ -7458,7 +7463,7 @@ const NOV = (function novedades() {
     chats: { t: "💬 Chats privados entre amigos", resumen: "Los amigos se escriben entre sí. Acá revisás lo dudoso y podés leer cualquier conversación.",
       que: "Dos clientes que son amigos pueden chatear. El sistema bloquea links, teléfonos y ventas, y esconde insultos para que los revises vos.",
       donde: "En el botón verde «Chat» → lista «Mis amigos» → tocan un amigo.",
-      pasos: ["«Por revisar»: mensajes dudosos o reportados. Tocá Aprobar o Rechazar.", "«Todas las conversaciones»: tocá «Leer» para ver cualquier chat entre dos personas.", "«Fotos en los chats»: elegí si están apagadas, revisadas o libres (ahora: libres).", "Podés silenciar 1 hora a quien moleste."],
+      pasos: ["«Por revisar»: mensajes dudosos o reportados. Tocá Aprobar o Rechazar.", "Buscá a una persona con la lupa 🔎, tocá «Ver sus chats» y después «Abrir chat». Las conversaciones con muchas fotos salen marcadas en rojo 🚨.", "«Fotos en los chats»: elegí si están apagadas, revisadas o libres (ahora: libres).", "Podés silenciar 1 hora a quien moleste."],
       mock: '<div class="mk-chat"><div class="mk-b">¿Jugamos el torneo? 🏆</div><div class="mk-b mk-m">Dale 🔥 ✓✓</div></div>' },
     interr: { t: "🎛️ Interruptores", resumen: "Prendés o apagás cada novedad para todos tus clientes.",
       que: "Hay 4 funciones: Historias, Cupones, Referidos y Puntos. Cada una puede estar 🟢 Activa (todos la usan), 🕓 Próximamente (los clientes ven la etiqueta pero no la pueden usar) o ⚫ Apagada (no se ve). Vos siempre las podés probar.",
@@ -7484,7 +7489,7 @@ const NOV = (function novedades() {
       que: "Escribís un mensaje (ej. «¡50 % de descuento hoy!») y elegís a qué hora y qué días se publica solo, sin que estés conectada.",
       donde: "Si marcás «Chat», queda fijado arriba del chat Mundial con tu nombre. Si marcás «Historia», sale como historia oficial de Zarela por 24 horas.",
       pasos: ["Escribí el texto.", "Elegí la hora.", "Tildá los días (Lun, Mar, Mié, Jue, Vie, Sáb, Dom): solo salen los días con tilde ✔.", "Elegí dónde: Chat y/o Historia.", "Tocá «Agregar promo». En la lista podés «Publicar ahora», pausar o borrar."],
-      mock: '<div class="mk-b">📌 <b>Alma Zarela · Soporte</b><br>¡50 % de descuento hoy! 💎</div>' },
+      mock: '<div class="mk-b">📌 <b>Alma Zarela ✔ Oficial</b><br>¡50 % de descuento hoy! 💎</div>' },
   };
   function abrirAyuda(id) {
     const a = AYUDA[id]; if (!a) return;
@@ -7574,20 +7579,28 @@ const NOV = (function novedades() {
     // historias
     const c5 = caja("✨ Historias: para aprobar y activas", "Al aprobar una foto, esa persona pasa a ser «de confianza»: sus próximas fotos salen sin esperar (el texto siempre se filtra solo). Con 4 reportes una historia se oculta sola.");
     const fmh = el("div", "nv-fila"); fmh.appendChild(el("b", "", "📸 Las fotos de los clientes salen…"));
-    const sh = el("select"); [["aprobacion", "🔎 Con aprobación (las revisás vos)"], ["libre", "🟢 Libres (salen enseguida)"]].forEach(([v, t]) => { const o = el("option", "", t); o.value = v; sh.appendChild(o); }); sh.value = cfg.hist_modo || "aprobacion";
+    const sh = el("select"); [["confianza", "🤝 Confianza: reviso la 1ª foto de cada cliente (recomendado)"], ["aprobacion", "🔎 Estricto: reviso todas las fotos"], ["libre", "🟢 Libre: todo sale enseguida"]].forEach(([v, t]) => { const o = el("option", "", t); o.value = v; sh.appendChild(o); }); sh.value = cfg.hist_modo || "confianza";
     const bh = el("button", "nv-btn", "Guardar"); bh.type = "button"; bh.onclick = async () => { if (await rpcAdm("admin_nov_config", { p_clave: "hist_modo", p_valor: sh.value }, "Guardado ✔")) cfg.hist_modo = sh.value; };
     fmh.appendChild(sh); fmh.appendChild(bh); c5.appendChild(fmh);
-    const lh = el("div", "nv-lista"); c5.appendChild(lh);
+    const lh = el("div", "nv-lista nv-hgrid"); c5.appendChild(lh);
     async function cargarHis() {
       lh.innerHTML = ""; try {
         const { data, error } = await supabase.from("historias").select("*").or("estado.eq.pendiente,and(estado.eq.aprobada,expira_at.gt." + new Date().toISOString() + ")").order("created_at", { ascending: false }).limit(60); if (error) throw error;
         const pend = data.filter((h) => h.estado === "pendiente"); const bd = E("nv-pend-n"); if (bd) { bd.textContent = pend.length; bd.hidden = !pend.length; }
         const bd2 = E("nv-bd-hist"); if (bd2) { bd2.textContent = pend.length + " por aprobar"; bd2.hidden = !pend.length; }
         if (!data.length) lh.appendChild(el("p", "adm-ayuda", "No hay historias por ahora."));
-        data.forEach((h) => { const f = el("div", "nv-item nv-his"); if (h.imagen_path) { const im = el("img"); im.src = urlImg(h.imagen_path); im.alt = ""; f.appendChild(im); }
-          const t = el("div", "nv-his-t"); t.appendChild(el("b", "", h.nombre + (h.estado === "pendiente" ? " · POR APROBAR" : h.oculto ? " · OCULTA (reportes)" : ""))); t.appendChild(el("span", "", h.texto || "(solo foto)")); f.appendChild(t);
-          if (h.estado === "pendiente") { const ok = el("button", "nv-mini nv-verde", "Aprobar"); ok.type = "button"; ok.onclick = async () => { if (await rpcAdm("admin_historia_decidir", { p_id: h.id, p_aprobar: true, p_confiar: true }, "Aprobada ✔")) { cargarHis(); cargarHistorias(); } }; const no = el("button", "nv-mini nv-rojo", "Rechazar"); no.type = "button"; no.onclick = async () => { if (await rpcAdm("admin_historia_decidir", { p_id: h.id, p_aprobar: false, p_confiar: false })) cargarHis(); }; f.appendChild(ok); f.appendChild(no); }
-          const d = el("button", "nv-mini nv-rojo", "Borrar"); d.type = "button"; d.onclick = async () => { if (confirm("¿Borrar esta historia?") && await rpcAdm("admin_historia_borrar", { p_id: h.id })) { cargarHis(); cargarHistorias(); } }; f.appendChild(d); lh.appendChild(f); });
+        data.forEach((h) => { const pe = h.estado === "pendiente"; const f = el("div", "nv-item nv-his " + (pe ? "st-rev" : "st-act"));
+          if (h.imagen_path) { const im = el("img"); im.src = urlImg(h.imagen_path); im.alt = "Ver foto grande"; im.title = "Tocá para verla grande"; im.onclick = () => { verFotoAdmin(urlImg(h.imagen_path), h); }; f.appendChild(im); }
+          const t = el("div", "nv-his-t"); const bt = el("b", "", h.nombre); t.appendChild(bt);
+          t.appendChild(el("em", pe ? "est-rev" : "est-act", pe ? "⏳ Por aprobar" : h.oculto ? "🚩 Oculta (reportes)" : "🟢 Activa")); t.appendChild(el("span", "", h.texto || "(solo foto)")); f.appendChild(t);
+          const ac = el("div", "nv-his-ac");
+          if (pe) { const ok = el("button", "nv-mini nv-verde", "Aprobar"); ok.type = "button"; ok.onclick = async () => { if (await rpcAdm("admin_historia_decidir", { p_id: h.id, p_aprobar: true, p_confiar: true }, "Aprobada ✔")) { cargarHis(); cargarHistorias(); } }; const no = el("button", "nv-mini nv-rojo", "Rechazar"); no.type = "button"; no.onclick = async () => { if (await rpcAdm("admin_historia_decidir", { p_id: h.id, p_aprobar: false, p_confiar: false })) cargarHis(); }; ac.appendChild(ok); ac.appendChild(no); }
+          const d = el("button", "nv-mini nv-rojo", "Borrar"); d.type = "button"; d.onclick = async () => { if (confirm("¿Borrar esta historia?") && await rpcAdm("admin_historia_borrar", { p_id: h.id })) { cargarHis(); cargarHistorias(); } }; ac.appendChild(d); f.appendChild(ac); lh.appendChild(f); });
+    function verFotoAdmin(url, h) {
+      try { supabase.rpc("historia_ver", { p_id: h.id }).then(() => {}, () => {}); } catch (_) {}
+      const v = el("div", "adm-zoom"); const im = el("img"); im.src = url; im.alt = ""; const x = el("button", "adm-zoom-x", "✕ Cerrar"); x.type = "button";
+      const cerrar = () => { v.remove(); }; x.onclick = cerrar; v.onclick = (e) => { if (e.target === v) cerrar(); }; v.appendChild(im); v.appendChild(x); document.body.appendChild(v);
+    }
       } catch (_) { lh.appendChild(el("p", "adm-ayuda", "No pude leer las historias (¿ejecutaste el SQL v40?).")); }
     }
     cargarHis();
@@ -7618,16 +7631,33 @@ const NOV = (function novedades() {
           f.appendChild(ok); f.appendChild(no); f.appendChild(sl); lq.appendChild(f); }); } catch (_) { lq.appendChild(el("p", "adm-ayuda", "No pude leer (¿ejecutaste el SQL v42?).")); }
     }
     cargarCola();
-    c7.appendChild(el("h5", "nv-sub", "🔍 Todas las conversaciones"));
+    c7.appendChild(el("h5", "nv-sub", "🔍 Buscar los chats de una persona"));
+    const bq = el("div", "nv-busca"); const qi = el("input", "nv-in"); qi.type = "search"; qi.placeholder = "🔎 Nombre o número de cliente…"; const qb = el("button", "nv-btn", "Buscar"); qb.type = "button"; bq.appendChild(qi); bq.appendChild(qb); c7.appendChild(bq);
     const lpz = el("div", "nv-lista"); c7.appendChild(lpz);
-    async function cargarPares() {
-      lpz.innerHTML = ""; try { const { data, error } = await supabase.rpc("admin_dm_pares"); if (error) throw error; if (!data.length) lpz.appendChild(el("p", "adm-ayuda", "Todavía no hay conversaciones."));
-        data.forEach((p) => { const f = el("div", "nv-item"); f.appendChild(el("b", "", p.n1 + " ↔ " + p.n2)); f.appendChild(el("span", "", p.mensajes + " mensajes" + (p.dudosos ? " · ⚠ " + p.dudosos + " dudosos" : "") + " · último " + new Date(p.ult).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })));
-          const v = el("button", "nv-mini", "Leer"); v.type = "button"; const hilo = el("div", "nv-hilo"); hilo.hidden = true;
-          v.onclick = async () => { if (!hilo.hidden) { hilo.hidden = true; return; } hilo.hidden = false; hilo.textContent = "Cargando…"; try { const { data: h, error: e2 } = await supabase.rpc("admin_dm_hilo", { p_a: p.u1, p_b: p.u2 }); if (e2) throw e2; hilo.innerHTML = ""; h.forEach((m) => { const r = el("div", "nv-hm" + (m.estado !== "ok" ? " mal" : "")); r.appendChild(el("b", "", m.de + ": ")); if (m.tipo === "foto") { const im = el("img"); im.src = fotoU(m.foto); im.alt = ""; r.appendChild(im); } else r.appendChild(document.createTextNode(m.tipo === "id" ? "🎮 ID " + m.texto : m.texto)); hilo.appendChild(r); }); } catch (_) { hilo.textContent = "No se pudo leer."; } };
-          f.appendChild(v); f.appendChild(hilo); lpz.appendChild(f); }); } catch (_) { lpz.appendChild(el("p", "adm-ayuda", "No pude leer (¿ejecutaste el SQL v42?).")); }
+    const RARO_F = 5, RARO_M = 150;
+    function visorHilo(a, b, na, nb) {
+      const v = el("div", "adm-zoom adm-hilo"); const c = el("div", "adm-hilo-c"); const cab = el("div", "adm-hilo-cab"); cab.appendChild(el("b", "", na + " ↔ " + nb)); const x = el("button", "adm-zoom-x", "✕ Cerrar"); x.type = "button"; cab.appendChild(x); c.appendChild(cab);
+      const cu = el("div", "adm-hilo-cu"); cu.textContent = "Cargando…"; c.appendChild(cu); v.appendChild(c); document.body.appendChild(v); x.onclick = () => v.remove(); v.onclick = (e) => { if (e.target === v) v.remove(); };
+      supabase.rpc("admin_dm_hilo", { p_a: a, p_b: b }).then(({ data: h, error }) => { if (error) throw error; cu.innerHTML = ""; if (!h.length) cu.textContent = "Sin mensajes.";
+        h.forEach((m) => { const r = el("div", "nv-hm" + (m.estado !== "ok" ? " mal" : "")); r.appendChild(el("b", "", m.de + ": ")); if (m.tipo === "foto") { const im = el("img"); im.src = fotoU(m.foto); im.alt = ""; r.appendChild(im); } else r.appendChild(document.createTextNode(m.tipo === "id" ? "🎮 ID " + m.texto : m.texto)); cu.appendChild(r); }); cu.scrollTop = cu.scrollHeight; }).catch(() => { cu.textContent = "No se pudo leer."; });
     }
-    cargarPares();
+    async function buscarDm() {
+      const q = qi.value.trim(); lpz.innerHTML = ""; if (q.length < 2 && !/^\d+$/.test(q)) { lpz.appendChild(el("p", "adm-ayuda", "Escribí al menos 2 letras o el número de cliente.")); return; }
+      try { const { data, error } = await supabase.rpc("admin_dm_buscar", { p_q: q }); if (error) throw error; if (!data.length) lpz.appendChild(el("p", "adm-ayuda", "No encontré a nadie con ese dato."));
+        data.forEach((p) => { const f = el("div", "nv-item nv-pers"); f.appendChild(el("b", "", p.nombre + (p.num_id ? " · #" + p.num_id : ""))); f.appendChild(el("span", "", p.mensajes + " mensajes"));
+          const v = el("button", "nv-mini", "Ver sus chats"); v.type = "button"; v.onclick = () => verConQuien(p); f.appendChild(v); lpz.appendChild(f); });
+      } catch (_) { lpz.appendChild(el("p", "adm-ayuda", "No pude buscar (¿ejecutaste el SQL v45?).")); }
+    }
+    async function verConQuien(p) {
+      lpz.innerHTML = ""; const volver = el("button", "nv-mini", "← Volver a buscar"); volver.type = "button"; volver.onclick = buscarDm; lpz.appendChild(volver); lpz.appendChild(el("h5", "nv-sub", "Mensajes con: " + p.nombre));
+      try { const { data, error } = await supabase.rpc("admin_dm_con", { p_user: p.id }); if (error) throw error; if (!data.length) lpz.appendChild(el("p", "adm-ayuda", "No chatea con nadie todavía."));
+        data.forEach((o) => { const raro = o.fotos >= RARO_F || o.mensajes >= RARO_M || o.dudosos > 0; const f = el("div", "nv-item nv-pers" + (raro ? " raro" : "")); f.appendChild(el("b", "", o.otro));
+          f.appendChild(el("span", "", o.mensajes + " mensajes · 📷 " + o.fotos + (o.dudosos ? " · ⚠ " + o.dudosos + " dudosos" : "") + " · último " + new Date(o.ult).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })));
+          if (raro) f.appendChild(el("em", "est-raro", "🚨 Conversación rara: " + (o.fotos >= RARO_F ? "muchas fotos" : o.dudosos ? "mensajes dudosos" : "muchísimos mensajes")));
+          const v = el("button", "nv-mini", "Abrir chat"); v.type = "button"; v.onclick = () => visorHilo(p.id, o.otro_id, p.nombre, o.otro); f.appendChild(v); lpz.appendChild(f); });
+      } catch (_) { lpz.appendChild(el("p", "adm-ayuda", "No se pudo leer.")); }
+    }
+    qb.onclick = buscarDm; qi.addEventListener("keydown", (e) => { if (e.key === "Enter") buscarDm(); });
 
     // ---------- 📷 Fotos nuevas en chats privados ----------
     const cF = caja("📷 Fotos nuevas en chats privados", "Las fotos se envían libres (sin esperar tu OK). Acá te avisamos cuando hay nuevas: tocá «Ver chat» para mirar la conversación completa.");
@@ -7747,7 +7777,7 @@ const NOV = (function novedades() {
   const esAdm = () => { try { return esAdminActual(); } catch (_) { return false; } };
   const esPC = () => matchMedia("(min-width: 801px)").matches && !document.body.classList.contains("modo-admin");
   const urlFoto = (p) => { try { return supabase.storage.from("chatfotos").getPublicUrl(p).data.publicUrl; } catch (_) { return ""; } };
-  const ERR = { NO_AMIGOS: "Solo podés escribirles a tus amigos.", BLOQUEADO: "No se pueden enviar mensajes en este chat.", SILENCIADO: "Estás silenciado por un rato 🤫", MUY_RAPIDO: "Más despacio 🙂", LINK: "No se permiten links ni redes 🚫", TELEFONO: "No pases teléfonos por acá 🚫. Para tu ID de Free Fire usá el botón 🎮", VENTA: "Eso no se puede enviar 🚫", TEXTO_INVALIDO: "Escribí un mensaje de hasta 300 letras.", FOTOS_APAGADAS: "Las fotos están desactivadas por ahora.", ID_NO_GUARDADO: "Ese ID no está en tu lista de IDs guardados.", NO_AUTENTICADO: "Ingresá con Google primero." };
+  const ERR = { NO_AMIGOS: "Solo podés escribirles a tus amigos.", BLOQUEADO: "No se pueden enviar mensajes en este chat.", SILENCIADO: "Estás silenciado por un rato 🤫", MUY_RAPIDO: "Más despacio 🙂", LINK: "No se permiten links ni redes 🚫", PROMO: "No se puede hacer publicidad ni ofrecer recargas acá 🚫", TELEFONO: "No pases teléfonos por acá 🚫. Para tu ID de Free Fire usá el botón 🎮", VENTA: "Eso no se puede enviar 🚫", TEXTO_INVALIDO: "Escribí un mensaje de hasta 300 letras.", FOTOS_APAGADAS: "Las fotos están desactivadas por ahora.", ID_NO_GUARDADO: "Ese ID no está en tu lista de IDs guardados.", NO_AUTENTICADO: "Ingresá con Google primero." };
   const msgErr = (e, d) => { const m = String((e && e.message) || ""); const k = Object.keys(ERR).find((x) => m.includes(x)); return k ? ERR[k] : d; };
   let rafP = 0, activo = null, convs = [], dmCon = null, dmT = 0, fotosModo = "off";
   const PANELES = { hub: "hub-panel", dm: "dm-panel" };
@@ -7815,7 +7845,7 @@ const NOV = (function novedades() {
     let sop = "Dudas, comprobantes y ayuda"; try { const ms = document.querySelectorAll("#chat-messages-container .chat-message"); if (ms.length) sop = ms[ms.length - 1].textContent.trim().replace(/\s+/g, " "); } catch (_) {}
     let nsop = 0; try { nsop = parseInt((document.querySelector("#chat-fab .chat-dot:not(#hub-dot)") || {}).textContent, 10) || 0; } catch (_) {}
     const fSop = perfilSoporte && perfilSoporte.avatar_url;
-    l.appendChild(fila(fSop ? avatar("Alma Zarela", fSop, "hub-sop") : el("span", "hub-av hub-sop", "💎"), "Alma Zarela · Soporte", sop.slice(0, 48), "", nsop, true, () => { cerrarPaneles(null); activo = null; document.body.classList.add("soporte-abierto"); try { if (!esPC()) alternarChat(true); } catch (_) {} }));
+    l.appendChild(fila(fSop ? avatar("Alma Zarela", fSop, "hub-sop") : el("span", "hub-av hub-sop", "💎"), "Alma Zarela ✔ Oficial", sop.slice(0, 48), "", nsop, true, () => { cerrarPaneles(null); activo = null; document.body.classList.add("soporte-abierto"); try { if (!esPC()) alternarChat(true); } catch (_) {} }));
     const sep = el("div", "hub-sep", "Mis amigos"); l.appendChild(sep);
     if (!usuarioActual) l.appendChild(el("p", "hub-vacio", "Ingresá con Google para agregar amigos y escribirles."));
     else if (!convs.length) l.appendChild(el("p", "hub-vacio", "Todavía no tenés amigos. Tocá «＋ Agregar amigos» para buscarlos por nombre o por ID."));
@@ -7937,7 +7967,7 @@ const NOV = (function novedades() {
   const coverCss = (p) => (p.portada ? "linear-gradient(rgba(0,0,0,.15),rgba(0,0,0,.15)),url('" + urlPortada(p.portada) + "') center/cover" : fondoCss(p.fondo, p.es_soporte));
   const comprimir = (file) => new Promise((res, rej) => { const im = new Image(), u = URL.createObjectURL(file); im.onload = () => { const k = Math.min(1, 1100 / Math.max(im.width, im.height)); const cv = document.createElement("canvas"); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k); cv.getContext("2d").drawImage(im, 0, 0, cv.width, cv.height); cv.toBlob((b) => (b ? res(b) : rej()), "image/jpeg", 0.72); URL.revokeObjectURL(u); }; im.onerror = rej; im.src = u; });
   const fmtN = (n) => Number(n || 0).toLocaleString("es-AR");
-  const ERR = { LINK: "No se permiten links ni redes en tu descripción 🚫", RUTA_INVALIDA: "Esa foto no se pudo usar.", TELEFONO: "No pongas teléfonos 🚫", VENTA: "Esa descripción no está permitida 🚫", TEXTO_INVALIDO: "Hasta 140 letras.", NO_DISPONIBLE: "La insignia todavía no está disponible.", REQUISITO: "Todavía no cumplís los requisitos." };
+  const ERR = { LINK: "No se permiten links ni redes en tu descripción 🚫", RUTA_INVALIDA: "Esa foto no se pudo usar.", TELEFONO: "No pongas teléfonos 🚫", PROMO: "No se puede hacer publicidad en tu descripción 🚫", VENTA: "Esa descripción no está permitida 🚫", TEXTO_INVALIDO: "Hasta 140 letras.", NO_DISPONIBLE: "La insignia todavía no está disponible.", REQUISITO: "Todavía no cumplís los requisitos." };
   const msgErr = (e, d) => { const m = String((e && e.message) || ""); const k = Object.keys(ERR).find((x) => m.includes(x)); return k ? ERR[k] : d; };
   const yo = () => (usuarioActual ? usuarioActual.id : null);
   const cerrar = () => { const m = E("pf-modal"); if (m) m.hidden = true; };
@@ -8030,6 +8060,8 @@ const NOV = (function novedades() {
   }
 
   function pintarEditor(p, cu) {
+    if (!p.es_soporte) { const bn = el("button", "pf-nombre", "✏️ Cambiar mi nombre y foto"); bn.type = "button"; bn.onclick = () => { try { window.abrirAlias(); } catch (_) {} }; cu.appendChild(bn);
+      const al = E("al-modal"); if (al && !al.dataset.pfObs) { al.dataset.pfObs = "1"; new MutationObserver(() => { if (al.hidden && !E("pf-modal").hidden) { if (usuarioActual && window.abrirPerfil) window.abrirPerfil(usuarioActual.id); } }).observe(al, { attributes: true, attributeFilter: ["hidden"] }); } }
     const bio = el("textarea", "pf-ta"); bio.maxLength = 140; bio.rows = 3; bio.value = p.bio || ""; bio.placeholder = p.es_soporte ? "Escribí tu presentación…" : "Contá algo sobre vos (máx. 140 letras, sin links ni teléfonos)";
     cu.appendChild(el("label", "pf-lab", "Descripción")); cu.appendChild(bio);
     let tit = null; if (p.es_soporte) { cu.appendChild(el("label", "pf-lab", "Título (debajo de tu nombre)")); tit = el("input", "pf-in"); tit.maxLength = 40; tit.value = p.titulo || ""; tit.placeholder = "Ej: Dueña · Soporte de Recargas Zarela"; cu.appendChild(tit); }
@@ -8105,4 +8137,44 @@ const NOV = (function novedades() {
   }
   supabase.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_IN") setTimeout(() => { bienvenida(); pendienteAmigo(); }, 3000); });
   document.addEventListener("DOMContentLoaded", iniciar);
+})();
+
+
+// ===== v60 · Botón "atrás" del celular: cierra de a una capa (chat, panel, ventana) sin salirse de la página =====
+(function atrasMod() {
+  const E = (i) => document.getElementById(i);
+  const mov = () => !matchMedia("(min-width: 801px)").matches;
+  const mod = (sel, cerrar) => [() => { const n = document.querySelector(sel); return n && !n.hidden && getComputedStyle(n).display !== "none" ? n : null; }, cerrar];
+  const pan = (sel, cerrar) => [() => { const n = document.querySelector(sel); return mov() && n && n.classList.contains("abierto") ? n : null; }, cerrar];
+  const clic = (id) => () => E(id)?.click();
+  // de la capa más "de arriba" a la más "de abajo"
+  const CAPAS = [
+    [() => document.querySelector(".adm-zoom"), (n) => n.remove()],
+    mod("#dm-zoom", (n) => n.click()), mod("#al-modal", clic("al-x")), mod("#pf-modal", () => document.querySelector("#pf-card .pf-x, #pf-card .pf-volver")?.click()),
+    mod("#am-modal", clic("am-x")), mod("#pr-modal", clic("pr-x")), mod("#hc-modal", clic("hc-x")), mod("#ha-modal", clic("ha-x")),
+    mod("#hs-visor", clic("hs-x")), mod("#hs-panel", clic("hsp-x")), mod("#bv-modal", clic("bv-x")), mod("#nv-ayuda", (n) => { n.hidden = true; }),
+    pan("#dm-panel", clic("dm-back")), pan("#cm-panel", clic("cm-x")), pan("#hub-panel", clic("hub-x")),
+  ];
+  function capaAbierta() {
+    for (const [test, cerrar] of CAPAS) { const n = test(); if (n) return { n, cerrar }; }
+    return null;
+  }
+  let puesto = false, propio = false, t = 0;
+  function revisar() {
+    clearTimeout(t); t = setTimeout(() => {
+      const c = capaAbierta();
+      if (c && !puesto) { try { history.pushState({ zcapa: 1 }, ""); puesto = true; } catch (_) {} }
+      else if (!c && puesto) { puesto = false; propio = true; try { history.back(); } catch (_) { propio = false; } }
+    }, 60);
+  }
+  window.addEventListener("popstate", () => {
+    if (propio) { propio = false; return; }
+    if (!puesto) return;
+    puesto = false;
+    const c = capaAbierta(); if (c) { try { c.cerrar(c.n); } catch (_) {} }
+    setTimeout(() => { if (capaAbierta()) { try { history.pushState({ zcapa: 1 }, ""); puesto = true; } catch (_) {} } }, 120);
+  });
+  document.addEventListener("DOMContentLoaded", () => {
+    new MutationObserver(revisar).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["hidden", "class"] });
+  });
 })();

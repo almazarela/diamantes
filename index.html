@@ -717,11 +717,7 @@
 
 
   <div class="sidebar-section" id="sidebar-historial" style="display: none;">
-  <button type="button" class="sb-accion sb-alias" onclick="abrirAlias()">
-  <span class="sb-ico"><i class="fa-solid fa-user-pen"></i></span>
-  <span class="sb-txt"><b>Mi nombre y foto</b><small>Cómo te ven en el Top de recargas</small></span>
-  <i class="fa-solid fa-chevron-right sb-flecha"></i>
-  </button>
+
   <button type="button" class="sb-accion sb-aviso" onclick="abrirAviso()">
   <span class="sb-ico"><i class="fa-solid fa-bell"></i></span>
   <span class="sb-txt"><b>Avisos de recarga</b><small>✉️ Mail automático ✓ · 💬 WhatsApp próximamente</small></span>
@@ -761,9 +757,9 @@
   <span class="sb-txt"><b>Mis chats</b><small>Mundial, soporte y tus amigos.</small></span>
   </button>
 
-  <button type="button" id="sb-miperfil" class="sb-accion sb-avisos">
+  <button type="button" id="sb-miperfil" class="sb-accion sb-alias">
   <span class="sb-ico">🪪</span>
-  <span class="sb-txt"><b>Mi perfil</b><small>Tu foto, fondo, likes y tu insignia.</small></span>
+  <span class="sb-txt"><b>Mi perfil</b><small>Tu nombre, foto, fondo y likes.</small></span>
   </button>
 
   <button type="button" id="sb-premios" class="sb-accion sb-avisos">
@@ -1078,7 +1074,7 @@
   <button type="button" class="chat-volver" id="chat-volver" aria-label="Volver a mis chats">‹</button>
   <div class="chat-agente">
   <span class="chat-avatar" id="chat-avatar">A<i class="chat-status-dot"></i></span>
-  <span class="chat-agente-txt"><strong>Alma Zarela</strong><small id="chat-soporte-txt">En línea · Soporte</small></span>
+  <span class="chat-agente-txt"><strong>Alma Zarela <span class="vf-of">✔</span></strong><small id="chat-soporte-txt">✔ Oficial · En línea</small></span>
   </div>
   <button type="button" class="chat-fondo-btn" aria-label="Fondo del chat" title="Fondo del chat" onclick="abrirSelectorFondo()"><i class="fa-regular fa-image"></i></button>
   <button type="button" class="chat-cerrar" aria-label="Cerrar chat" onclick="alternarChat(false)"><i class="fa-solid fa-xmark"></i></button>
@@ -1160,7 +1156,7 @@
 
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="adm-top">
-  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 59</small></span>
+  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 60</small></span>
   <label class="adm-soporte" title="Lo que ven tus clientes arriba del chat"><span>Estado ante clientes:</span>
   <select id="adm-soporte" aria-label="Estado que ven los clientes"><option value="en_linea">🟢 En línea (si estoy en la página)</option><option value="desconectada">⚪ Desconectada</option><option value="oculto">🙈 No mostrar nada</option></select></label>
   <button type="button" class="adm-salir" onclick="salirModoAdmin()" aria-label="Volver al modo normal"><i class="fa-solid fa-arrow-left"></i> <span>Volver al modo normal</span></button>
