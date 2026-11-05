@@ -718,6 +718,11 @@
 
   <div class="sidebar-section" id="sidebar-historial" style="display: none;">
 
+  <button type="button" id="sb-miperfil" class="sb-accion sb-alias">
+  <span class="sb-ico">🪪</span>
+  <span class="sb-txt"><b>Mi perfil</b><small>Tu nombre, foto, fondo y likes.</small></span>
+  </button>
+
   <button type="button" class="sb-accion sb-aviso" onclick="abrirAviso()">
   <span class="sb-ico"><i class="fa-solid fa-bell"></i></span>
   <span class="sb-txt"><b>Avisos de recarga</b><small>✉️ Mail automático ✓ · 💬 WhatsApp próximamente</small></span>
@@ -730,23 +735,6 @@
   </button>
   </div>
 
-  <div class="sb-wallet" id="sb-wallet" hidden>
-  <div class="sb-wallet-tit"><span><i class="fa-solid fa-wallet"></i> Mi billetera</span><small>ID <strong id="menu-wallet-id">#REV-00000</strong></small></div>
-  <div class="sb-saldos2">
-  <div class="sb-saldo sb-mp">
-  <span class="sb-saldo-ico"><i class="fa-solid fa-handshake"></i></span>
-  <span class="sb-saldo-txt"><small>Mercado Pago</small><strong id="menu-wallet-balance-ars">$0 ARS</strong></span>
-  </div>
-  <div class="sb-saldo sb-bn">
-  <span class="sb-saldo-ico"><i class="fa-solid fa-coins"></i></span>
-  <span class="sb-saldo-txt"><small>Binance</small><strong id="menu-wallet-balance">$0.00 USD</strong></span>
-  </div>
-  </div>
-  <button type="button" class="sb-conv" onclick="toggleMenu(); abrirModalConvertir()"><i class="fa-solid fa-right-left"></i> Pesos a USD</button>
-  <button type="button" class="sb-cargar" onclick="toggleMenu(); abrirModalSeleccionCarga()"><i class="fa-solid fa-circle-plus"></i> Cargar saldo</button>
-  </div>
-
-
   <button type="button" id="sb-tutorial" class="sb-accion sb-avisos">
   <span class="sb-ico">🎓</span>
   <span class="sb-txt"><b>Ver tutorial</b><small>Repasá cómo funciona la página en 30 segundos.</small></span>
@@ -755,11 +743,6 @@
   <button type="button" id="sb-mundo" class="sb-accion sb-avisos">
   <span class="sb-ico">💬</span>
   <span class="sb-txt"><b>Mis chats</b><small>Mundial, soporte y tus amigos.</small></span>
-  </button>
-
-  <button type="button" id="sb-miperfil" class="sb-accion sb-alias">
-  <span class="sb-ico">🪪</span>
-  <span class="sb-txt"><b>Mi perfil</b><small>Tu nombre, foto, fondo y likes.</small></span>
   </button>
 
   <button type="button" id="sb-premios" class="sb-accion sb-avisos">
@@ -777,6 +760,22 @@
   <span class="sb-txt"><b>Sonidos de la página</b><small>Activados</small></span>
   </button>
 
+
+  <div class="sb-wallet" id="sb-wallet" hidden>
+  <div class="sb-wallet-tit"><span><i class="fa-solid fa-wallet"></i> Mi billetera</span><small>ID <strong id="menu-wallet-id">#REV-00000</strong></small></div>
+  <div class="sb-saldos2">
+  <div class="sb-saldo sb-mp">
+  <span class="sb-saldo-ico"><i class="fa-solid fa-handshake"></i></span>
+  <span class="sb-saldo-txt"><small>Mercado Pago</small><strong id="menu-wallet-balance-ars">$0 ARS</strong></span>
+  </div>
+  <div class="sb-saldo sb-bn">
+  <span class="sb-saldo-ico"><i class="fa-solid fa-coins"></i></span>
+  <span class="sb-saldo-txt"><small>Binance</small><strong id="menu-wallet-balance">$0.00 USD</strong></span>
+  </div>
+  </div>
+  <button type="button" class="sb-conv" onclick="toggleMenu(); abrirModalConvertir()"><i class="fa-solid fa-right-left"></i> Pesos a USD</button>
+  <button type="button" class="sb-cargar" onclick="toggleMenu(); abrirModalSeleccionCarga()"><i class="fa-solid fa-circle-plus"></i> Cargar saldo</button>
+  </div>
 
   <button type="button" id="sb-instalar" class="sb-accion sb-avisos">
   <span class="sb-ico">📲</span>
@@ -1156,7 +1155,7 @@
 
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="adm-top">
-  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 61</small></span>
+  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 62</small></span>
   <label class="adm-soporte" title="Lo que ven tus clientes arriba del chat"><span>Estado ante clientes:</span>
   <select id="adm-soporte" aria-label="Estado que ven los clientes"><option value="en_linea">🟢 En línea (si estoy en la página)</option><option value="desconectada">⚪ Desconectada</option><option value="oculto">🙈 No mostrar nada</option></select></label>
   <button type="button" class="adm-salir" onclick="salirModoAdmin()" aria-label="Volver al modo normal"><i class="fa-solid fa-arrow-left"></i> <span>Volver al modo normal</span></button>

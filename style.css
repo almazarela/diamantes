@@ -3565,3 +3565,44 @@ body.chat-con-fondo .chat-v2 .chat-messages-area,body.chat-con-fondo #admin-msgs
 #zhold .zh-it:hover{background:rgba(255,255,255,.16)}
 #zhold .zh-mal{color:#ffb4b4}
 #cm-mas{flex:0 0 auto;margin-left:4px}
+
+/* ===== v62 ===== */
+/* más transparente: casi se ve el fondo de pantalla */
+.navbar,body.es-admin .navbar{background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.025))!important;-webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important;border-bottom:1px solid rgba(255,255,255,.28)!important;box-shadow:0 2px 14px rgba(0,0,0,.18)!important}
+.navbar .zl,.navbar .nav-left,.navbar .nav-right,.navbar span,.navbar b{text-shadow:0 1px 6px rgba(0,0,0,.7)}
+.carousel-slide.slide-top,.carousel-slide.slide-ayuda,.carousel-slide.slide-hist{background:rgba(255,255,255,.03)!important;-webkit-backdrop-filter:blur(5px) saturate(1.3);backdrop-filter:blur(5px) saturate(1.3);border-color:rgba(255,255,255,.3)!important}
+.carousel-slide.slide-top *,.carousel-slide.slide-ayuda *,.carousel-slide.slide-hist .sh-in *{text-shadow:0 1px 6px rgba(0,0,0,.75)}
+.slide-ayuda .mk-transf small{color:#fff!important;font-weight:800;opacity:1!important;font-size:max(11px,6cqh)!important;letter-spacing:.02em}
+.slide-ayuda .mk-transf b{color:#fff3b0!important}
+.slide-ayuda .mk-alias{background:rgba(0,0,0,.45)!important;border-color:rgba(255,255,255,.6)!important;color:#fff!important}
+.slide-ayuda .sa-ill{background:rgba(0,0,0,.22)!important}
+
+/* menú lateral en vidrio transparente */
+.sidebar-menu{background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.03))!important;-webkit-backdrop-filter:blur(7px) saturate(1.3);backdrop-filter:blur(7px) saturate(1.3);border-right:1px solid rgba(255,255,255,.3)!important;box-shadow:6px 0 28px rgba(0,0,0,.3)!important}
+.sidebar-menu .sidebar-header,.sidebar-menu .sidebar-footer{background:transparent!important;border-color:rgba(255,255,255,.18)!important}
+.sidebar-menu .sb-perfil,.sidebar-menu .sb-accion,.sidebar-menu .sb-wallet,.sidebar-menu .sidebar-card,.sidebar-menu .status-indicator,.sidebar-menu .sb-cuentas{background:rgba(255,255,255,.06)!important;border:1px solid rgba(255,255,255,.22)!important;box-shadow:none!important}
+.sidebar-menu .sb-accion:hover{background:rgba(255,255,255,.14)!important}
+.sidebar-menu .sb-logout{background:rgba(255,255,255,.05)!important}
+.sidebar-menu .sb-txt small,.sidebar-menu .sb-perfil-txt small{color:#e2e9f8!important}
+.sidebar-menu *{text-shadow:0 1px 5px rgba(0,0,0,.5)}
+.menu-overlay.open{background:rgba(0,0,10,.12)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+
+/* burbuja del chat de administradora: pie compacto y chico */
+#adm-flota{container-type:inline-size}
+#adm-flota .adm-resp{gap:3px!important;padding:4px 5px!important;flex-wrap:nowrap!important;align-items:center}
+#adm-flota .adm-resp input{flex:1 1 30%!important;min-width:60px!important;font-size:.74rem!important;padding:5px 8px!important;height:auto!important}
+#adm-flota .adm-resp button{flex:0 0 auto!important;min-width:0!important;padding:3px 6px!important;font-size:.64rem!important;line-height:1.1!important;height:auto!important;width:auto!important;border-radius:7px!important}
+#adm-flota .adm-resp button.rr-b,#adm-flota .adm-resp .adm-mic{padding:3px 5px!important}
+@container (max-width:420px){#adm-flota .adm-resp button{font-size:.58rem!important;padding:2px 4px!important}#adm-flota .adm-resp input{font-size:.7rem!important}}
+.adm-asa{display:none}
+@media (min-width:801px){body.modo-admin #admin-panel-section{position:relative}.adm-asa{display:block;position:absolute;right:3px;bottom:3px;width:20px;height:20px;cursor:nwse-resize;touch-action:none;z-index:6;background:linear-gradient(135deg,transparent 50%,rgba(125,211,252,.9) 50%,rgba(125,211,252,.9) 58%,transparent 58%,transparent 68%,rgba(125,211,252,.9) 68%,rgba(125,211,252,.9) 76%,transparent 76%)}}
+
+/* perfil: vidrio transparente a pantalla completa */
+#pf-modal{background:rgba(6,10,28,.18)!important;-webkit-backdrop-filter:blur(5px)!important;backdrop-filter:blur(5px)!important}
+#pf-modal .pf-card,#pf-modal .pf-card.pf-oro{background:rgba(255,255,255,.04)!important;border:0!important;box-shadow:none!important;width:100%!important;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.pf-card .pf-cuerpo{max-width:920px;margin-left:auto;margin-right:auto}
+@media (min-width:801px){#pf-modal .pf-av{margin-left:max(30px,calc((100% - 920px)/2 + 30px))!important}}
+.pf-card .pf-dato{background:rgba(255,255,255,.07)!important;border-color:rgba(255,255,255,.26)!important}
+.pf-card .pf-sub,.pf-card .pf-dato small,.pf-card .pf-bio.vacio{color:#e2e9f8!important}
+.pf-card *{text-shadow:0 1px 6px rgba(0,0,0,.55)}
+.pf-num{display:inline-block;padding:2px 11px;border-radius:99px;background:linear-gradient(135deg,#ffd75e,#ff8a00);color:#2a1500!important;font-weight:900;font-size:.9rem;text-shadow:none!important;box-shadow:0 0 12px rgba(255,170,0,.5)}

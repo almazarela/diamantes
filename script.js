@@ -2508,6 +2508,8 @@ function seleccionarCliente(fila, etiqueta) {
   refrescarMensajes(true);
   clearInterval(pollAdmin);
   pollAdmin = setInterval(() => { if (!document.hidden) refrescarMensajes(false); }, 8000);
+  // si el chat está guardado como burbuja, al elegir un cliente se abre en el centro de la pantalla
+  try { const fw = $("adm-flota"); if (chatFlota && fw && fw.classList.contains("min")) { fw.classList.remove("min"); if (!esMovil()) flotaCentrar(fw); flotaMargen(); } } catch (_) {}
 }
 
 // ---- Celular: el chat del cliente se abre a pantalla completa (como WhatsApp) y "atrás" vuelve a la lista ----
@@ -2520,6 +2522,11 @@ function flotaAjustar(w) {
   const r = w.getBoundingClientRect(); const mw = innerWidth, mh = innerHeight;
   let l = Math.min(Math.max(0, r.left), Math.max(0, mw - r.width)), t = Math.min(Math.max(0, r.top), Math.max(0, mh - r.height));
   w.style.left = l + "px"; w.style.top = t + "px"; w.style.right = "auto"; w.style.bottom = "auto";
+}
+function flotaCentrar(w) {
+  const r = w.getBoundingClientRect(); const ww = parseFloat(w.style.width) || 380, hh = parseFloat(w.style.height) || 520;
+  w.style.left = Math.max(0, (innerWidth - ww) / 2) + "px"; w.style.top = Math.max(0, (innerHeight - hh) / 2) + "px"; w.style.right = "auto"; w.style.bottom = "auto";
+  flotaAjustar(w); flotaPos(w);
 }
 function flotaMargen() {
   const w = $("adm-flota"); const pc = matchMedia("(min-width: 801px)").matches;
@@ -2552,7 +2559,7 @@ function flotaSacar() {
   const mueve = (e) => { if (!drag) return; const ddx = e.clientX - drag.x, ddy = e.clientY - drag.y; if (Math.abs(ddx) + Math.abs(ddy) > 4) movio = true; if (!movio) return; w.style.left = (drag.l + ddx) + "px"; w.style.top = (drag.t + ddy) + "px"; w.style.right = "auto"; w.style.bottom = "auto"; };
   const fin = () => { if (!drag) return; drag = null; flotaAjustar(w); flotaPos(w); flotaMargen(); };
   [bar, burb].forEach((n) => { n.addEventListener("pointerdown", ini); n.addEventListener("pointermove", mueve); n.addEventListener("pointerup", fin); n.addEventListener("pointercancel", fin); });
-  burb.addEventListener("click", () => { if (!movio) minimizar(false); });
+  burb.addEventListener("click", () => { if (!movio) { minimizar(false); if (!matchMedia("(max-width: 800px)").matches) flotaCentrar(w); flotaMargen(); } });
   // cambiar tamaño (esquina de abajo a la derecha)
   let rs = null;
   asa.addEventListener("pointerdown", (e) => { const r = w.getBoundingClientRect(); rs = { x: e.clientX, y: e.clientY, w: r.width, h: r.height }; try { asa.setPointerCapture(e.pointerId); } catch (_) {} e.preventDefault(); });
@@ -8146,7 +8153,7 @@ const NOV = (function novedades() {
     else if (p.verificado) { const v = selloVerif(); v.classList.add("pf-vf"); nom.appendChild(v); }
     cu.appendChild(nom);
     const sub = el("div", "pf-sub"); if (p.es_soporte && p.titulo) sub.appendChild(el("b", "", p.titulo)); else if (p.es_soporte) sub.appendChild(el("b", "", "Soporte de Recargas Zarela"));
-    if (p.num_id) sub.appendChild(el("span", "", "#" + p.num_id));
+    if (p.num_id) sub.appendChild(el("span", "pf-num", "#" + p.num_id));
     try { if (p.desde) sub.appendChild(el("span", "", "Desde " + new Date(p.desde).toLocaleDateString("es-AR", { month: "short", year: "numeric" }))); } catch (_) {}
     cu.appendChild(sub);
     const ni = !p.es_soporte && typeof nivelDe === "function" ? nivelDe(Number(p.diamantes) || 0) : -1;
@@ -8157,7 +8164,7 @@ const NOV = (function novedades() {
     // números
     const st = el("div", "pf-stats");
     const dato = (n, t) => { const d = el("div", "pf-dato"); d.appendChild(el("b", "", n)); d.appendChild(el("small", "", t)); st.appendChild(d); return d; };
-    dato(fmtN(p.recargas), p.es_soporte ? "Recargas hechas" : "Recargas"); dato(fmtN(p.diamantes) + " 💎", p.es_soporte ? "Entregados" : "Diamantes");
+    dato(fmtN(p.recargas), p.es_soporte ? "Recargas entregadas a clientes" : "Recargas"); dato(fmtN(p.diamantes) + " 💎", p.es_soporte ? "Diamantes entregados a clientes" : "Diamantes");
     const dl = dato(fmtN(p.likes), "Me gusta ❤️"); if (!p.es_soporte) dato(fmtN(p.amigos), "Amigos");
     cu.appendChild(st);
     // acciones
@@ -8328,4 +8335,35 @@ const NOV = (function novedades() {
   document.addEventListener("DOMContentLoaded", () => {
     new MutationObserver(revisar).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["hidden", "class"] });
   });
+})();
+
+
+// ===== Panel de administrador: se puede mover y achicar/agrandar (PC) =====
+(function () {
+  const KEY = "zarela_admpanel";
+  function iniciar() {
+    const p = document.getElementById("admin-panel-section"), top = p && p.querySelector(".adm-top"); if (!p || !top || p.dataset.mov) return; p.dataset.mov = "1";
+    const asa = document.createElement("i"); asa.className = "adm-asa"; asa.title = "Arrastrá para cambiar el tamaño"; p.appendChild(asa);
+    const pc = () => matchMedia("(min-width: 801px)").matches;
+    let g = {}; try { g = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (_) {}
+    const aplicar = () => {
+      if (!pc()) { p.style.transform = ""; p.style.width = ""; p.style.height = ""; return; }
+      p.style.transform = "translate(" + (g.x || 0) + "px," + (g.y || 0) + "px)";
+      p.style.width = g.w ? g.w + "px" : ""; p.style.height = g.h ? g.h + "px" : ""; p.style.maxWidth = g.w ? "none" : "";
+      p.style.overflow = g.h ? "auto" : "";
+    };
+    const guardar = () => { try { localStorage.setItem(KEY, JSON.stringify(g)); } catch (_) {} };
+    aplicar(); window.addEventListener("resize", aplicar);
+    let d = null;
+    top.addEventListener("pointerdown", (e) => { if (!pc() || e.target.closest("button,select,label,input,a")) return; d = { x: e.clientX, y: e.clientY, gx: g.x || 0, gy: g.y || 0 }; try { top.setPointerCapture(e.pointerId); } catch (_) {} });
+    top.addEventListener("pointermove", (e) => { if (!d) return; g.x = d.gx + e.clientX - d.x; g.y = d.gy + e.clientY - d.y; aplicar(); });
+    ["pointerup", "pointercancel"].forEach((n) => top.addEventListener(n, () => { if (d) { d = null; guardar(); } }));
+    top.addEventListener("dblclick", (e) => { if (e.target.closest("button,select,label,input,a")) return; g = {}; aplicar(); guardar(); });
+    top.style.cursor = "grab"; top.title = "Arrastrá para mover el panel (doble clic = lugar original)";
+    let r = null;
+    asa.addEventListener("pointerdown", (e) => { const b = p.getBoundingClientRect(); r = { x: e.clientX, y: e.clientY, w: b.width, h: b.height }; try { asa.setPointerCapture(e.pointerId); } catch (_) {} e.preventDefault(); });
+    asa.addEventListener("pointermove", (e) => { if (!r) return; g.w = Math.max(560, Math.round(r.w + e.clientX - r.x)); g.h = Math.max(380, Math.round(r.h + e.clientY - r.y)); aplicar(); });
+    asa.addEventListener("pointerup", () => { if (r) { r = null; guardar(); } });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciar); else iniciar();
 })();
