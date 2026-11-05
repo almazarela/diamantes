@@ -7870,9 +7870,9 @@ const NOV = (function novedades() {
     if (!esPC()) { document.body.classList.remove("chat-mini"); return; }
     const col = document.querySelector(".right-widgets-col"), nav = document.querySelector(".navbar");
     if (!col) return;
-    const c = col.getBoundingClientRect(), hb = nav ? Math.round(nav.getBoundingClientRect().bottom) : 103;
+    const c = col.getBoundingClientRect(), hb = nav ? Math.round(nav.getBoundingClientRect().bottom + (/fixed|sticky/.test(getComputedStyle(nav).position) ? 0 : scrollY)) : 103;   // posición fija: no depende del scroll
     if (c.width < 50) return;
-    const top = Math.max(hb, 0) + 10, h = Math.max(300, Math.min(470, innerHeight - top - 16));
+    const top = Math.max(hb, 0) + 10, h = Math.max(300, Math.min(470, innerHeight - top - 16));  // anclado
     rs.setProperty("--cx", Math.round(c.left) + "px"); rs.setProperty("--cw", Math.round(c.width) + "px");
     rs.setProperty("--cy", top + "px"); rs.setProperty("--ch", h + "px");
     const ancho = null; // v60d: el chat ya no se esconde en la burbuja
@@ -7912,7 +7912,7 @@ const NOV = (function novedades() {
   }
   function fila(av, tit, sub, meta, n, fijado, fn) {
     const b = el("button", "hub-fila" + (fijado ? " fij" : "")); b.type = "button"; b.appendChild(av);
-    const t = el("div", "hub-t"); const h = el("div", "hub-h"); h.appendChild(el("b", "", tit)); if (fijado) h.appendChild(el("span", "hub-pin", "📌")); t.appendChild(h); t.appendChild(el("small", "", sub)); b.appendChild(t);
+    const t = el("div", "hub-t"); const h = el("div", "hub-h"); h.appendChild(el("b", "", tit));  t.appendChild(h); t.appendChild(el("small", "", sub)); b.appendChild(t);
     const m = el("div", "hub-m"); if (meta) m.appendChild(el("small", "", meta)); if (n) m.appendChild(el("em", "hub-n", n > 99 ? "99+" : String(n))); b.appendChild(m); b.onclick = fn; if (n) b.classList.add("nl"); if (soloNL && !n) b.hidden = true; return b;
   }
   let soloNL = false;
@@ -7928,7 +7928,7 @@ const NOV = (function novedades() {
     let nsop = 0; try { nsop = parseInt((document.querySelector("#chat-fab .chat-dot:not(#hub-dot)") || {}).textContent, 10) || 0; } catch (_) {}
     const fSop = perfilSoporte && perfilSoporte.avatar_url;
     l.appendChild(fila(fSop ? avatar("Alma Zarela", fSop, "hub-sop") : el("span", "hub-av hub-sop", "💎"), "Alma Zarela ✔ Oficial", sop.slice(0, 48), "", nsop, true, () => { cerrarPaneles(null); activo = null; document.body.classList.add("soporte-abierto"); try { if (!esPC()) alternarChat(true); } catch (_) {} }));
-    const sep = el("div", "hub-sep", "Mis amigos"); l.appendChild(sep);
+    l.appendChild(el("div", "hub-sep"));
     if (!usuarioActual) l.appendChild(el("p", "hub-vacio", "Ingresá con Google para agregar amigos y escribirles."));
     else if (!convs.length) l.appendChild(el("p", "hub-vacio", "Todavía no tenés amigos. Tocá «＋ Agregar amigos» para buscarlos por nombre o por ID."));
     convs.forEach((c) => l.appendChild(fila(avatar(c.nombre, c.foto), c.nombre, c.ult_texto ? (c.ult_mio ? "Vos: " : "") + (c.ult_tipo === "id" ? "🎮 ID de Free Fire" : c.ult_tipo === "foto" ? "📷 Foto" : c.ult_texto).slice(0, 44) : "Escribile para jugar juntos 🎮", c.ult_at ? hora(c.ult_at) : "", Number(c.no_leidos) || 0, false, () => abrirDM(c))));

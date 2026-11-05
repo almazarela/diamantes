@@ -3460,3 +3460,22 @@ body:not(.modo-admin) #adm-flota{display:none}
   .hoy-promo{padding:8px 10px!important}.hoy-promo-t b{font-size:.9rem}
   .admin-panel-card{padding:8px!important}
 }
+
+/* ===== v60f · vidrio más transparente ===== */
+.carousel-slide.slide-hist{background:rgba(255,255,255,.10)!important;-webkit-backdrop-filter:blur(16px) saturate(1.6);backdrop-filter:blur(16px) saturate(1.6)}
+.carousel-slide.slide-hist.active{border:1px solid rgba(255,255,255,.55)!important;box-shadow:0 12px 40px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.7)!important}
+.slide-hist .sh-in{background:none!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.hs-panel{background:linear-gradient(160deg,rgba(255,255,255,.17),rgba(255,255,255,.05) 55%,rgba(200,220,255,.10))!important;-webkit-backdrop-filter:blur(22px) saturate(1.7)!important;backdrop-filter:blur(22px) saturate(1.7)!important}
+.hsp-cab{justify-content:flex-start;gap:12px}
+.hsp-cab .hs-sp{display:none!important}
+.hsp-cab b{padding-right:14px;border-right:1px solid rgba(255,255,255,.5);white-space:nowrap}
+.hsp-cab #hsp-x{width:auto!important;height:auto!important;padding:8px 14px!important;border-radius:999px!important;background:rgba(255,255,255,.26)!important;font-size:.82rem!important}
+/* lista de chats (Mis chats): vidrio transparente, sin "fijado" ni "Mis amigos" */
+.hub-panel,.cm-panel,.dm-panel{background:linear-gradient(160deg,rgba(255,255,255,.14),rgba(20,28,64,.46) 60%,rgba(10,14,36,.55))!important;-webkit-backdrop-filter:blur(26px) saturate(1.6)!important;backdrop-filter:blur(26px) saturate(1.6)!important;border:1px solid rgba(255,255,255,.34)!important;box-shadow:0 14px 44px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.5)!important}
+.hub-panel .cm-top,.cm-panel .cm-top,.dm-panel .cm-top{background:rgba(255,255,255,.10)!important;border-bottom:1px solid rgba(255,255,255,.22)!important}
+.hub-fila{border-bottom:1px solid rgba(255,255,255,.12)!important}
+.hub-fila:hover{background:rgba(255,255,255,.10)!important}
+.hub-fila.fij{background:rgba(255,255,255,.06)}
+.hub-t small{color:#d3def5!important}
+.hub-sep{height:6px;padding:0!important;background:rgba(255,255,255,.08)!important}
+.hs-panel{-webkit-backdrop-filter:blur(12px) saturate(1.6)!important;backdrop-filter:blur(12px) saturate(1.6)!important}
