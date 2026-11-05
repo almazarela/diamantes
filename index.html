@@ -1068,11 +1068,12 @@
   
   <!-- COLUMNA DERECHA: CHAT EN VIVO -->
   <div class="right-widgets-col">
-  <button type="button" id="chat-fab" class="chat-fab" aria-label="Abrir chat de soporte" onclick="alternarChat()">
+  <button type="button" id="chat-fab" class="chat-fab" aria-label="Abrir chats" onclick="abrirHub()">
   <i class="fa-solid fa-comments"></i><span>Chat</span>
-  </button>
+  <i id="hub-dot" class="chat-dot" hidden></i></button>
   <div class="chat-widget-card chat-v2" id="chat-widget">
   <div class="chat-widget-header">
+  <button type="button" class="chat-volver" id="chat-volver" aria-label="Volver a mis chats">‹</button>
   <div class="chat-agente">
   <span class="chat-avatar" id="chat-avatar">A<i class="chat-status-dot"></i></span>
   <span class="chat-agente-txt"><strong>Alma Zarela</strong><small id="chat-soporte-txt">En línea · Soporte</small></span>
@@ -1080,7 +1081,6 @@
   <button type="button" class="chat-fondo-btn" aria-label="Fondo del chat" title="Fondo del chat" onclick="abrirSelectorFondo()"><i class="fa-regular fa-image"></i></button>
   <button type="button" class="chat-cerrar" aria-label="Cerrar chat" onclick="alternarChat(false)"><i class="fa-solid fa-xmark"></i></button>
   </div>
-<div class="ch-tabs"><button type="button" class="ch-tab" data-t="mundial"><i class="fa-solid fa-earth-americas"></i> Mundial</button><button type="button" class="ch-tab on" data-t="soporte">💎 Alma Zarela</button><button type="button" class="ch-tab ch-am" data-t="amigos">＋ Amigos</button></div>
   <div class="chat-messages-area" id="chat-messages-container">
   <div class="chat-message admin-msg">¡Hola! 👋 ¿En qué te puedo ayudar hoy? Iniciá sesión con Google para guardar tu historial y enviar comprobantes.</div>
   </div>
@@ -1158,7 +1158,7 @@
 
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="adm-top">
-  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 56</small></span>
+  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 57</small></span>
   <label class="adm-soporte" title="Lo que ven tus clientes arriba del chat"><span>Estado ante clientes:</span>
   <select id="adm-soporte" aria-label="Estado que ven los clientes"><option value="en_linea">🟢 En línea (si estoy en la página)</option><option value="desconectada">⚪ Desconectada</option><option value="oculto">🙈 No mostrar nada</option></select></label>
   <button type="button" class="adm-salir" onclick="salirModoAdmin()" aria-label="Volver al modo normal"><i class="fa-solid fa-arrow-left"></i> <span>Volver al modo normal</span></button>
@@ -1462,10 +1462,9 @@ function irAlChat(){
 <!-- CHAT MUNDIAL -->
 <button type="button" id="cm-fab" class="cm-fab" aria-label="Abrir chat mundial"><i class="fa-solid fa-earth-americas"></i><span>Chat mundial</span><i id="cm-dot" class="chat-dot" hidden></i></button>
 <div id="cm-panel" class="cm-panel" role="dialog" aria-label="Chat mundial">
-  <div class="cm-top"><b>🌎 Chat mundial Zarela</b><button type="button" id="cm-x" aria-label="Cerrar">✕</button></div>
+  <div class="cm-top"><button type="button" id="cm-x" class="cm-back" aria-label="Volver">‹</button><b>🌎 Chat mundial</b><span class="hs-sp"></span><button type="button" class="cm-amg" id="cm-amg">＋ Amigos</button></div>
   
-  <div class="ch-tabs"><button type="button" class="ch-tab on" data-t="mundial"><i class="fa-solid fa-earth-americas"></i> Mundial</button><button type="button" class="ch-tab" data-t="soporte">💎 Alma Zarela</button><button type="button" class="ch-tab ch-am" data-t="amigos">＋ Amigos</button></div>
-  <div id="cm-fijado" class="cm-fijado" hidden>📌 <b></b><span></span></div>
+    <div id="cm-fijado" class="cm-fijado" hidden>📌 <b></b><span></span></div>
   <div id="cm-adm" class="cm-admbar" hidden><button type="button" id="cm-fijar">📌 Fijar mensaje arriba del chat</button></div>
   <div id="cm-lista" class="cm-lista"></div>
   <div id="cm-aviso" class="cm-av"></div>
@@ -1511,5 +1510,20 @@ function irAlChat(){
 <div class="nh-cab"><b>🎁 Cupones y puntos</b><button type="button" id="pr-x" aria-label="Cerrar">✕</button></div>
 <div class="al-cuerpo" id="pr-cuerpo">Cargando…</div>
 </div></div>
+
+<!-- HUB DE CHATS + CHAT PRIVADO -->
+<div id="hub-panel" class="cm-panel hub-panel" role="dialog" aria-label="Mis chats">
+  <div class="cm-top"><b>💬 Chats</b><span class="hs-sp"></span><button type="button" class="cm-amg" id="hub-amg">＋ Amigos</button><button type="button" id="hub-x" class="cm-cerrar" aria-label="Cerrar">✕</button></div>
+  <div id="hub-lista" class="hub-lista"></div>
+</div>
+<div id="dm-panel" class="cm-panel dm-panel" role="dialog" aria-label="Chat privado">
+  <div class="cm-top"><button type="button" id="dm-back" class="cm-back" aria-label="Volver">‹</button><span id="dm-av"></span><div class="dm-quien"><b id="dm-nom"></b><small id="dm-sub"></small></div><span class="hs-sp"></span><button type="button" id="dm-menu" class="cm-back" aria-label="Más">⋮</button></div>
+  <div id="dm-lista" class="cm-lista"></div>
+  <div id="dm-chips" class="dm-chips"></div>
+  <div class="dm-barra"><button type="button" id="dm-idb" class="dm-ib" title="Compartir mi ID de Free Fire">🎮</button><button type="button" id="dm-fotob" class="dm-ib" title="Enviar foto" hidden>📷</button><input type="file" id="dm-file" accept="image/*" hidden><input id="dm-in" maxlength="300" placeholder="Escribí un mensaje…" autocomplete="off"><button type="button" id="dm-env" class="dm-send">➤</button></div>
+  <p class="cm-reglas">Sin links ni teléfonos. Para pasar tu ID tocá 🎮. Por seguridad, soporte puede revisar los chats.</p>
+</div>
+<div id="dm-ids" class="nh-modal" hidden role="dialog" aria-modal="true"><div class="nh-card"><div class="nh-cab"><b>🎮 Compartir mi ID</b><button type="button" id="dm-ids-x" aria-label="Cerrar">✕</button></div><div class="al-cuerpo" id="dm-ids-l"></div></div></div>
+<div id="dm-zoom" class="dm-zoom" hidden><img alt=""></div>
 </body>
 </html>

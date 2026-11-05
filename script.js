@@ -6159,6 +6159,8 @@ async function pintarHoy() {
     pintarHoy();
   });
   c.appendChild(caja);
+  const nvb = document.createElement("button"); nvb.type = "button"; nvb.className = "hoy-nov"; nvb.innerHTML = "<span>🎁</span><b>Novedades: Historias, Cupones, Puntos y Chats</b><small>Prender / apagar · revisar fotos y mensajes ›</small>";
+  nvb.addEventListener("click", () => mostrarVistaAdmin("novedades")); c.appendChild(nvb);
   if (d.espera.length) {
     const w = document.createElement("div"); w.className = "hoy-espera";
     d.espera.forEach((o) => {
@@ -7013,6 +7015,7 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
   }
   function marcarTabs(t) { document.querySelectorAll(".ch-tab").forEach((b) => b.classList.toggle("on", b.dataset.t === t)); }
   window.abrirChatMundo = () => {
+    try { window.cerrarPanelesChat && window.cerrarPanelesChat(); } catch (_) {}
     try { if (typeof alternarChat === "function" && !esPC()) alternarChat(false); } catch (_) {}
     abrir(); if (esPC() && !rafPC) rafPC = requestAnimationFrame(posPC);
   };
@@ -7020,6 +7023,8 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
     cerrar();
     try { if (typeof alternarChat === "function" && !esPC()) alternarChat(true); } catch (_) {}
   };
+  window.cerrarChatMundo = () => { if (abierto) cerrar(); };
+  window.cmSinLeer = () => sinLeer;
   function pintarTabs() { marcarTabs(abierto ? "mundial" : "soporte"); }
   async function abrir() {
     const w = E("cm-panel"); if (!w) return;
@@ -7054,7 +7059,8 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
     document.querySelectorAll(".ch-tab").forEach((b) => b.addEventListener("click", () => { const t = b.dataset.t; if (t === "mundial") window.abrirChatMundo(); else if (t === "soporte") window.abrirChatSoporte(); else if (window.abrirAmigos) window.abrirAmigos(""); }));
     marcarTabs("soporte");
     E("sb-mundo")?.addEventListener("click", () => { try { if ($("sidebar-menu")?.classList.contains("open")) toggleMenu(); } catch (_) {} setTimeout(() => window.abrirChatMundo(), 200); });
-    E("cm-x")?.addEventListener("click", () => window.abrirChatSoporte());
+    E("cm-x")?.addEventListener("click", () => window.abrirHub && window.abrirHub());
+    E("cm-amg")?.addEventListener("click", () => window.abrirAmigos && window.abrirAmigos(""));
     E("cm-env")?.addEventListener("click", enviar);
     E("cm-in")?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); enviar(); } });
     E("cm-fijar")?.addEventListener("click", fijar);
@@ -7483,6 +7489,34 @@ const NOV = (function novedades() {
           lm.appendChild(f); }); } catch (_) { lm.appendChild(el("p", "adm-ayuda", "No pude leer (¿ejecutaste el SQL v41?).")); }
     }
     cargarMsgs();
+    const c7 = caja("💬 Chats privados entre amigos", "Los amigos pueden escribirse entre ellos (con filtros). Elegí qué pasa con las fotos. Los mensajes dudosos y reportados te llegan acá para aprobar o descartar.");
+    const fm = el("div", "nv-fila"); fm.appendChild(el("b", "", "📷 Fotos en los chats"));
+    const sf = el("select"); [["off", "⚫ Apagadas (nadie manda fotos)"], ["primeras", "🔎 Las primeras 3 de cada persona las revisás vos"], ["on", "🟢 Libres"]].forEach(([v, t]) => { const o = el("option", "", t); o.value = v; sf.appendChild(o); }); sf.value = cfg.dm_fotos || "off";
+    const bf = el("button", "nv-btn", "Guardar"); bf.type = "button"; bf.onclick = async () => { if (await rpcAdm("admin_nov_config", { p_clave: "dm_fotos", p_valor: sf.value }, "Guardado ✔")) cfg.dm_fotos = sf.value; };
+    fm.appendChild(sf); fm.appendChild(bf); c7.appendChild(fm);
+    c7.appendChild(el("h5", "nv-sub", "⚠ Por revisar"));
+    const lq = el("div", "nv-lista"); c7.appendChild(lq);
+    const fotoU = (p) => { try { return supabase.storage.from("chatfotos").getPublicUrl(p).data.publicUrl; } catch (_) { return ""; } };
+    async function cargarCola() {
+      lq.innerHTML = ""; try { const { data, error } = await supabase.rpc("admin_dm_cola"); if (error) throw error; if (!data.length) lq.appendChild(el("p", "adm-ayuda", "Nada para revisar 🎉"));
+        data.forEach((m) => { const f = el("div", "nv-item nv-his"); if (m.foto) { const im = el("img"); im.src = fotoU(m.foto); im.alt = ""; f.appendChild(im); }
+          const t = el("div", "nv-his-t"); t.appendChild(el("b", "", m.de + " → " + m.para + (m.reportado ? " · 🚩 REPORTADO" : " · ⚠ DUDOSO"))); t.appendChild(el("span", "", m.tipo === "foto" ? "📷 foto" + (m.texto ? ": " + m.texto : "") : "«" + m.texto + "»")); f.appendChild(t);
+          const ok = el("button", "nv-mini nv-verde", "Aprobar"); ok.type = "button"; ok.onclick = async () => { if (await rpcAdm("admin_dm_decidir", { p_id: m.id, p_ok: true })) cargarCola(); };
+          const no = el("button", "nv-mini nv-rojo", "Rechazar"); no.type = "button"; no.onclick = async () => { if (await rpcAdm("admin_dm_decidir", { p_id: m.id, p_ok: false })) cargarCola(); };
+          const sl = el("button", "nv-mini", "Silenciar 1 h"); sl.type = "button"; sl.onclick = () => rpcAdm("chat_admin_silenciar", { p_user: m.de_id, p_min: 60 }, "Silenciado 1 hora");
+          f.appendChild(ok); f.appendChild(no); f.appendChild(sl); lq.appendChild(f); }); } catch (_) { lq.appendChild(el("p", "adm-ayuda", "No pude leer (¿ejecutaste el SQL v42?).")); }
+    }
+    cargarCola();
+    c7.appendChild(el("h5", "nv-sub", "🔍 Todas las conversaciones"));
+    const lpz = el("div", "nv-lista"); c7.appendChild(lpz);
+    async function cargarPares() {
+      lpz.innerHTML = ""; try { const { data, error } = await supabase.rpc("admin_dm_pares"); if (error) throw error; if (!data.length) lpz.appendChild(el("p", "adm-ayuda", "Todavía no hay conversaciones."));
+        data.forEach((p) => { const f = el("div", "nv-item"); f.appendChild(el("b", "", p.n1 + " ↔ " + p.n2)); f.appendChild(el("span", "", p.mensajes + " mensajes" + (p.dudosos ? " · ⚠ " + p.dudosos + " dudosos" : "") + " · último " + new Date(p.ult).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })));
+          const v = el("button", "nv-mini", "Leer"); v.type = "button"; const hilo = el("div", "nv-hilo"); hilo.hidden = true;
+          v.onclick = async () => { if (!hilo.hidden) { hilo.hidden = true; return; } hilo.hidden = false; hilo.textContent = "Cargando…"; try { const { data: h, error: e2 } = await supabase.rpc("admin_dm_hilo", { p_a: p.u1, p_b: p.u2 }); if (e2) throw e2; hilo.innerHTML = ""; h.forEach((m) => { const r = el("div", "nv-hm" + (m.estado !== "ok" ? " mal" : "")); r.appendChild(el("b", "", m.de + ": ")); if (m.tipo === "foto") { const im = el("img"); im.src = fotoU(m.foto); im.alt = ""; r.appendChild(im); } else r.appendChild(document.createTextNode(m.tipo === "id" ? "🎮 ID " + m.texto : m.texto)); hilo.appendChild(r); }); } catch (_) { hilo.textContent = "No se pudo leer."; } };
+          f.appendChild(v); f.appendChild(hilo); lpz.appendChild(f); }); } catch (_) { lpz.appendChild(el("p", "adm-ayuda", "No pude leer (¿ejecutaste el SQL v42?).")); }
+    }
+    cargarPares();
     const nuevoH = el("button", "nv-btn", "＋ Subir historia oficial"); nuevoH.type = "button"; nuevoH.onclick = abrirCreador; c5.appendChild(nuevoH);
   }
   window.novAdminCargar = adminCargar;
@@ -7517,4 +7551,152 @@ const NOV = (function novedades() {
   supabase.auth.onAuthStateChange(() => { setTimeout(() => { calcPuedeSubir(); cargarHistorias(); }, 600); });
   document.addEventListener("DOMContentLoaded", iniciar);
   return { abrirPremios };
+})();
+
+// =====================================================================
+// v57 · HUB de chats (Mundial y Alma Zarela fijos) + CHAT PRIVADO entre amigos
+// =====================================================================
+(function chatHub() {
+  const E = (id) => document.getElementById(id);
+  const el = (t, c, txt) => { const e = document.createElement(t); if (c) e.className = c; if (txt !== undefined) e.textContent = txt; return e; };
+  const esAdm = () => { try { return esAdminActual(); } catch (_) { return false; } };
+  const esPC = () => matchMedia("(min-width: 801px)").matches && !document.body.classList.contains("modo-admin");
+  const urlFoto = (p) => { try { return supabase.storage.from("chatfotos").getPublicUrl(p).data.publicUrl; } catch (_) { return ""; } };
+  const ERR = { NO_AMIGOS: "Solo podés escribirles a tus amigos.", BLOQUEADO: "No se pueden enviar mensajes en este chat.", SILENCIADO: "Estás silenciado por un rato 🤫", MUY_RAPIDO: "Más despacio 🙂", LINK: "No se permiten links ni redes 🚫", TELEFONO: "No pases teléfonos por acá 🚫. Para tu ID de Free Fire usá el botón 🎮", VENTA: "Eso no se puede enviar 🚫", TEXTO_INVALIDO: "Escribí un mensaje de hasta 300 letras.", FOTOS_APAGADAS: "Las fotos están desactivadas por ahora.", ID_NO_GUARDADO: "Ese ID no está en tu lista de IDs guardados.", NO_AUTENTICADO: "Ingresá con Google primero." };
+  const msgErr = (e, d) => { const m = String((e && e.message) || ""); const k = Object.keys(ERR).find((x) => m.includes(x)); return k ? ERR[k] : d; };
+  let rafP = 0, activo = null, convs = [], dmCon = null, dmT = 0, fotosModo = "off";
+  const PANELES = { hub: "hub-panel", dm: "dm-panel" };
+
+  function pos(idp) {
+    const w = E(idp), ref = E("chat-widget");
+    if (!w || !ref || !w.classList.contains("abierto") || !esPC()) { rafP = 0; return; }
+    const r = ref.getBoundingClientRect();
+    if (r.width > 50) { w.style.left = r.left + "px"; w.style.top = r.top + "px"; w.style.width = r.width + "px"; w.style.height = r.height + "px"; w.style.right = "auto"; w.style.bottom = "auto"; }
+    rafP = requestAnimationFrame(() => pos(idp));
+  }
+  function cerrarPaneles(salvo) {
+    Object.entries(PANELES).forEach(([k, id]) => { if (k === salvo) return; const w = E(id); if (w) { w.classList.remove("abierto"); w.style.cssText = ""; } document.body.classList.remove(k + "-abierto"); });
+    if (salvo !== "dm") { clearTimeout(dmT); dmCon = null; }
+  }
+  function abrirPanel(k) {
+    cerrarPaneles(k); try { window.cerrarChatMundo && window.cerrarChatMundo(); } catch (_) {}
+    try { if (!esPC() && typeof alternarChat === "function") alternarChat(false); } catch (_) {}
+    const w = E(PANELES[k]); w.classList.add("abierto"); document.body.classList.add(k + "-abierto"); activo = k;
+    if (esPC()) { cancelAnimationFrame(rafP); rafP = requestAnimationFrame(() => pos(PANELES[k])); }
+  }
+  function todoCerrado() { cerrarPaneles(null); try { window.cerrarChatMundo && window.cerrarChatMundo(); } catch (_) {} activo = null; }
+
+  // ------------------------- HUB -------------------------
+  async function cargarConvs() {
+    if (!usuarioActual) { convs = []; return; }
+    try { const { data, error } = await supabase.rpc("dm_conversaciones"); if (error) throw error; convs = data || []; } catch (_) { convs = []; }
+  }
+  const hora = (t) => { try { const d = new Date(t), h = new Date(); return d.toDateString() === h.toDateString() ? d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" }); } catch (_) { return ""; } };
+  function avatar(nombre, foto, c) {
+    const a = el("span", "hub-av " + (c || "")); const ini = () => { a.textContent = (nombre || "?").trim().charAt(0).toUpperCase(); };
+    if (foto && /^https:\/\//.test(foto)) { const im = el("img"); im.alt = ""; im.referrerPolicy = "no-referrer"; im.onerror = () => { im.remove(); ini(); }; im.src = foto; a.appendChild(im); } else ini(); return a;
+  }
+  function fila(av, tit, sub, meta, n, fijado, fn) {
+    const b = el("button", "hub-fila" + (fijado ? " fij" : "")); b.type = "button"; b.appendChild(av);
+    const t = el("div", "hub-t"); const h = el("div", "hub-h"); h.appendChild(el("b", "", tit)); if (fijado) h.appendChild(el("span", "hub-pin", "📌")); t.appendChild(h); t.appendChild(el("small", "", sub)); b.appendChild(t);
+    const m = el("div", "hub-m"); if (meta) m.appendChild(el("small", "", meta)); if (n) m.appendChild(el("em", "hub-n", n > 9 ? "9+" : String(n))); b.appendChild(m); b.onclick = fn; return b;
+  }
+  async function pintarHub() {
+    const l = E("hub-lista"); if (!l) return;
+    await cargarConvs();
+    l.innerHTML = "";
+    const mundo = el("span", "hub-av hub-mundo", "🌎");
+    let ult = "Chateá con todos los clientes"; try { const ms = document.querySelectorAll("#cm-lista .cm-msg .cm-txt"); if (ms.length) ult = ms[ms.length - 1].textContent; } catch (_) {}
+    l.appendChild(fila(mundo, "Mundial", ult.slice(0, 48), "", (window.cmSinLeer && window.cmSinLeer()) || 0, true, () => { cerrarPaneles(null); window.abrirChatMundo(); }));
+    let sop = "Dudas, comprobantes y ayuda"; try { const ms = document.querySelectorAll("#chat-messages-container .chat-message"); if (ms.length) sop = ms[ms.length - 1].textContent.trim().replace(/\s+/g, " "); } catch (_) {}
+    let nsop = 0; try { nsop = parseInt((document.querySelector("#chat-fab .chat-dot:not(#hub-dot)") || {}).textContent, 10) || 0; } catch (_) {}
+    l.appendChild(fila(el("span", "hub-av hub-sop", "💎"), "Alma Zarela · Soporte", sop.slice(0, 48), "", nsop, true, () => { cerrarPaneles(null); activo = null; try { if (!esPC()) alternarChat(true); } catch (_) {} }));
+    const sep = el("div", "hub-sep", "Mis amigos"); l.appendChild(sep);
+    if (!usuarioActual) l.appendChild(el("p", "hub-vacio", "Ingresá con Google para agregar amigos y escribirles."));
+    else if (!convs.length) l.appendChild(el("p", "hub-vacio", "Todavía no tenés amigos. Tocá «＋ Amigos» para buscarlos por nombre o por ID."));
+    convs.forEach((c) => l.appendChild(fila(avatar(c.nombre, c.foto), c.nombre, c.ult_texto ? (c.ult_mio ? "Vos: " : "") + (c.ult_tipo === "id" ? "🎮 ID de Free Fire" : c.ult_tipo === "foto" ? "📷 Foto" : c.ult_texto).slice(0, 44) : "Escribile para jugar juntos 🎮", c.ult_at ? hora(c.ult_at) : "", Number(c.no_leidos) || 0, false, () => abrirDM(c))));
+    pintarPunto();
+  }
+  async function pintarPunto() {
+    let n = 0; if (usuarioActual) { try { const { data } = await supabase.rpc("dm_total_no_leidos"); n = Number(data) || 0; } catch (_) {} }
+    let s = 0; try { s = parseInt((document.querySelector("#chat-fab .chat-dot:not(#hub-dot)") || {}).textContent, 10) || 0; } catch (_) {}
+    const t = n + s + ((window.cmSinLeer && window.cmSinLeer()) || 0), d = E("hub-dot"); if (d) { d.textContent = t > 9 ? "9+" : String(t); d.hidden = !t; }
+  }
+  window.cerrarPanelesChat = () => cerrarPaneles(null);
+  window.abrirHub = async () => { abrirPanel("hub"); pintarHub(); };
+  window.abrirChatSoporte = () => { todoCerrado(); try { if (!esPC() && typeof alternarChat === "function") alternarChat(true); } catch (_) {} };
+
+  // ------------------------- CHAT PRIVADO -------------------------
+  async function cargarModoFotos() { try { const { data } = await supabase.from("novedades_config").select("valor").eq("clave", "dm_fotos").maybeSingle(); fotosModo = (data && data.valor) || "off"; } catch (_) {} E("dm-fotob").hidden = fotosModo === "off" && !esAdm(); }
+  async function abrirDM(c) {
+    dmCon = c; abrirPanel("dm"); E("dm-nom").textContent = c.nombre; E("dm-sub").textContent = "#" + c.num_id + " · amigo"; const av = E("dm-av"); av.innerHTML = ""; av.appendChild(avatar(c.nombre, c.foto, "hub-av-s"));
+    E("dm-lista").innerHTML = ""; E("dm-in").value = "";
+    const ch = E("dm-chips"); ch.innerHTML = ""; ["¿Jugás el torneo de hoy? 🏆", "¿Hacemos dúo? 🎮", "Dale, nos vemos ahí 🔥", "GG 👏"].forEach((t) => { const b = el("button", "dm-chip", t); b.type = "button"; b.onclick = () => enviarDM(t, "texto"); ch.appendChild(b); });
+    cargarModoFotos(); await cargarDM(true);
+  }
+  async function cargarDM(forzar) {
+    clearTimeout(dmT); if (!dmCon || activo !== "dm") return;
+    const id = dmCon.id;
+    try {
+      const { data, error } = await supabase.rpc("dm_lista", { p_con: id }); if (error) throw error;
+      if (dmCon && dmCon.id === id) pintarDM((data || []).slice().reverse(), forzar);
+    } catch (_) {}
+    dmT = setTimeout(() => cargarDM(false), 4000);
+  }
+  function pintarDM(ms, forzar) {
+    const l = E("dm-lista"), abajo = l.scrollHeight - l.scrollTop - l.clientHeight < 80, firma = ms.map((m) => m.id + m.estado + m.leido).join(",");
+    if (!forzar && l.dataset.f === firma) return; l.dataset.f = firma; l.innerHTML = "";
+    if (!ms.length) l.appendChild(el("p", "cm-vacio", "Saluda a " + (dmCon ? dmCon.nombre : "tu amigo") + " 👋 ¿Juegan juntos el torneo?"));
+    ms.forEach((m) => {
+      const d = el("div", "cm-msg dm-m" + (m.mio ? " cm-mio" : ""));
+      if (m.tipo === "id") { const c = el("div", "dm-idc"); c.appendChild(el("small", "", "🎮 ID de Free Fire")); c.appendChild(el("b", "", m.texto)); const b = el("button", "pr-mini", "Copiar"); b.type = "button"; b.onclick = () => { try { navigator.clipboard.writeText(m.texto); mostrarAviso("ID copiado", "exito"); } catch (_) {} }; c.appendChild(b); d.appendChild(c); }
+      else if (m.tipo === "foto") { const im = el("img", "dm-foto"); im.alt = "foto"; im.src = urlFoto(m.foto_path); im.onclick = () => { const z = E("dm-zoom"); z.querySelector("img").src = im.src; z.hidden = false; }; d.appendChild(im); if (m.texto) d.appendChild(el("div", "cm-txt", m.texto)); }
+      else d.appendChild(el("div", "cm-txt", m.texto));
+      const pie = el("small", "dm-pie", hora(m.created_at) + (m.mio ? (m.estado === "revision" ? " · ⏳ en revisión" : m.leido ? " ✓✓" : " ✓") : "")); d.appendChild(pie);
+      if (!m.mio) { const r = el("button", "dm-rep", "🚩"); r.type = "button"; r.title = "Reportar"; r.onclick = async () => { try { await supabase.rpc("dm_reportar", { p_id: m.id }); mostrarAviso("Gracias, lo revisamos 🙏", "exito"); } catch (_) {} }; pie.appendChild(r); }
+      l.appendChild(d);
+    });
+    if (abajo || forzar) l.scrollTop = l.scrollHeight;
+  }
+  let envDM = false;
+  async function enviarDM(texto, tipo, path) {
+    if (!dmCon || envDM) return; if (tipo === "texto" && !texto.trim()) return;
+    envDM = true;
+    try { const { data, error } = await supabase.rpc("dm_enviar", { p_para: dmCon.id, p_texto: texto, p_tipo: tipo, p_path: path || null }); if (error) throw error; if (tipo === "texto" && texto === E("dm-in").value) E("dm-in").value = ""; if (data && data.estado === "revision") mostrarAviso("Tu mensaje quedó en revisión 🔎", "info"); await cargarDM(true); }
+    catch (e) { mostrarAviso(msgErr(e, "No se pudo enviar."), "error"); }
+    envDM = false;
+  }
+  async function compartirId() {
+    const m = E("dm-ids"), l = E("dm-ids-l"); l.textContent = "Cargando…"; m.hidden = false;
+    try { const { data } = await supabase.from("ids_guardados").select("id_jugador, apodo").order("created_at", { ascending: false }).limit(8); l.innerHTML = "";
+      if (!data || !data.length) { l.appendChild(el("p", "adm-ayuda", "Primero guardá tu ID en la página (sección «Ingresar ID de jugador»). Así nadie puede mandar un ID que no es suyo.")); return; }
+      data.forEach((x) => { const b = el("button", "dm-idop"); b.type = "button"; b.appendChild(el("b", "", x.id_jugador)); b.appendChild(el("small", "", x.apodo || "ID guardado")); b.onclick = () => { m.hidden = true; enviarDM(x.id_jugador, "id"); }; l.appendChild(b); });
+    } catch (_) { l.textContent = "No se pudo cargar tus IDs."; }
+  }
+  function comprimirJPG(file) { return new Promise((res, rej) => { const im = new Image(), u = URL.createObjectURL(file); im.onload = () => { const k = Math.min(1, 900 / Math.max(im.width, im.height)); const cv = document.createElement("canvas"); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k); cv.getContext("2d").drawImage(im, 0, 0, cv.width, cv.height); cv.toBlob((b) => (b ? res(b) : rej()), "image/jpeg", 0.78); URL.revokeObjectURL(u); }; im.onerror = rej; im.src = u; }); }
+  async function menuDM() {
+    if (!dmCon) return;
+    const bloq = !!dmCon.bloqueado;
+    if (confirm(bloq ? "¿Desbloquear a " + dmCon.nombre + "?" : "¿Bloquear a " + dmCon.nombre + "? No podrán escribirse.")) { try { await supabase.rpc("dm_bloquear", { p_user: dmCon.id, p_si: !bloq }); dmCon.bloqueado = !bloq; mostrarAviso(bloq ? "Desbloqueado" : "Bloqueado", "exito"); } catch (_) {} }
+  }
+  function iniciar() {
+    E("hub-x")?.addEventListener("click", () => { todoCerrado(); });
+    E("hub-amg")?.addEventListener("click", () => window.abrirAmigos && window.abrirAmigos(""));
+    E("chat-volver")?.addEventListener("click", () => { try { if (!esPC()) alternarChat(false); } catch (_) {} window.abrirHub(); });
+    E("dm-back")?.addEventListener("click", () => window.abrirHub());
+    E("dm-menu")?.addEventListener("click", menuDM);
+    E("dm-env")?.addEventListener("click", () => enviarDM(E("dm-in").value, "texto"));
+    E("dm-in")?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); enviarDM(E("dm-in").value, "texto"); } });
+    E("dm-idb")?.addEventListener("click", compartirId);
+    E("dm-ids-x")?.addEventListener("click", () => { E("dm-ids").hidden = true; });
+    E("dm-fotob")?.addEventListener("click", () => E("dm-file").click());
+    E("dm-zoom")?.addEventListener("click", () => { E("dm-zoom").hidden = true; });
+    E("dm-file")?.addEventListener("change", async (ev) => { const f = ev.target.files && ev.target.files[0]; ev.target.value = ""; if (!f || !dmCon) return; try { const b = await comprimirJPG(f); const path = usuarioActual.id + "/" + Date.now() + ".jpg"; const { error } = await supabase.storage.from("chatfotos").upload(path, b, { contentType: "image/jpeg" }); if (error) throw error; await enviarDM("", "foto", path); } catch (e) { mostrarAviso(msgErr(e, "No se pudo enviar la foto."), "error"); } });
+    setInterval(() => { if (!document.hidden) { pintarPunto(); if (activo === "hub") pintarHub(); } }, 20000);
+    setTimeout(pintarPunto, 4000);
+    // PC: la lista de chats es lo primero que se ve en el lugar del chat
+    setTimeout(() => { if (esPC() && !activo && !document.body.classList.contains("tour-on")) window.abrirHub(); }, 1500);
+  }
+  supabase.auth.onAuthStateChange(() => { setTimeout(() => { pintarPunto(); if (activo === "hub") pintarHub(); }, 700); });
+  document.addEventListener("DOMContentLoaded", iniciar);
 })();
