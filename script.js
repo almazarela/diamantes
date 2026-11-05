@@ -216,7 +216,7 @@ function reiniciarAutoplay() {
   clearInterval(timerCarrusel);
   timerCarrusel = setInterval(() => {
     const n = document.querySelectorAll("#carousel-track .carousel-slide").length;
-    if (carruselPausado) return;
+    if (carruselPausado || document.body.classList.contains("hs-abierto")) return;
     const act = document.querySelector("#carousel-track .carousel-slide.active");
     if (act && act.classList.contains("slide-ayuda") && !esperaAyuda) { esperaAyuda = true; return; }   // la guía se queda el doble de tiempo
     esperaAyuda = false;
@@ -4893,7 +4893,7 @@ Object.assign(window, { alternarPausa, guiaPaso });
   setInterval(() => {
     const sl = $("slide-ayuda"); if (!sl) return;
     if (!sl.classList.contains("active")) { if (guiaI !== 0) guiaMostrar(0); return; }
-    if (carruselPausado) return;
+    if (carruselPausado || document.body.classList.contains("hs-abierto")) return;
     guiaMostrar(guiaI + 1);
   }, 3500);
   // tocar la guía la frena (celular)
@@ -7354,7 +7354,7 @@ const NOV = (function novedades() {
     return puedeSubir;
   }
   const sinVer = () => {
-    const l = grupos.filter((g) => g.user_id !== miId() || g.oficial).map((g) => (g.oficial ? g : { ...g, items: g.items.filter((h) => !visto(h.id)) })).filter((g) => g.items.length);
+    const l = grupos.filter((g) => g.user_id !== miId() || g.oficial).map((g) => ({ ...g, items: g.items.filter((h) => !visto(h.id)) })).filter((g) => g.items.length);
     return [...l.filter((g) => g.oficial), ...l.filter((g) => !g.oficial)];   // Zarela siempre primero, anclada
   };
   const ofiTag = (cls) => el("em", cls, "Oficial");
@@ -7370,40 +7370,53 @@ const NOV = (function novedades() {
       r.appendChild(c); return;
     }
     const nuevas = sinVer(), total = nuevas.reduce((n, g) => n + g.items.length, 0);
-    const nueva = el("button", "sh-b sh-nueva"); nueva.type = "button"; nueva.appendChild(el("span", "sh-c", "＋")); nueva.appendChild(el("small", "", "Tu historia")); nueva.onclick = abrirCreador;
-    // PC: varias burbujas con la foto de cada cliente
-    const pc = el("div", "sh-pc"); pc.appendChild(nueva.cloneNode(true)); pc.firstChild.onclick = abrirCreador;
-    nuevas.slice(0, 6).forEach((g, i) => { const b = el("button", "sh-b" + (g.oficial ? " sh-ofi" : "")); b.type = "button"; const c = el("span", "sh-c"); c.appendChild(avatarGrupo(g)); b.appendChild(c); b.appendChild(el("small", "", g.oficial ? "Zarela" : g.nombre)); if (g.oficial) b.appendChild(ofiTag("sh-of")); b.onclick = () => abrirVisor(nuevas.slice(i)); pc.appendChild(b); });
+    const nueva = () => { const b = el("button", "sh-b sh-nueva"); b.type = "button"; b.appendChild(el("span", "sh-c", "＋")); b.appendChild(el("small", "", "Tu historia")); b.onclick = () => abrirCreador(); return b; };
+    const pc = el("div", "sh-pc"); pc.appendChild(nueva());
+    if (nuevas.length) {
+      const pb = el("button", "sh-b sh-pila-b"); pb.type = "button"; pb.title = "Tocá para ver las historias";
+      const pila = el("span", "sh-pila"); nuevas.slice(0, 4).forEach((g, i) => { const c = el("span", "sh-c" + (g.oficial ? " sh-ofi-c" : "")); c.style.setProperty("--i", String(i)); c.appendChild(avatarGrupo(g)); pila.appendChild(c); });
+      if (total > 1) pila.appendChild(el("em", "sh-n", String(total)));
+      pb.appendChild(pila); const g0 = nuevas[0]; pb.appendChild(el("small", "", g0.oficial ? "Zarela" : g0.nombre)); if (g0.oficial) pb.appendChild(ofiTag("sh-of"));
+      pb.onclick = () => abrirVisor(nuevas); pc.appendChild(pb);
+    } else pc.appendChild(el("span", "sh-vacio", "Ya viste todas las de hoy 🎉"));
     const todas = el("button", "sh-todas", "Ver todas ›"); todas.type = "button"; todas.onclick = abrirPanel; pc.appendChild(todas);
-    if (!nuevas.length) pc.appendChild(el("span", "sh-vacio", "Ya viste todas las de hoy 🎉"));
-    // celular: una sola burbuja que abre todo
-    const mov = el("div", "sh-mov"); const uno = el("button", "sh-b sh-uno"); uno.type = "button"; const c1 = el("span", "sh-c sh-c-gr"); c1.appendChild(el("span", "sh-ic", "✨")); if (total) c1.appendChild(el("em", "sh-n", String(total))); uno.appendChild(c1);
-    uno.appendChild(el("small", "", total ? "Ver historias" : "Sin novedades")); uno.onclick = abrirPanel; mov.appendChild(uno);
-    const m2 = el("button", "sh-mini", "＋ Subir la tuya"); m2.type = "button"; m2.onclick = abrirCreador; mov.appendChild(m2);
-    r.appendChild(pc); r.appendChild(mov);
+    r.appendChild(pc);
   }
 
   // ---- panel completo con todas las historias de hoy
+  let panLim = 12, notas = [];
+  async function cargarNotas() { try { const { data, error } = await conTimeout(supabase.rpc("notas_activas"), 6000); if (error) throw error; notas = data || []; } catch (_) { notas = []; } if (!E("hs-panel").hidden) pintarPanel(); }
   function pintarPanel() {
     const g0 = E("hsp-grid"); g0.innerHTML = "";
     const mi = miId();
-    const nb = el("button", "hsp-it hsp-nueva"); nb.type = "button"; const nc = el("span", "hsp-c", "＋"); nb.appendChild(nc); nb.appendChild(el("small", "", "Tu historia")); nb.onclick = () => { cerrarPanel(); abrirCreador(); }; g0.appendChild(nb);
-    const orden = [...grupos].sort((a, b) => ((b.oficial ? 1 : 0) - (a.oficial ? 1 : 0)) || (visto(a.items[a.items.length - 1].id) - visto(b.items[b.items.length - 1].id)) || (b.ult - a.ult));
-    orden.forEach((g) => {
-      const todoVisto = g.items.every((h) => visto(h.id)), mia = mi && g.user_id === mi && !g.oficial;
-      const b = el("button", "hsp-it" + (todoVisto ? " vista" : "") + (g.oficial ? " ofi" : "")); b.type = "button";
+    // notas (estilo Instagram)
+    const fn = E("hsp-notas"); if (fn) { fn.innerHTML = ""; fn.hidden = !notas.length;
+      notas.forEach((n) => { const b = el("button", "hsn"); b.type = "button"; b.appendChild(el("span", "hsn-t", n.nota)); b.appendChild(avatarGrupo({ nombre: n.nombre, foto: n.foto }, "hsn-av")); b.appendChild(el("small", "", n.user_id === mi ? "Tu nota" : n.nombre)); b.onclick = () => { try { window.abrirPerfil(n.user_id); } catch (_) {} }; fn.appendChild(b); }); }
+    const nb = el("button", "hsp-it hsp-nueva"); nb.type = "button"; const nc = el("span", "hsp-c", "＋"); nb.appendChild(nc); nb.appendChild(el("small", "", "Historia o nota")); nb.onclick = () => { cerrarPanel(); abrirCreador(); }; g0.appendChild(nb);
+    const orden = [...grupos].filter((g) => (mi && g.user_id === mi && !g.oficial) || !g.items.every((h) => visto(h.id)))
+      .sort((a, b) => ((b.oficial ? 1 : 0) - (a.oficial ? 1 : 0)) || (b.ult - a.ult));
+    orden.slice(0, panLim).forEach((g) => {
+      const mia = mi && g.user_id === mi && !g.oficial;
+      const b = el("button", "hsp-it" + (g.oficial ? " ofi" : "")); b.type = "button";
       const c = el("span", "hsp-c"); c.appendChild(avatarGrupo(g)); b.appendChild(c);
       b.appendChild(el("small", "", mia ? "Tu historia" : g.oficial ? "Zarela" : g.nombre + (amigosSet.has(g.user_id) ? " 🤝" : ""))); if (g.oficial) b.appendChild(ofiTag("hsp-of"));
       b.onclick = () => abrirVisor(orden.slice(orden.indexOf(g)), true);
       g0.appendChild(b);
     });
-    if (!grupos.length) g0.appendChild(el("p", "hsp-vacio", "Todavía no hay historias hoy. ¡Subí la primera! ✨"));
+    if (orden.length > panLim) { const m = el("button", "hsp-mas", "Ver más (" + (orden.length - panLim) + ") ⌄"); m.type = "button"; m.onclick = () => { panLim += 24; pintarPanel(); }; g0.appendChild(m); }
+    if (!orden.length) g0.appendChild(el("p", "hsp-vacio", grupos.length ? "Ya viste todas las de hoy 🎉 Tocá «Vistas recientemente» para repetirlas." : "Todavía no hay historias hoy. ¡Subí la primera! ✨"));
   }
-  function abrirPanel() { E("hs-panel").hidden = false; document.body.classList.add("hs-abierto"); pintarPanel(); }
+  function verRecientes() {
+    const ids = [...vistas].reverse(), out = [], usados = new Set();
+    for (const id of ids) { const h = hist.find((x) => x.id === id); if (!h) continue; const g = grupos.find((x) => x.items.includes(h)); if (!g || usados.has(h.id)) continue; usados.add(h.id); out.push({ ...g, items: [h] }); if (out.length >= 3) break; }
+    if (!out.length) { mostrarAviso("Todavía no viste ninguna historia reciente.", "info"); return; }
+    abrirVisor(out, true);
+  }
+  function abrirPanel() { panLim = 12; E("hs-panel").hidden = false; document.body.classList.add("hs-abierto"); pintarPanel(); cargarNotas(); }
   function cerrarPanel() { E("hs-panel").hidden = true; if (E("hs-visor").hidden) document.body.classList.remove("hs-abierto"); }
 
   // ---- visor a pantalla completa
-  let cola = [], ci = 0, vt = 0, resumen = {}, desdePanel = false;
+  let cola = [], ci = 0, vt = 0, resumen = {}, desdePanel = false, vtRest = 5000, vtIni = 0, pausado = false, holdT = 0, holdUsado = false; const HS_DUR = 5000;   // 5 s por historia, como Instagram
   function abrirVisor(grs, todo) {
     desdePanel = !!todo;
     cola = []; grs.forEach((g, gi) => g.items.forEach((h) => cola.push({ h, g, gi })));
@@ -7435,7 +7448,7 @@ const NOV = (function novedades() {
     E("hs-nom").textContent = g.oficial ? "Alma Zarela ✔ Oficial" : g.nombre;
     try { E("hs-hora").textContent = new Date(h.created_at).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }); } catch (_) {}
     const mis = cola.filter((x) => x.g === g), pos = mis.findIndex((x) => x.h === h);
-    const bar = E("hs-barras"); bar.innerHTML = ""; mis.forEach((_, k) => bar.appendChild(el("i", k < pos ? "ok" : k === pos ? "act" : "")));
+    const bar = E("hs-barras"); bar.innerHTML = ""; mis.forEach((_, k) => { const i = el("i", k < pos ? "ok" : k === pos ? "act" : ""); if (k === pos) i.style.animationDuration = (HS_DUR / 1000) + "s"; bar.appendChild(i); });
     const c = E("hs-cuerpo"); c.innerHTML = ""; c.className = "hs-cuerpo c" + (h.color % COLORES);
     if (h.imagen_path) { const im = el("img"); im.alt = ""; im.src = urlImg(h.imagen_path); c.appendChild(im); }
     if (h.texto) c.appendChild(el("div", h.imagen_path ? "hs-pie" : "hs-gran", h.texto));
@@ -7444,8 +7457,10 @@ const NOV = (function novedades() {
     E("hs-msg").value = "";
     E("hs-pie-bar").hidden = !!mia; E("hs-act").hidden = !mia;
     if (!mia) { pintarReacs(h); cargarResumen([h.id]).then(() => { if (cola[ci] && cola[ci].h === h) pintarReacs(h); }); }
-    vt = setTimeout(() => { ci++; mostrarHist(); }, 6000);
+    vtRest = HS_DUR; vtIni = Date.now(); pausado = false; vt = setTimeout(() => { ci++; mostrarHist(); }, HS_DUR);
   }
+  function hsPausa() { if (pausado || E("hs-visor").hidden) return; pausado = true; clearTimeout(vt); vtRest = Math.max(300, vtRest - (Date.now() - vtIni)); const a = E("hs-barras").querySelector("i.act"); if (a) a.style.animationPlayState = "paused"; E("hs-visor").classList.add("quieta"); }
+  function hsSigue() { if (!pausado) return; pausado = false; vtIni = Date.now(); const a = E("hs-barras").querySelector("i.act"); if (a) a.style.animationPlayState = "running"; E("hs-visor").classList.remove("quieta"); clearTimeout(vt); vt = setTimeout(() => { ci++; mostrarHist(); }, vtRest); }
   async function enviarMsg() {
     const t = E("hs-msg").value.trim(); if (!t || !cola[ci]) return;
     if (!usuarioActual) { mostrarAviso("Ingresá con Google para escribir.", "info"); return; }
@@ -7473,12 +7488,16 @@ const NOV = (function novedades() {
   }
   // creador
   let fotoBlob = null, colorSel = 0;
-  function abrirCreador() {
-    if (!usuarioActual) { mostrarAviso("Ingresá con Google para subir historias.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
-    if (puedeSubir === false) { mostrarAviso("Las historias son para clientes que ya hicieron una recarga 💎", "info"); return; }
-    if (estado("f_historias") !== "on" && !adm()) { mostrarAviso("Las historias abren pronto ✨", "info"); return; }
+  function hcTab(t) {
+    const nota = t === "n"; E("hc-p-h").hidden = nota; E("hc-p-n").hidden = !nota;
+    E("hc-t-h").classList.toggle("on", !nota); E("hc-t-n").classList.toggle("on", nota);
+    if (nota) { const mia = notas.find((n) => n.user_id === miId()); E("hc-nota").value = mia ? mia.nota : ""; E("hc-nota-b").textContent = E("hc-nota").value || "Tu nota…"; E("hc-nota-q").hidden = !mia; }
+  }
+  function abrirCreador(tab) {
+    if (!usuarioActual) { mostrarAviso("Ingresá con Google para subir historias o notas.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
+    const noHist = (puedeSubir === false) ? "Las historias son para clientes que ya hicieron una recarga 💎 (las notas sí podés)." : (estado("f_historias") !== "on" && !adm()) ? "Las historias abren pronto ✨ (las notas sí podés)." : "";
     cerrarPanel();
-    fotoBlob = null; colorSel = Math.floor(Math.random() * COLORES); E("hc-txt").value = ""; E("hc-quitar").hidden = true; E("hc-modal").hidden = false; pintarPrevHist();
+    fotoBlob = null; colorSel = Math.floor(Math.random() * COLORES); E("hc-txt").value = ""; E("hc-quitar").hidden = true; E("hc-modal").hidden = false; pintarPrevHist(); hcTab(noHist || tab === "n" ? "n" : "h"); if (noHist) mostrarAviso(noHist, "info");
     const cs = E("hc-colores"); cs.innerHTML = ""; for (let k = 0; k < COLORES; k++) { const b = el("button", "c" + k + (k === colorSel ? " on" : "")); b.type = "button"; b.onclick = () => { colorSel = k; [...cs.children].forEach((x, i) => x.classList.toggle("on", i === k)); pintarPrevHist(); }; cs.appendChild(b); }
   }
   function pintarPrevHist() {
@@ -7882,8 +7901,15 @@ const NOV = (function novedades() {
   setTimeout(pintarPuntoAdmin, 5000);
 
   async function iniciar() {
-    await cargarCfg(); await cargarHistorias(); calcPuedeSubir();
+    await cargarCfg(); await cargarHistorias(); calcPuedeSubir(); cargarNotas();
     E("hs-x")?.addEventListener("click", cerrarVisor);
+    { const vz = E("hs-visor"); if (vz) {
+      vz.addEventListener("pointerdown", (e) => { if (e.target.closest("#hs-pie-bar,#hs-act,.hs-cab button,#hs-x")) return; clearTimeout(holdT); holdT = setTimeout(() => { hsPausa(); holdUsado = true; }, 220); });
+      const suelta = () => { clearTimeout(holdT); if (pausado) { hsSigue(); setTimeout(() => { holdUsado = false; }, 80); } };
+      ["pointerup", "pointercancel", "pointerleave"].forEach((ev) => vz.addEventListener(ev, suelta));
+      vz.addEventListener("click", (e) => { if (holdUsado) { e.stopPropagation(); e.preventDefault(); } }, true);
+      vz.addEventListener("contextmenu", (e) => e.preventDefault()); } }
+    E("hsp-rec")?.addEventListener("click", verRecientes);
     E("hs-sig")?.addEventListener("click", () => { ci++; mostrarHist(); });
     E("hs-ant")?.addEventListener("click", () => { ci = Math.max(0, ci - 1); mostrarHist(); });
     E("hsp-x")?.addEventListener("click", cerrarPanel);
@@ -7898,6 +7924,12 @@ const NOV = (function novedades() {
     E("am-buscar")?.addEventListener("click", buscarAmigos);
     E("am-q")?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); buscarAmigos(); } });
     E("hc-x")?.addEventListener("click", () => { E("hc-modal").hidden = true; });
+    E("hc-t-h")?.addEventListener("click", () => { if (puedeSubir === false || (estado("f_historias") !== "on" && !adm())) { mostrarAviso("Las historias son para clientes que ya recargaron.", "info"); return; } hcTab("h"); });
+    E("hc-t-n")?.addEventListener("click", () => hcTab("n"));
+    E("hc-nota")?.addEventListener("input", () => { E("hc-nota-b").textContent = E("hc-nota").value || "Tu nota…"; });
+    E("hc-nota-pub")?.addEventListener("click", async () => { const t = E("hc-nota").value.trim(); if (t.length < 2) { mostrarAviso("Escribí tu nota.", "info"); return; } const b = E("hc-nota-pub"); b.disabled = true;
+      try { const { error } = await supabase.rpc("mi_nota", { p_texto: t }); if (error) throw error; E("hc-modal").hidden = true; mostrarAviso("¡Nota publicada! Se ve 24 horas 📝", "exito"); cargarNotas(); } catch (e) { mostrarAviso(String((e && e.message) || "").includes("RESERVADO") ? "Esa nota no está permitida (sin links, teléfonos ni nombres oficiales)." : "No se pudo publicar (¿corriste el SQL v48?).", "error"); } b.disabled = false; });
+    E("hc-nota-q")?.addEventListener("click", async () => { try { await supabase.rpc("mi_nota", { p_texto: "" }); E("hc-modal").hidden = true; mostrarAviso("Nota borrada", "exito"); cargarNotas(); } catch (_) { mostrarAviso("No se pudo borrar.", "error"); } });
     E("hc-txt")?.addEventListener("input", pintarPrevHist);
     E("hc-foto")?.addEventListener("click", () => E("hc-file").click());
     E("hc-file")?.addEventListener("change", async (ev) => { const f = ev.target.files && ev.target.files[0]; if (!f) return; try { fotoBlob = await comprimir(f); E("hc-quitar").hidden = false; pintarPrevHist(); } catch (_) { mostrarAviso("No pude leer esa foto.", "error"); } ev.target.value = ""; });
@@ -8191,12 +8223,16 @@ const NOV = (function novedades() {
     if (p.es_soporte) nom.appendChild(el("span", "pf-sello-of", "✔ Oficial"));
     else if (p.verificado) { const v = selloVerif(); v.classList.add("pf-vf"); nom.appendChild(v); }
     cu.appendChild(nom);
+    const cab2 = el("div", "pf-cab2"), izq = el("div", "pf-izq"), der = el("div", "pf-mini"); cab2.appendChild(izq); cab2.appendChild(der); cu.appendChild(cab2);
     const sub = el("div", "pf-sub"); if (p.titulo) sub.appendChild(el("b", "", p.titulo)); else if (p.es_soporte) sub.appendChild(el("b", "", "Soporte de Recargas Zarela"));
     if (p.num_id) sub.appendChild(el("span", "pf-num", "#" + p.num_id));
     try { if (p.desde) sub.appendChild(el("span", "", "Desde " + new Date(p.desde).toLocaleDateString("es-AR", { month: "short", year: "numeric" }))); } catch (_) {}
-    cu.appendChild(sub);
+    izq.appendChild(sub);
     const ni = !p.es_soporte && typeof nivelDe === "function" ? nivelDe(Number(p.diamantes) || 0) : -1;
-    if (ni >= 0 && NIVELES[ni]) { const b = el("span", "niv-ins n" + ni, NIVELES[ni].ico + " " + NIVELES[ni].n); b.title = "Nivel " + NIVELES[ni].n; cu.appendChild(b); }
+    if (ni >= 0 && NIVELES[ni]) { const b = el("span", "niv-ins n" + ni, NIVELES[ni].ico + " " + NIVELES[ni].n); b.title = "Nivel " + NIVELES[ni].n; izq.appendChild(b); }
+    const mini = (n, t) => { const d = el("div", "pf-dato pf-mi"); d.appendChild(el("b", "", n)); d.appendChild(el("small", "", t)); der.appendChild(d); return d; };
+    if (!p.es_soporte) mini(fmtN(p.amigos), "Amigos");
+    const dsg = mini(fmtN(p.seguidores || 0), p.sigo ? "Siguiendo ✓" : "Seguidores");
     if (editando) return pintarEditor(p, cu);
     // descripción
     { const bi = el("p", "pf-bio" + (p.bio ? " pf-marco" : " vacio"), p.bio || (p.yo ? "Todavía no escribiste nada sobre vos. ¡Tocá «Editar perfil»!" : p.es_soporte ? "Estamos para ayudarte con tus recargas 💎" : "Sin descripción todavía.")); if (p.bio && p.marco) { bi.style.setProperty("--mc", p.marco); bi.classList.add("con-color"); } cu.appendChild(bi); }
@@ -8204,7 +8240,7 @@ const NOV = (function novedades() {
     const st = el("div", "pf-stats");
     const dato = (n, t) => { const d = el("div", "pf-dato"); d.appendChild(el("b", "", n)); d.appendChild(el("small", "", t)); st.appendChild(d); return d; };
     dato(fmtN(p.recargas), "Recargas"); dato(fmtN(p.diamantes) + " 💎", "Diamantes recargados");
-    const dl = dato(fmtN(p.likes), "Me gusta ❤️"); if (!p.es_soporte) dato(fmtN(p.amigos), "Amigos"); const dsg = dato(fmtN(p.seguidores || 0), "Seguidores");
+    const dl = dato(fmtN(p.likes), "Me gusta ❤️");
     cu.appendChild(st);
     // acciones
     const ac = el("div", "pf-acc"); cu.appendChild(ac);
@@ -8212,16 +8248,14 @@ const NOV = (function novedades() {
       const e = el("button", "al-ok", "✏️ Editar perfil"); e.type = "button"; e.onclick = () => pintarPerfil(p, true); ac.appendChild(e);
       if (!p.es_soporte) pintarVerif(cu, p);
     } else {
-      const txtLk = () => (p.mi_like ? "❤️ Ya le diste Me gusta hoy" : "🤍 Me gusta");
-      const lk = el("button", "pf-like" + (p.mi_like ? " on" : ""), txtLk()); lk.type = "button"; lk.disabled = !!p.mi_like; lk.title = "Podés darle un Me gusta por día a cada persona";
-      lk.onclick = async () => { if (!usuarioActual) { mostrarAviso("Ingresá con Google para dar Me gusta.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
-        try { const { data, error } = await supabase.rpc("perfil_like", { p_user: p.id }); if (error) throw error; p.mi_like = true; p.likes = data.likes; lk.className = "pf-like on"; lk.textContent = txtLk(); lk.disabled = true; dl.firstChild.textContent = fmtN(p.likes); mostrarAviso("❤️ ¡Listo! Mañana podés darle otro.", "exito"); }
-        catch (e) { if (String((e && e.message) || "").includes("YA_HOY")) { p.mi_like = true; lk.className = "pf-like on"; lk.textContent = txtLk(); lk.disabled = true; mostrarAviso("Hoy ya le diste Me gusta. ¡Volvé mañana! ❤️", "info"); } else mostrarAviso("No se pudo ahora.", "error"); } };
-      ac.appendChild(lk);
-      const sg = el("button", "pf-sec pf-seg" + (p.sigo ? " on" : ""), p.sigo ? "✓ Siguiendo" : "＋ Seguir"); sg.type = "button";
-      sg.onclick = async () => { if (!usuarioActual) { mostrarAviso("Ingresá con Google para seguir.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
-        try { const { data, error } = await supabase.rpc("seguir_alternar", { p_user: p.id }); if (error) throw error; p.sigo = data.sigo; p.seguidores = data.seguidores; sg.className = "pf-sec pf-seg" + (p.sigo ? " on" : ""); sg.textContent = p.sigo ? "✓ Siguiendo" : "＋ Seguir"; dsg.firstChild.textContent = fmtN(p.seguidores); } catch (_) { mostrarAviso("No se pudo ahora (¿SQL v48?).", "error"); } };
-      ac.appendChild(sg);
+      dl.classList.add("btn"); if (p.mi_like) dl.classList.add("on"); dl.title = "Tocá para dar Me gusta (uno por día)";
+      dl.onclick = async () => { if (!usuarioActual) { mostrarAviso("Ingresá con Google para dar Me gusta.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
+        if (p.mi_like) { mostrarAviso("Hoy ya le diste Me gusta. ¡Volvé mañana! ❤️", "info"); return; }
+        try { const { data, error } = await supabase.rpc("perfil_like", { p_user: p.id }); if (error) throw error; p.mi_like = true; p.likes = data.likes; dl.classList.add("on"); dl.firstChild.textContent = fmtN(p.likes); mostrarAviso("❤️ ¡Listo! Mañana podés darle otro.", "exito"); }
+        catch (e) { if (String((e && e.message) || "").includes("YA_HOY")) { p.mi_like = true; dl.classList.add("on"); mostrarAviso("Hoy ya le diste Me gusta. ¡Volvé mañana! ❤️", "info"); } else mostrarAviso("No se pudo ahora.", "error"); } };
+      dsg.classList.add("btn"); if (p.sigo) dsg.classList.add("on"); dsg.title = "Tocá para seguir / dejar de seguir";
+      dsg.onclick = async () => { if (!usuarioActual) { mostrarAviso("Ingresá con Google para seguir.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
+        try { const { data, error } = await supabase.rpc("seguir_alternar", { p_user: p.id }); if (error) throw error; p.sigo = data.sigo; p.seguidores = data.seguidores; dsg.classList.toggle("on", !!p.sigo); dsg.firstChild.textContent = fmtN(p.seguidores); dsg.lastChild.textContent = p.sigo ? "Siguiendo ✓" : "Seguidores"; } catch (_) { mostrarAviso("No se pudo ahora (¿SQL v48?).", "error"); } };
       if (p.es_soporte) { const w = el("button", "al-ok", "💬 Escribir a Soporte"); w.type = "button"; w.onclick = () => { cerrar(); window.abrirChatSoporte && window.abrirChatSoporte(); }; ac.appendChild(w); }
       else {
         const r = p.relacion;
