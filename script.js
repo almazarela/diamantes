@@ -6284,6 +6284,8 @@ document.addEventListener("DOMContentLoaded", () => setTimeout(actualizarBadgeHo
     setTimeout(() => {
       let visto = false; try { visto = localStorage.getItem(K) === "1"; } catch (_) {}
       if (visto || document.body.classList.contains("modo-admin") || esAdminActual() || location.hash.includes("access_token")) return;
+      // sin cuenta enlazada: primero la guía de «Enlazar con Google» (después de enlazar se muestra este tutorial)
+      if (!usuarioActual) return;
       abrir();
     }, 2500);
   });
@@ -6902,3 +6904,182 @@ async function clientesNuevosVigilar() {
   } catch (_) {}
 }
 setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 8000);
+
+// =====================================================================
+// v54 · CHAT MUNDIAL (salas, solo clientes escriben, moderación automática)
+// =====================================================================
+(function chatMundial() {
+  const SALAS = [["general", "💬 General"], ["duos", "🎮 Duos"], ["dudas", "❓ Dudas de recargas"]];
+  const ERR = {
+    SOLO_CLIENTES: "Para escribir tenés que haber hecho una recarga. ¡Mirá y leé todo lo que quieras!",
+    MUY_RAPIDO: "Esperá unos segundos entre mensajes ⏳", LINK: "No se permiten links ni redes en el chat 🚫",
+    TELEFONO: "No se permiten teléfonos en el chat 🚫", VENTA: "No se permite vender ni ofrecer cosas en el chat 🚫",
+    SILENCIADO: "Estás silenciado por un rato 🤫", TEXTO_INVALIDO: "Escribí un mensaje de hasta 200 letras.", NO_AUTENTICADO: "Ingresá con Google para escribir.",
+  };
+  let sala = "general", abierto = false, msgs = [], fijados = {}, puede = null, canal = null, timer = 0, ultimoId = 0, sinLeer = 0, enviando = false;
+  const E = (id) => document.getElementById(id);
+  const esAdm = () => { try { return esAdminActual(); } catch (_) { return false; } };
+
+  async function calcPuede() {
+    if (!usuarioActual) return (puede = false);
+    if (esAdm()) return (puede = true);
+    try { const { data } = await conTimeout(supabase.rpc("he_recargado", { uid: usuarioActual.id }), 6000); puede = data === true; } catch (_) { puede = false; }
+    return puede;
+  }
+  async function cargar() {
+    try {
+      const { data, error } = await conTimeout(supabase.from("chat_global").select("*").eq("sala", sala).order("id", { ascending: false }).limit(60), 8000);
+      if (error) throw error;
+      msgs = (data || []).reverse();
+      const ids = [...new Set(msgs.map((m) => m.user_id).filter(Boolean))].filter((u) => !(u in nivelesUsr)).slice(0, 200);
+      if (ids.length) { try { const { data: n } = await conTimeout(supabase.rpc("niveles_de_usuarios", { p_ids: ids }), 6000); (n || []).forEach((r) => { nivelesUsr[r.user_id] = Number(r.diamantes) || 0; }); } catch (_) {} }
+      try { const { data: f } = await supabase.from("chat_fijado").select("*"); fijados = {}; (f || []).forEach((r) => { fijados[r.sala] = r.texto; }); } catch (_) {}
+      const nuevo = msgs.length ? msgs[msgs.length - 1].id : 0;
+      if (!abierto && ultimoId && nuevo > ultimoId) { sinLeer += msgs.filter((m) => m.id > ultimoId).length; pintarPunto(); }
+      ultimoId = nuevo;
+      if (abierto) pintar();
+    } catch (_) { if (abierto) { const l = E("cm-lista"); if (l && !msgs.length) l.innerHTML = '<p class="cm-vacio">El chat se activa en un momento… 💎</p>'; } }
+  }
+  function pintarPunto() { const d = E("cm-dot"); if (d) { d.textContent = sinLeer > 9 ? "9+" : sinLeer; d.hidden = !sinLeer || abierto; } }
+  function hora(t) { try { return new Date(t).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }); } catch (_) { return ""; } }
+  function pintar() {
+    const l = E("cm-lista"); if (!l) return;
+    const abajo = l.scrollHeight - l.scrollTop - l.clientHeight < 80;
+    l.innerHTML = "";
+    if (!msgs.length) l.innerHTML = '<p class="cm-vacio">Todavía no hay mensajes. ¡Sé el primero en saludar! 👋</p>';
+    msgs.forEach((m) => {
+      const d = document.createElement("div");
+      if (m.tipo === "sistema") {
+        d.className = "cm-sis"; const b = document.createElement("b"); b.textContent = m.nombre; d.appendChild(b);
+        d.appendChild(document.createTextNode(" " + m.texto));
+      } else {
+        const mio = usuarioActual && m.user_id === usuarioActual.id;
+        d.className = "cm-msg" + (m.tipo === "admin" ? " cm-adm" : "") + (mio ? " cm-mio" : "") + (m.oculto ? " cm-oculto" : "");
+        const cab = document.createElement("div"); cab.className = "cm-cab";
+        const n = document.createElement("b"); n.textContent = m.nombre; cab.appendChild(n);
+        if (m.tipo === "admin") { const s = document.createElement("span"); s.className = "cm-sello"; s.textContent = "👑 Dueña"; cab.appendChild(s); }
+        else { const ins = insigniaNivel(m.user_id); if (ins) cab.appendChild(ins); }
+        const h = document.createElement("small"); h.textContent = hora(m.created_at); cab.appendChild(h);
+        d.appendChild(cab);
+        const t = document.createElement("div"); t.className = "cm-txt"; t.textContent = m.texto; d.appendChild(t);
+        if (m.oculto) { const o = document.createElement("em"); o.textContent = esAdm() ? "Oculto (" + (m.motivo || "") + ") — solo lo ves vos" : "Solo lo ves vos: lo revisamos"; d.appendChild(o); }
+        const ac = document.createElement("div"); ac.className = "cm-ac";
+        if (esAdm()) {
+          const mk = (txt, fn) => { const b = document.createElement("button"); b.type = "button"; b.textContent = txt; b.onclick = fn; ac.appendChild(b); };
+          mk(m.oculto ? "Mostrar" : "Ocultar", () => admAcc("chat_admin_ocultar", { p_id: m.id, p_ocultar: !m.oculto }));
+          mk("Borrar", () => admAcc("chat_admin_borrar", { p_id: m.id }));
+          if (m.user_id && !mio) mk("Silenciar 1 h", () => admAcc("chat_admin_silenciar", { p_user: m.user_id, p_min: 60 }, "Silenciado 1 hora"));
+        } else if (usuarioActual && !mio && m.tipo === "user") {
+          const b = document.createElement("button"); b.type = "button"; b.textContent = "🚩 Reportar"; b.onclick = () => reportar(m.id, b); ac.appendChild(b);
+        }
+        if (ac.childNodes.length) d.appendChild(ac);
+      }
+      l.appendChild(d);
+    });
+    const fj = fijados[sala], pf = E("cm-fijado");
+    if (pf) { pf.hidden = !fj; if (fj) pf.querySelector("span").textContent = fj; }
+    if (abajo || l.dataset.nuevo !== "1") { l.scrollTop = l.scrollHeight; l.dataset.nuevo = "1"; }
+  }
+  async function admAcc(fn, args, ok) {
+    try { const { error } = await supabase.rpc(fn, args); if (error) throw error; if (ok) mostrarAviso(ok, "exito"); cargar(); }
+    catch (_) { mostrarAviso("No se pudo (¿ejecutaste el SQL v39?)", "error"); }
+  }
+  async function reportar(id, b) {
+    try { const { error } = await supabase.rpc("chat_reportar", { p_id: id }); if (error) throw error; b.textContent = "✔ Reportado"; b.disabled = true; mostrarAviso("Gracias, lo vamos a revisar 🙏", "exito"); }
+    catch (_) { mostrarAviso("No se pudo reportar ahora", "error"); }
+  }
+  function pintarEntrada() {
+    const f = E("cm-form"), av = E("cm-aviso"); if (!f || !av) return;
+    f.hidden = !puede; av.hidden = !!puede;
+    if (!puede) {
+      av.innerHTML = "";
+      if (!usuarioActual) { av.textContent = "Ingresá con Google para participar. Por ahora podés leer 👀"; const b = document.createElement("button"); b.type = "button"; b.className = "cm-g"; b.textContent = "Enlazar con Google"; b.onclick = () => { cerrar(); window.loginConGoogle && window.loginConGoogle(); }; av.appendChild(b); }
+      else av.textContent = "🔒 Escriben los clientes que ya hicieron una recarga. ¡Hacé la tuya y entrás a la charla!";
+    }
+  }
+  function pintarTabs() {
+    const t = E("cm-tabs"); if (!t) return; t.innerHTML = "";
+    SALAS.forEach(([k, n]) => { const b = document.createElement("button"); b.type = "button"; b.textContent = n; if (k === sala) b.className = "on"; b.onclick = () => { sala = k; msgs = []; E("cm-lista").dataset.nuevo = ""; pintarTabs(); cargar(); }; t.appendChild(b); });
+  }
+  async function abrir() {
+    const w = E("cm-panel"); if (!w) return;
+    abierto = true; sinLeer = 0; pintarPunto(); w.classList.add("abierto"); document.body.classList.add("cm-abierto");
+    pintarTabs(); pintarEntrada(); await calcPuede(); pintarEntrada(); await cargar();
+    const bar = E("cm-adm"); if (bar) bar.hidden = !esAdm();
+  }
+  function cerrar() { abierto = false; E("cm-panel")?.classList.remove("abierto"); document.body.classList.remove("cm-abierto"); }
+  async function enviar() {
+    if (enviando) return;
+    const i = E("cm-in"), t = (i.value || "").trim(); if (!t) return;
+    enviando = true; E("cm-env").disabled = true;
+    try {
+      const { data, error } = await supabase.rpc("chat_enviar", { p_sala: sala, p_texto: t });
+      if (error) throw error;
+      i.value = "";
+      if (data && data.oculto) mostrarAviso("Tu mensaje quedó en revisión 🔎", "info");
+      await cargar();
+    } catch (e) {
+      const m = String((e && e.message) || ""); const k = Object.keys(ERR).find((x) => m.includes(x));
+      mostrarAviso(k ? ERR[k] : "No se pudo enviar. ¿Ejecutaste el SQL v39?", "error");
+    }
+    enviando = false; E("cm-env").disabled = false;
+  }
+  async function fijar() {
+    const t = prompt("Texto fijado para TODAS las salas (vacío = quitar):", fijados[sala] || "");
+    if (t === null) return;
+    admAcc("chat_admin_fijar", { p_sala: "todas", p_texto: t }, t.trim() ? "Mensaje fijado" : "Quitado");
+  }
+  function iniciar() {
+    E("cm-fab")?.addEventListener("click", () => (abierto ? cerrar() : abrir()));
+    E("cm-x")?.addEventListener("click", cerrar);
+    E("cm-env")?.addEventListener("click", enviar);
+    E("cm-in")?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); enviar(); } });
+    E("cm-fijar")?.addEventListener("click", fijar);
+    cargar();
+    timer = setInterval(() => { if (!document.hidden) cargar(); }, abierto ? 4000 : 15000);
+    setInterval(() => { if (!document.hidden && abierto) cargar(); }, 4000);
+    try { canal = supabase.channel("chat-global").on("postgres_changes", { event: "*", schema: "public", table: "chat_global" }, () => cargar()).subscribe(); } catch (_) {}
+  }
+  supabase.auth.onAuthStateChange(() => { puede = null; setTimeout(async () => { await calcPuede(); pintarEntrada(); const b = E("cm-adm"); if (b) b.hidden = !esAdm(); }, 500); });
+  document.addEventListener("DOMContentLoaded", iniciar);
+})();
+
+// =====================================================================
+// v54 · Guía de primera visita: flecha para enlazar Google; al enlazar → tutorial original
+// =====================================================================
+(function guiaLogin() {
+  const KG = "zarela_login_guia", KT = "zarela_tour_visto";
+  const ls = (k) => { try { return localStorage.getItem(k); } catch (_) { return null; } };
+  const lset = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };
+  let nodo = null;
+  function quitar() { if (nodo) { nodo.remove(); nodo = null; } document.querySelectorAll(".lg-resalta").forEach((e) => e.classList.remove("lg-resalta")); }
+  function mostrar() {
+    if (nodo) return;
+    const objetivo = (() => { const a = document.getElementById("auth-forms"); if (a && a.getClientRects().length) return a; return document.querySelector(".menu-toggle-btn"); })();
+    nodo = document.createElement("div"); nodo.className = "lg-over";
+    nodo.innerHTML = '<div class="lg-flecha">👇</div><div class="lg-card"><h3>¡Bienvenido a Zarela! 💎</h3><p>Primero enlazá tu cuenta de <b>Google</b>: es gratis, tarda 5 segundos y así guardás tu saldo, tus pedidos y tu nivel.</p><button type="button" class="lg-g">Enlazar con Google</button><button type="button" class="lg-no">Ahora no</button></div>';
+    document.body.appendChild(nodo);
+    if (objetivo) {
+      objetivo.classList.add("lg-resalta");
+      try { objetivo.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (_) {}
+      const fl = nodo.querySelector(".lg-flecha");
+      const pos = () => { if (!nodo) return; const r = objetivo.getBoundingClientRect(); fl.style.left = Math.max(8, Math.min(innerWidth - 50, r.left + r.width / 2 - 20)) + "px"; fl.style.top = Math.max(8, r.top - 52) + "px"; requestAnimationFrame(pos); };
+      pos();
+    }
+    nodo.querySelector(".lg-g").onclick = () => { quitar(); try { window.loginConGoogle(); } catch (_) {} };
+    nodo.querySelector(".lg-no").onclick = () => { quitar(); lset(KT, "1"); };
+  }
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+      if (usuarioActual || ls(KT) === "1" || ls(KG) === "1" || document.body.classList.contains("modo-admin") || location.hash.includes("access_token")) return;
+      lset(KG, "1"); mostrar();
+    }, 2800);
+  });
+  supabase.auth.onAuthStateChange((ev, session) => {
+    if (!session) return;
+    quitar();
+    if (ev !== "SIGNED_IN") return;
+    if (ls(KT) === "1" || (session.user.email || "").toLowerCase() === CONFIG.ADMIN_EMAIL.toLowerCase()) return;
+    setTimeout(() => { if (ls(KT) !== "1" && window.abrirTutorial) window.abrirTutorial(); }, 1800);
+  });
+})();
