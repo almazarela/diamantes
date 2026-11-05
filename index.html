@@ -756,6 +756,16 @@
   <span class="sb-txt"><b>Ver tutorial</b><small>Repasá cómo funciona la página en 30 segundos.</small></span>
   </button>
 
+  <button type="button" id="sb-mundo" class="sb-accion sb-avisos">
+  <span class="sb-ico">🌎</span>
+  <span class="sb-txt"><b>Chat mundial</b><small>Charlá con todos los clientes de Zarela.</small></span>
+  </button>
+
+  <button type="button" id="sb-premios" class="sb-accion sb-avisos">
+  <span class="sb-ico">🎁</span>
+  <span class="sb-txt"><b>Cupones y puntos</b><small>Canjeá un código, invitá amigos y juntá puntos.</small></span>
+  </button>
+
   <button type="button" id="sb-avisos" class="sb-accion sb-avisos">
   <span class="sb-ico">🔔</span>
   <span class="sb-txt"><b>Avisos con sonido</b><small></small></span>
@@ -789,6 +799,8 @@
   </div>
   </aside>
   
+  <div id="hist-row" class="hist-row" hidden aria-label="Historias"></div>
+
   <section class="hero-banner-section">
   <span class="hero-envivo"><i class="fa-solid fa-bolt"></i> En vivo</span>
   <span id="zt-estado" class="zt-estado hero-estado" title="Estado del servicio de recargas"><i></i><b>Recargas activas</b></span>
@@ -1067,6 +1079,7 @@
   <span class="chat-avatar" id="chat-avatar">A<i class="chat-status-dot"></i></span>
   <span class="chat-agente-txt"><strong>Alma Zarela</strong><small id="chat-soporte-txt">En línea · Soporte</small></span>
   </div>
+  <button type="button" class="chat-mundo-btn" id="chat-mundo-btn" aria-label="Abrir el chat mundial" title="Chat mundial (con todos los clientes)"><i class="fa-solid fa-earth-americas"></i><span>Mundial</span></button>
   <button type="button" class="chat-fondo-btn" aria-label="Fondo del chat" title="Fondo del chat" onclick="abrirSelectorFondo()"><i class="fa-regular fa-image"></i></button>
   <button type="button" class="chat-cerrar" aria-label="Cerrar chat" onclick="alternarChat(false)"><i class="fa-solid fa-xmark"></i></button>
   </div>
@@ -1147,7 +1160,7 @@
 
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="adm-top">
-  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 54</small></span>
+  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 55</small></span>
   <label class="adm-soporte" title="Lo que ven tus clientes arriba del chat"><span>Estado ante clientes:</span>
   <select id="adm-soporte" aria-label="Estado que ven los clientes"><option value="en_linea">🟢 En línea (si estoy en la página)</option><option value="desconectada">⚪ Desconectada</option><option value="oculto">🙈 No mostrar nada</option></select></label>
   <button type="button" class="adm-salir" onclick="salirModoAdmin()" aria-label="Volver al modo normal"><i class="fa-solid fa-arrow-left"></i> <span>Volver al modo normal</span></button>
@@ -1163,6 +1176,7 @@
   <button type="button" id="admin-tab-precios" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-cobro" onclick="mostrarVistaAdmin('precios')" title="Precios de los paquetes"><span class="rt-i">🏷️</span><span class="rt-t">Precios</span></button>
   <button type="button" id="admin-tab-cobro" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-cobro" onclick="mostrarVistaAdmin('cobro')" title="Alias, CVU, Binance y tasa del dólar"><span class="rt-i">💳</span><span class="rt-t">Cobro</span></button>
   <button type="button" id="admin-tab-niveles" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-cobro" onclick="mostrarVistaAdmin('niveles')" title="Niveles de cliente"><span class="rt-i">🏆</span><span class="rt-t">Niveles</span></button>
+  <button type="button" id="admin-tab-novedades" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-novedades" onclick="mostrarVistaAdmin('novedades')" title="Historias, cupones, puntos, referidos y promos"><span class="rt-i">🎁</span><span class="rt-t">Novedades</span><span class="admin-alerta" id="nv-pend-n" hidden>0</span></button>
   <span class="rt-sep" aria-hidden="true"></span>
   <button type="button" id="admin-tab-archivados" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-clientes" onclick="mostrarVistaAdmin('archivados')" title="Chats archivados"><span class="rt-i">🗄️</span><span class="rt-t">Archivados</span><span class="rt-n" id="rt-n-archivados" hidden>0</span></button>
   <button type="button" id="admin-tab-sala1" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-vista-clientes" onclick="mostrarVistaAdmin('sala1')" title="Clientes de la Sala 1"><span class="rt-i">🎮</span><span class="rt-t">Sala 1</span><span class="rt-n" id="rt-n-sala1" hidden>0</span></button>
@@ -1264,6 +1278,10 @@
   <button type="button" id="sl-enviar" class="sl-enviar"><i class="fa-solid fa-bullhorn"></i> <span>Avisar</span></button>
   <small>Les llega por el chat con sonido (si tienen la página abierta). Más adelante lo conectamos al mail y a las notificaciones.</small>
   </div>
+  </div>
+
+  <div id="admin-vista-novedades" role="tabpanel" hidden>
+  <div id="nv-admin" class="nv-admin"><p class="adm-ayuda">Cargando…</p></div>
   </div>
 
   <div id="admin-vista-jugadores" role="tabpanel" hidden>
@@ -1447,13 +1465,39 @@ function irAlChat(){
 <button type="button" id="cm-fab" class="cm-fab" aria-label="Abrir chat mundial"><i class="fa-solid fa-earth-americas"></i><span>Chat mundial</span><i id="cm-dot" class="chat-dot" hidden></i></button>
 <div id="cm-panel" class="cm-panel" role="dialog" aria-label="Chat mundial">
   <div class="cm-top"><b>🌎 Chat mundial Zarela</b><button type="button" id="cm-x" aria-label="Cerrar">✕</button></div>
-  <div id="cm-tabs" class="cm-tabs"></div>
-  <div id="cm-fijado" class="cm-fijado" hidden>📌 <span></span></div>
-  <div id="cm-adm" class="cm-admbar" hidden><button type="button" id="cm-fijar">📌 Fijar mensaje en todas las salas</button></div>
+  
+  <div id="cm-fijado" class="cm-fijado" hidden>📌 <b></b><span></span></div>
+  <div id="cm-adm" class="cm-admbar" hidden><button type="button" id="cm-fijar">📌 Fijar mensaje arriba del chat</button></div>
   <div id="cm-lista" class="cm-lista"></div>
   <div id="cm-aviso" class="cm-av"></div>
   <div id="cm-form" class="cm-form" hidden><input id="cm-in" maxlength="200" placeholder="Escribí un mensaje (sin links)…" autocomplete="off"><button type="button" id="cm-env">Enviar</button></div>
   <p class="cm-reglas">Respeto ante todo. Sin links, teléfonos ni ventas. Los mensajes ofensivos se ocultan solos.</p>
 </div>
+
+<!-- HISTORIAS: visor + creador -->
+<div id="hs-visor" class="hs-visor" hidden role="dialog" aria-modal="true" aria-label="Historia">
+  <div class="hs-barras" id="hs-barras"></div>
+  <div class="hs-cab"><b id="hs-nom"></b><small id="hs-hora"></small><span class="hs-sp"></span><button type="button" id="hs-rep" hidden>🚩</button><button type="button" id="hs-del" hidden>🗑</button><button type="button" id="hs-x" aria-label="Cerrar">✕</button></div>
+  <div class="hs-cuerpo" id="hs-cuerpo"></div>
+  <button type="button" class="hs-ant" id="hs-ant" aria-label="Anterior"></button><button type="button" class="hs-sig" id="hs-sig" aria-label="Siguiente"></button>
+</div>
+<div class="nh-modal" id="hc-modal" hidden role="dialog" aria-modal="true" aria-label="Crear historia">
+<div class="nh-card">
+<div class="nh-cab"><b>✨ Tu historia</b><button type="button" id="hc-x" aria-label="Cerrar">✕</button></div>
+<div class="al-cuerpo">
+<div id="hc-prev" class="hc-prev c0"><span id="hc-prev-t">Escribí algo…</span></div>
+<textarea id="hc-txt" maxlength="80" rows="2" placeholder="Ej: ¡Ya tengo mis diamantes! 💎 (máx. 80 letras)"></textarea>
+<div class="hc-colores" id="hc-colores"></div>
+<div class="hc-fila"><button type="button" id="hc-foto" class="hc-btn2">📷 Agregar foto</button><button type="button" id="hc-quitar" class="hc-btn2" hidden>Quitar foto</button><input type="file" id="hc-file" accept="image/*" hidden></div>
+<small class="al-nota">Dura 24 horas. Sin links, teléfonos ni ventas. Las fotos las revisa Zarela antes de publicarse (la primera vez); después salen directo.</small>
+<button type="button" id="hc-pub" class="al-ok">Publicar historia</button>
+</div></div></div>
+
+<!-- CUPONES / REFERIDOS / PUNTOS -->
+<div class="nh-modal" id="pr-modal" hidden role="dialog" aria-modal="true" aria-label="Cupones y puntos">
+<div class="nh-card">
+<div class="nh-cab"><b>🎁 Cupones y puntos</b><button type="button" id="pr-x" aria-label="Cerrar">✕</button></div>
+<div class="al-cuerpo" id="pr-cuerpo">Cargando…</div>
+</div></div>
 </body>
 </html>

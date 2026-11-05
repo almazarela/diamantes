@@ -1800,7 +1800,7 @@ const fechaCorta = (v) => {
 
 const VISTAS_CHAT = ["clientes", "archivados", "sala1", "sala2", "sala3"];
 const VISTAS_COBRO = ["cobro", "precios", "niveles"];
-const TODAS_VISTAS = ["hoy", ...VISTAS_CHAT, "ordenes", "stock", "todas", "jugadores", ...VISTAS_COBRO];
+const TODAS_VISTAS = ["hoy", ...VISTAS_CHAT, "ordenes", "stock", "todas", "jugadores", "novedades", ...VISTAS_COBRO];
 function mostrarVistaAdmin(vista) {
   try { if (vista !== vistaAdmin) sfx("tap"); } catch (_) {}
   if (!TODAS_VISTAS.includes(vista)) vista = "clientes";
@@ -1815,7 +1815,7 @@ function mostrarVistaAdmin(vista) {
   vistaChats = vista === "clientes" ? "normal" : esChat ? vista : vistaChats;
   const mostrar = (id, ok) => { const e = $(id); if (e) e.hidden = !ok; };
   mostrar("admin-vista-hoy", vista === "hoy"); mostrar("admin-vista-clientes", esChat); mostrar("admin-vista-ordenes", vista === "ordenes"); mostrar("admin-vista-stock", vista === "stock");
-  mostrar("admin-vista-salas", vista === "todas"); mostrar("admin-vista-jugadores", vista === "jugadores"); mostrar("admin-vista-cobro", esCobro);
+  mostrar("admin-vista-novedades", vista === "novedades"); mostrar("admin-vista-salas", vista === "todas"); mostrar("admin-vista-jugadores", vista === "jugadores"); mostrar("admin-vista-cobro", esCobro);
   TODAS_VISTAS.forEach((v) => { const t = $("admin-tab-" + v); if (t) { t.classList.toggle("activa", v === vista); t.setAttribute("aria-selected", String(v === vista)); } });
   document.querySelectorAll("#admin-vista-cobro .cobro-sec").forEach((d) => { d.hidden = d.dataset.pane !== vista; d.open = true; });
   if (vista === "hoy") pintarHoy();
@@ -1829,6 +1829,7 @@ function mostrarVistaAdmin(vista) {
     renderListaClientes();
   }
   if (vista === "todas" || vista === "jugadores") pintarTodasSalas();
+  if (vista === "novedades" && window.novAdminCargar) window.novAdminCargar();
 }
 
 // ------------------------- STOCK DE PINs (solo admin) ------------------
@@ -6911,7 +6912,7 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
 (function chatMundial() {
   const SALAS = [["general", "💬 General"], ["duos", "🎮 Duos"], ["dudas", "❓ Dudas de recargas"]];
   const ERR = {
-    SOLO_CLIENTES: "Para escribir tenés que haber hecho una recarga. ¡Mirá y leé todo lo que quieras!",
+    REPETIDO: "Ese mensaje ya lo mandaste hace un momento 🙂",
     MUY_RAPIDO: "Esperá unos segundos entre mensajes ⏳", LINK: "No se permiten links ni redes en el chat 🚫",
     TELEFONO: "No se permiten teléfonos en el chat 🚫", VENTA: "No se permite vender ni ofrecer cosas en el chat 🚫",
     SILENCIADO: "Estás silenciado por un rato 🤫", TEXTO_INVALIDO: "Escribí un mensaje de hasta 200 letras.", NO_AUTENTICADO: "Ingresá con Google para escribir.",
@@ -6921,10 +6922,7 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
   const esAdm = () => { try { return esAdminActual(); } catch (_) { return false; } };
 
   async function calcPuede() {
-    if (!usuarioActual) return (puede = false);
-    if (esAdm()) return (puede = true);
-    try { const { data } = await conTimeout(supabase.rpc("he_recargado", { uid: usuarioActual.id }), 6000); puede = data === true; } catch (_) { puede = false; }
-    return puede;
+    return (puede = !!usuarioActual);
   }
   async function cargar() {
     try {
@@ -6957,7 +6955,7 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
         d.className = "cm-msg" + (m.tipo === "admin" ? " cm-adm" : "") + (mio ? " cm-mio" : "") + (m.oculto ? " cm-oculto" : "");
         const cab = document.createElement("div"); cab.className = "cm-cab";
         const n = document.createElement("b"); n.textContent = m.nombre; cab.appendChild(n);
-        if (m.tipo === "admin") { const s = document.createElement("span"); s.className = "cm-sello"; s.textContent = "👑 Dueña"; cab.appendChild(s); }
+        if (m.tipo === "admin") { const s = document.createElement("span"); s.className = "cm-sello"; s.textContent = "💬 Soporte"; cab.appendChild(s); }
         else { const ins = insigniaNivel(m.user_id); if (ins) cab.appendChild(ins); }
         const h = document.createElement("small"); h.textContent = hora(m.created_at); cab.appendChild(h);
         d.appendChild(cab);
@@ -6977,7 +6975,7 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
       l.appendChild(d);
     });
     const fj = fijados[sala], pf = E("cm-fijado");
-    if (pf) { pf.hidden = !fj; if (fj) pf.querySelector("span").textContent = fj; }
+    if (pf) { pf.hidden = !fj; if (fj) { pf.querySelector("span").textContent = fj; pf.querySelector("b").textContent = "Alma Zarela · Soporte"; } }
     if (abajo || l.dataset.nuevo !== "1") { l.scrollTop = l.scrollHeight; l.dataset.nuevo = "1"; }
   }
   async function admAcc(fn, args, ok) {
@@ -6993,10 +6991,11 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
     f.hidden = !puede; av.hidden = !!puede;
     if (!puede) {
       av.innerHTML = "";
-      if (!usuarioActual) { av.textContent = "Ingresá con Google para participar. Por ahora podés leer 👀"; const b = document.createElement("button"); b.type = "button"; b.className = "cm-g"; b.textContent = "Enlazar con Google"; b.onclick = () => { cerrar(); window.loginConGoogle && window.loginConGoogle(); }; av.appendChild(b); }
-      else av.textContent = "🔒 Escriben los clientes que ya hicieron una recarga. ¡Hacé la tuya y entrás a la charla!";
+      if (!usuarioActual) { av.textContent = "Ingresá con Google para escribir. Por ahora podés leer 👀"; const b = document.createElement("button"); b.type = "button"; b.className = "cm-g"; b.textContent = "Enlazar con Google"; b.onclick = () => { cerrar(); window.loginConGoogle && window.loginConGoogle(); }; av.appendChild(b); }
+      
     }
   }
+  window.abrirChatMundo = () => { try { if (typeof alternarChat === "function") alternarChat(false); } catch (_) {} abrir(); };
   function pintarTabs() {
     const t = E("cm-tabs"); if (!t) return; t.innerHTML = "";
     SALAS.forEach(([k, n]) => { const b = document.createElement("button"); b.type = "button"; b.textContent = n; if (k === sala) b.className = "on"; b.onclick = () => { sala = k; msgs = []; E("cm-lista").dataset.nuevo = ""; pintarTabs(); cargar(); }; t.appendChild(b); });
@@ -7031,6 +7030,8 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
   }
   function iniciar() {
     E("cm-fab")?.addEventListener("click", () => (abierto ? cerrar() : abrir()));
+    E("chat-mundo-btn")?.addEventListener("click", () => window.abrirChatMundo());
+    E("sb-mundo")?.addEventListener("click", () => { try { if ($("sidebar-menu")?.classList.contains("open")) toggleMenu(); } catch (_) {} setTimeout(() => window.abrirChatMundo(), 200); });
     E("cm-x")?.addEventListener("click", cerrar);
     E("cm-env")?.addEventListener("click", enviar);
     E("cm-in")?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); enviar(); } });
@@ -7082,4 +7083,275 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
     if (ls(KT) === "1" || (session.user.email || "").toLowerCase() === CONFIG.ADMIN_EMAIL.toLowerCase()) return;
     setTimeout(() => { if (ls(KT) !== "1" && window.abrirTutorial) window.abrirTutorial(); }, 1800);
   });
+})();
+
+// =====================================================================
+// v55 · Interruptores, HISTORIAS, CUPONES / REFERIDOS / PUNTOS, panel Novedades
+// =====================================================================
+const NOV = (function novedades() {
+  const E = (id) => document.getElementById(id);
+  const adm = () => { try { return esAdminActual(); } catch (_) { return false; } };
+  let cfg = {};
+  const ERRN = {
+    CODIGO_INVALIDO: "Ese código no existe o ya venció.", YA_USADO: "Esta cuenta ya usó un código. Es uno por cuenta.", SOLO_PRIMERA_RECARGA: "Los códigos valen solo para tu primera recarga.",
+    CODIGO_PROPIO: "No podés usar tu propio código 😉", PROXIMAMENTE: "Esto todavía no está habilitado. ¡Pronto!", MINIMO: "Todavía no llegás al mínimo de puntos para canjear.",
+    PUNTOS_INSUFICIENTES: "No tenés esa cantidad de puntos.", SOLO_CLIENTES: "Para subir historias tenés que haber hecho una recarga.", LIMITE: "Ya subiste 3 historias hoy. ¡Mañana más!",
+    TEXTO_NO_PERMITIDO: "Ese texto no se puede publicar (sin links, teléfonos ni ofensas).", TEXTO_INVALIDO: "Escribí algo de hasta 80 letras.", NO_AUTENTICADO: "Ingresá con Google primero.",
+  };
+  const msgErr = (e, d) => { const m = String((e && e.message) || ""); const k = Object.keys(ERRN).find((x) => m.includes(x)); return k ? ERRN[k] : d; };
+  async function cargarCfg() {
+    try { const { data } = await conTimeout(supabase.from("novedades_config").select("*"), 8000); cfg = {}; (data || []).forEach((r) => { cfg[r.clave] = r.valor; }); } catch (_) {}
+    return cfg;
+  }
+  const estado = (k) => {
+    const v = cfg[k] || "off";
+    if (v === "on") return "on";
+    if (v === "pronto") { const h = cfg[k + "_hora"]; if (h && new Date(h).getTime() <= Date.now()) return "on"; return "pronto"; }
+    return "off";
+  };
+  const activo = (k) => adm() || estado(k) === "on";
+  const fechaHora = (k) => { const h = cfg[k + "_hora"]; if (!h) return ""; try { return new Date(h).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); } catch (_) { return ""; } };
+  const num = (k, d) => { const n = Number(cfg[k]); return Number.isFinite(n) && cfg[k] !== undefined && cfg[k] !== "" ? n : d; };
+  const fmt = (n) => Number(n).toLocaleString("es-AR", { maximumFractionDigits: 2 });
+  const el = (t, c, txt) => { const e = document.createElement(t); if (c) e.className = c; if (txt !== undefined) e.textContent = txt; return e; };
+  const nubePronto = (k) => { const h = fechaHora(k); return estado(k) === "pronto" ? "Próximamente" + (h ? " · " + h : "") : ""; };
+
+  // ------------------------------ HISTORIAS ------------------------------
+  let hist = [], grupos = [], puedeSubir = null;
+  const COLORES = 6;
+  const urlImg = (p) => { try { return supabase.storage.from("historias").getPublicUrl(p).data.publicUrl; } catch (_) { return ""; } };
+  async function cargarHistorias() {
+    try {
+      const { data } = await conTimeout(supabase.from("historias").select("*").eq("estado", "aprobada").eq("oculto", false).gt("expira_at", new Date().toISOString()).order("created_at", { ascending: true }).limit(80), 8000);
+      hist = data || [];
+    } catch (_) { hist = []; }
+    const mapa = new Map();
+    hist.forEach((h) => { const k = h.oficial ? "oficial" : h.user_id; if (!mapa.has(k)) mapa.set(k, { k, oficial: !!h.oficial, nombre: h.oficial ? "Zarela" : h.nombre, items: [], ult: 0 }); const g = mapa.get(k); g.items.push(h); g.ult = Math.max(g.ult, new Date(h.created_at).getTime()); });
+    grupos = [...mapa.values()].sort((a, b) => (b.oficial - a.oficial) || (b.ult - a.ult));
+    pintarFila();
+  }
+  async function calcPuedeSubir() {
+    if (!usuarioActual) return (puedeSubir = false);
+    if (adm()) return (puedeSubir = true);
+    try { const { data } = await conTimeout(supabase.rpc("he_recargado", { uid: usuarioActual.id }), 6000); puedeSubir = data === true; } catch (_) { puedeSubir = false; }
+    return puedeSubir;
+  }
+  function pintarFila() {
+    const r = E("hist-row"); if (!r) return;
+    const est = estado("f_historias");
+    if (est === "off" && !adm()) { r.hidden = true; return; }
+    r.hidden = false; r.innerHTML = "";
+    const burbuja = (cls, ini, nom, fn, sub) => {
+      const b = el("button", "hs-b " + cls); b.type = "button";
+      const c = el("span", "hs-c"); c.appendChild(el("span", "hs-i", ini)); b.appendChild(c);
+      b.appendChild(el("small", "", nom)); if (sub) b.appendChild(el("em", "", sub)); b.onclick = fn; r.appendChild(b); return b;
+    };
+    if (est === "pronto" && !adm()) {
+      burbuja("hs-pronto", "✨", "Historias", () => mostrarAviso("Las historias abren pronto: " + (nubePronto("f_historias") || "Próximamente"), "info"), "Próximamente");
+      return;
+    }
+    burbuja("hs-nueva", "＋", "Tu historia", abrirCreador);
+    grupos.forEach((g) => burbuja(g.oficial ? "hs-ofi" : "", g.oficial ? "💎" : (g.nombre || "?").trim().charAt(0).toUpperCase(), g.oficial ? "Zarela" : (g.nombre || "").split(" ")[0], () => abrirVisor(g)));
+    if (!grupos.length) r.appendChild(el("span", "hs-vacio", "Todavía no hay historias. ¡Subí la primera!"));
+  }
+  // visor
+  let vg = null, vi = 0, vt = 0;
+  function abrirVisor(g) { vg = g; vi = 0; E("hs-visor").hidden = false; document.body.classList.add("hs-abierto"); mostrarHist(); }
+  function cerrarVisor() { clearTimeout(vt); E("hs-visor").hidden = true; document.body.classList.remove("hs-abierto"); vg = null; }
+  function mostrarHist() {
+    clearTimeout(vt);
+    if (!vg || vi >= vg.items.length) return cerrarVisor();
+    if (vi < 0) vi = 0;
+    const h = vg.items[vi];
+    E("hs-nom").textContent = vg.oficial ? "💎 Zarela" : h.nombre;
+    try { E("hs-hora").textContent = new Date(h.created_at).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }); } catch (_) {}
+    const bar = E("hs-barras"); bar.innerHTML = ""; vg.items.forEach((_, k) => { const b = el("i", k < vi ? "ok" : k === vi ? "act" : ""); bar.appendChild(b); });
+    const c = E("hs-cuerpo"); c.innerHTML = ""; c.className = "hs-cuerpo c" + (h.color % COLORES);
+    if (h.imagen_path) { const im = el("img"); im.alt = ""; im.src = urlImg(h.imagen_path); c.appendChild(im); }
+    if (h.texto) c.appendChild(el("div", h.imagen_path ? "hs-pie" : "hs-gran", h.texto));
+    const mio = usuarioActual && h.user_id === usuarioActual.id;
+    E("hs-rep").hidden = !usuarioActual || mio || h.oficial; E("hs-rep").onclick = async () => { try { await supabase.rpc("historia_reportar", { p_id: h.id }); mostrarAviso("Gracias, lo vamos a revisar 🙏", "exito"); } catch (_) {} };
+    E("hs-del").hidden = !adm(); E("hs-del").onclick = async () => { try { await supabase.rpc("admin_historia_borrar", { p_id: h.id }); mostrarAviso("Historia borrada", "exito"); cerrarVisor(); cargarHistorias(); } catch (_) { mostrarAviso("No se pudo borrar", "error"); } };
+    vt = setTimeout(() => { vi++; mostrarHist(); }, 6000);
+  }
+  // creador
+  let fotoBlob = null, colorSel = 0;
+  function abrirCreador() {
+    if (!usuarioActual) { mostrarAviso("Ingresá con Google para subir historias.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
+    if (puedeSubir === false) { mostrarAviso("Las historias son para clientes que ya hicieron una recarga 💎", "info"); return; }
+    fotoBlob = null; colorSel = Math.floor(Math.random() * COLORES); E("hc-txt").value = ""; E("hc-quitar").hidden = true; E("hc-modal").hidden = false; pintarPrevHist();
+    const cs = E("hc-colores"); cs.innerHTML = ""; for (let k = 0; k < COLORES; k++) { const b = el("button", "c" + k + (k === colorSel ? " on" : "")); b.type = "button"; b.onclick = () => { colorSel = k; [...cs.children].forEach((x, i) => x.classList.toggle("on", i === k)); pintarPrevHist(); }; cs.appendChild(b); }
+  }
+  function pintarPrevHist() {
+    const p = E("hc-prev"); p.className = "hc-prev c" + colorSel; p.style.backgroundImage = fotoBlob ? "url(" + URL.createObjectURL(fotoBlob) + ")" : "";
+    p.classList.toggle("conimg", !!fotoBlob); E("hc-prev-t").textContent = E("hc-txt").value || "Escribí algo…";
+  }
+  function comprimir(file) {
+    return new Promise((res, rej) => {
+      const im = new Image(), u = URL.createObjectURL(file);
+      im.onload = () => { const M = 900, k = Math.min(1, M / Math.max(im.width, im.height)); const cv = document.createElement("canvas"); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k); cv.getContext("2d").drawImage(im, 0, 0, cv.width, cv.height); cv.toBlob((b) => (b ? res(b) : rej()), "image/jpeg", 0.78); URL.revokeObjectURL(u); };
+      im.onerror = rej; im.src = u;
+    });
+  }
+  async function publicarHist() {
+    const btn = E("hc-pub"), t = E("hc-txt").value.trim();
+    if (!fotoBlob && t.length < 2) { mostrarAviso("Escribí algo o agregá una foto.", "info"); return; }
+    btn.disabled = true; btn.textContent = "Publicando…";
+    try {
+      let path = null;
+      if (fotoBlob) { path = usuarioActual.id + "/" + Date.now() + ".jpg"; const { error } = await supabase.storage.from("historias").upload(path, fotoBlob, { contentType: "image/jpeg", upsert: false }); if (error) throw error; }
+      const { data, error } = await supabase.rpc("historia_publicar", { p_texto: t, p_path: path, p_color: colorSel });
+      if (error) throw error;
+      E("hc-modal").hidden = true;
+      mostrarAviso(data && data.estado === "pendiente" ? "¡Listo! Tu foto queda en revisión y sale en cuanto Zarela la apruebe 🔎" : "¡Historia publicada! ✨", "exito");
+      cargarHistorias();
+    } catch (e) { mostrarAviso(msgErr(e, "No se pudo publicar. ¿Ejecutaste el SQL v40?"), "error"); }
+    btn.disabled = false; btn.textContent = "Publicar historia";
+  }
+
+  // ------------------------------ CUPONES / REFERIDOS / PUNTOS ------------------------------
+  async function abrirPremios() {
+    if (!usuarioActual) { mostrarAviso("Ingresá con Google para usar cupones y puntos.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
+    E("pr-modal").hidden = false; E("pr-cuerpo").textContent = "Cargando…";
+    await cargarCfg();
+    let canje = null, pts = 0, cod = "";
+    try { const { data } = await supabase.from("canjes").select("*").maybeSingle(); canje = data; } catch (_) {}
+    try { const { data } = await supabase.from("puntos").select("saldo").maybeSingle(); pts = data ? data.saldo : 0; } catch (_) {}
+    try { if (activo("f_referidos")) { const { data } = await supabase.rpc("mi_codigo_referido"); cod = data || ""; } } catch (_) {}
+    const cu = E("pr-cuerpo"); cu.innerHTML = "";
+    const sec = (ico, tit, k) => { const d = el("div", "pr-sec"); const h = el("div", "pr-h"); h.appendChild(el("span", "", ico + " " + tit)); const n = nubePronto(k); if (n && !adm()) h.appendChild(el("em", "av-prox", n)); d.appendChild(h); cu.appendChild(d); return d; };
+    // código
+    const s1 = sec("🎟️", "Tengo un código", "f_cupones");
+    s1.appendChild(el("p", "", "Un código por cuenta, válido para tu primera recarga. El regalo se suma a tu saldo cuando la recarga se acredita."));
+    if (canje) s1.appendChild(el("div", "pr-ok", canje.estado === "aplicado" ? "✅ Ya aplicaste el código " + canje.codigo + (canje.bono ? " · +" + (canje.moneda === "ARS" ? "$" : "US$") + fmt(canje.bono) : "") : canje.estado === "anulado" ? "Tu código ya no se puede usar." : "✔ Código " + canje.codigo + " guardado. Se aplica en tu primera recarga."));
+    else if (activo("f_cupones") || activo("f_referidos")) {
+      const f = el("div", "pr-fila"); const i = el("input"); i.placeholder = "Ej: ZARELA10"; i.maxLength = 20; i.autocapitalize = "characters"; const b = el("button", "al-ok", "Canjear"); b.type = "button";
+      b.onclick = async () => { b.disabled = true; try { const { error } = await supabase.rpc("codigo_canjear", { p_codigo: i.value }); if (error) throw error; mostrarAviso("¡Código guardado! 🎉 Se aplica en tu primera recarga.", "exito"); abrirPremios(); } catch (e) { mostrarAviso(msgErr(e, "No se pudo canjear."), "error"); } b.disabled = false; };
+      f.appendChild(i); f.appendChild(b); s1.appendChild(f);
+    }
+    // referidos
+    const s2 = sec("🤝", "Invitá a tus amigos", "f_referidos");
+    const rp = num("ref_puntos", 50);
+    s2.appendChild(el("p", "", "Tu amigo usa tu código en su primera recarga y recibe un bono. Cuando se acredita, vos ganás " + fmt(rp) + " puntos."));
+    if (activo("f_referidos") && cod) {
+      const f = el("div", "pr-cod"); f.appendChild(el("b", "", cod));
+      const c = el("button", "pr-mini", "Copiar"); c.type = "button"; c.onclick = () => { try { navigator.clipboard.writeText(cod); mostrarAviso("Código copiado", "exito"); } catch (_) {} };
+      const w = el("button", "pr-mini pr-wa", "WhatsApp"); w.type = "button"; w.onclick = () => window.open("https://wa.me/?text=" + encodeURIComponent("💎 Recargá Free Fire en https://almazarela.com y usá mi código " + cod + " en tu primera recarga para llevarte un bono 🎁"), "_blank", "noopener");
+      f.appendChild(c); f.appendChild(w); s2.appendChild(f);
+    }
+    // puntos
+    const s3 = sec("⭐", "Mis puntos", "f_puntos");
+    const un = num("pts_unidad_ars", 1000), val = num("pts_valor_ars", 10), min = num("pts_min", 100);
+    s3.appendChild(el("p", "", "Ganás 1 punto por cada $" + fmt(un) + " que recargás. Cada punto vale $" + fmt(val) + " de saldo (mínimo " + fmt(min) + " puntos)."));
+    const big = el("div", "pr-pts"); big.appendChild(el("b", "", fmt(pts))); big.appendChild(el("span", "", "puntos · valen $" + fmt(pts * val))); s3.appendChild(big);
+    const barra = el("div", "pr-barra"); const bi = el("i"); bi.style.width = Math.min(100, (pts / min) * 100) + "%"; barra.appendChild(bi); s3.appendChild(barra);
+    if (activo("f_puntos")) {
+      const b = el("button", "al-ok", pts >= min ? "Canjear " + fmt(pts) + " puntos por $" + fmt(pts * val) : "Te faltan " + fmt(Math.max(0, min - pts)) + " puntos"); b.type = "button"; b.disabled = pts < min;
+      b.onclick = async () => { b.disabled = true; try { const { data, error } = await supabase.rpc("puntos_canjear", { p_puntos: pts }); if (error) throw error; mostrarAviso("¡Listo! Se sumaron $" + fmt(data.monto) + " a tu saldo en pesos 🎉", "exito"); abrirPremios(); try { window.cargarSaldo && window.cargarSaldo(); } catch (_) {} } catch (e) { mostrarAviso(msgErr(e, "No se pudo canjear."), "error"); b.disabled = false; } };
+      s3.appendChild(b);
+    }
+  }
+
+  // ------------------------------ PANEL ADMIN: NOVEDADES ------------------------------
+  const FLAGS = [["f_historias", "✨ Historias"], ["f_cupones", "🎟️ Cupones"], ["f_referidos", "🤝 Referidos"], ["f_puntos", "⭐ Puntos"]];
+  const AJUSTES = [["ref_amigo_pct", "Bono del amigo invitado (% de su 1ª recarga)"], ["ref_amigo_tope_ars", "…tope en pesos ($)"], ["ref_amigo_tope_usd", "…tope en dólares (US$)"], ["ref_puntos", "Puntos que gana quien invita"], ["pts_unidad_ars", "1 punto cada ($ pesos recargados)"], ["pts_unidad_usd", "1 punto cada (US$ recargados)"], ["pts_valor_ars", "Valor de 1 punto ($ pesos)"], ["pts_min", "Mínimo de puntos para canjear"]];
+  const aLocal = (iso) => { if (!iso) return ""; const d = new Date(iso); if (isNaN(d)) return ""; const p = (n) => String(n).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "T" + p(d.getHours()) + ":" + p(d.getMinutes()); };
+  async function rpcAdm(fn, args, ok) { try { const { error } = await supabase.rpc(fn, args); if (error) throw error; if (ok) mostrarAviso(ok, "exito"); return true; } catch (e) { mostrarAviso("No se pudo: " + ((e && e.message) || "revisá el SQL v40"), "error"); return false; } }
+  async function adminCargar() {
+    const r = E("nv-admin"); if (!r) return;
+    await cargarCfg();
+    r.innerHTML = "";
+    const caja = (tit, ayuda) => { const d = el("div", "nv-caja"); d.appendChild(el("h4", "", tit)); if (ayuda) d.appendChild(el("p", "adm-ayuda", ayuda)); r.appendChild(d); return d; };
+    // interruptores
+    const c1 = caja("🎛️ Interruptores", "Activo = lo ven todos. Próximamente = los clientes ven la etiqueta (y se activa solo a la hora que pongas). Apagado = lo oculta. Vos siempre podés probarlo.");
+    FLAGS.forEach(([k, n]) => {
+      const f = el("div", "nv-fila"); f.appendChild(el("b", "", n));
+      const s = el("select"); [["on", "🟢 Activo"], ["pronto", "🕓 Próximamente"], ["off", "⚫ Apagado"]].forEach(([v, t]) => { const o = el("option", "", t); o.value = v; s.appendChild(o); }); s.value = cfg[k] || "pronto";
+      const h = el("input"); h.type = "datetime-local"; h.value = aLocal(cfg[k + "_hora"]); h.title = "Se activa solo a esta hora (si está en Próximamente)";
+      const b = el("button", "nv-btn", "Guardar"); b.type = "button";
+      b.onclick = async () => { const ok1 = await rpcAdm("admin_nov_config", { p_clave: k, p_valor: s.value }); const ok2 = await rpcAdm("admin_nov_config", { p_clave: k + "_hora", p_valor: h.value ? new Date(h.value).toISOString() : "" }); if (ok1 && ok2) { mostrarAviso("Guardado ✔", "exito"); cargarCfg().then(pintarFila); } };
+      f.appendChild(s); f.appendChild(h); f.appendChild(b); c1.appendChild(f);
+    });
+    // ajustes
+    const c2 = caja("⚙️ Ajustes de premios", "Los premios se acreditan solo cuando la recarga queda COMPLETADA. Mantenelos chicos: los márgenes son finos. (Referencia: costo 1.000 💎 = $11.616.)");
+    const inputs = {};
+    AJUSTES.forEach(([k, n]) => { const f = el("label", "nv-fila"); f.appendChild(el("span", "", n)); const i = el("input"); i.type = "number"; i.step = "any"; i.min = "0"; i.value = cfg[k] ?? ""; inputs[k] = i; f.appendChild(i); c2.appendChild(f); });
+    const bg = el("button", "nv-btn nv-grande", "Guardar ajustes"); bg.type = "button"; bg.onclick = async () => { let ok = true; for (const [k] of AJUSTES) ok = (await rpcAdm("admin_nov_config", { p_clave: k, p_valor: String(inputs[k].value || "0") })) && ok; if (ok) mostrarAviso("Ajustes guardados ✔", "exito"); }; c2.appendChild(bg);
+    // cupones
+    const c3 = caja("🎟️ Cupones", "Un uso por cuenta y solo en la 1ª recarga. El regalo es un % de esa recarga con tope, y entra como saldo.");
+    const lc = el("div", "nv-lista"); c3.appendChild(lc);
+    const fc = el("div", "nv-form"); const q = (ph, w, t) => { const i = el("input"); i.placeholder = ph; if (t) i.type = t; if (w) i.style.maxWidth = w; return i; };
+    const iCod = q("CÓDIGO", "110px"), iPct = q("% (ej 3)", "80px", "number"), iTa = q("tope $", "90px", "number"), iTu = q("tope US$", "90px", "number"), iUs = q("usos máx", "90px", "number"), iVe = q("vence", "150px", "date");
+    iCod.maxLength = 20; iPct.value = 3; iTa.value = 1500; iTu.value = 1.5; iUs.value = 100;
+    const bc = el("button", "nv-btn", "Guardar cupón"); bc.type = "button";
+    bc.onclick = async () => { if (await rpcAdm("admin_cupon_guardar", { p_codigo: iCod.value, p_pct: Number(iPct.value), p_tope_ars: Number(iTa.value), p_tope_usd: Number(iTu.value), p_usos_max: Number(iUs.value), p_vence: iVe.value ? new Date(iVe.value + "T23:59:00").toISOString() : null, p_activo: true, p_nota: "" }, "Cupón guardado ✔")) { cargarCup(); } };
+    [iCod, iPct, iTa, iTu, iUs, iVe, bc].forEach((x) => fc.appendChild(x)); c3.appendChild(fc);
+    async function cargarCup() {
+      lc.innerHTML = ""; try { const { data, error } = await supabase.rpc("admin_cupones_listar"); if (error) throw error; if (!data.length) lc.appendChild(el("p", "adm-ayuda", "Todavía no hay cupones.")); data.forEach((c) => {
+        const f = el("div", "nv-item"); f.appendChild(el("b", "", c.codigo)); f.appendChild(el("span", "", c.pct + "% · tope $" + fmt(c.tope_ars) + " / US$" + fmt(c.tope_usd) + " · usos " + c.usos + "/" + c.usos_max + (c.vence ? " · vence " + new Date(c.vence).toLocaleDateString("es-AR") : "") + (c.activo ? "" : " · PAUSADO")));
+        const e = el("button", "nv-mini", "Editar"); e.type = "button"; e.onclick = () => { iCod.value = c.codigo; iPct.value = c.pct; iTa.value = c.tope_ars; iTu.value = c.tope_usd; iUs.value = c.usos_max; iVe.value = c.vence ? c.vence.slice(0, 10) : ""; iCod.scrollIntoView({ block: "center" }); };
+        const p = el("button", "nv-mini", c.activo ? "Pausar" : "Activar"); p.type = "button"; p.onclick = async () => { if (await rpcAdm("admin_cupon_guardar", { p_codigo: c.codigo, p_pct: c.pct, p_tope_ars: c.tope_ars, p_tope_usd: c.tope_usd, p_usos_max: c.usos_max, p_vence: c.vence, p_activo: !c.activo, p_nota: c.nota || "" })) cargarCup(); };
+        const d = el("button", "nv-mini nv-rojo", "Borrar"); d.type = "button"; d.onclick = async () => { if (confirm("¿Borrar el cupón " + c.codigo + "?") && await rpcAdm("admin_cupon_borrar", { p_codigo: c.codigo })) cargarCup(); };
+        f.appendChild(e); f.appendChild(p); f.appendChild(d); lc.appendChild(f); }); } catch (_) { lc.appendChild(el("p", "adm-ayuda", "No pude leer los cupones (¿ejecutaste el SQL v40?).")); }
+    }
+    cargarCup();
+    // promos programadas
+    const c4 = caja("📅 Promos programadas", "Se publican solas a la hora elegida: quedan fijadas arriba del chat mundial y/o salen como historia oficial de Zarela (24 h).");
+    const lp = el("div", "nv-lista"); c4.appendChild(lp);
+    const fp = el("div", "nv-form"); const pT = el("input"); pT.placeholder = "Texto de la promo (máx. 80 si va a historia)"; pT.maxLength = 300; pT.style.minWidth = "220px";
+    const pH = el("input"); pH.type = "time"; pH.value = "18:00"; pH.style.maxWidth = "110px";
+    const dias = el("div", "nv-dias"); const NOM = ["L", "M", "X", "J", "V", "S", "D"]; const dchk = NOM.map((n, k) => { const l = el("label", "nv-d"); const c = el("input"); c.type = "checkbox"; c.checked = k < 5; l.appendChild(c); l.appendChild(el("span", "", n)); dias.appendChild(l); return c; });
+    const pC = el("label", "nv-d"); const pCi = el("input"); pCi.type = "checkbox"; pCi.checked = true; pC.appendChild(pCi); pC.appendChild(el("span", "", "Chat"));
+    const pS = el("label", "nv-d"); const pSi = el("input"); pSi.type = "checkbox"; pSi.checked = true; pS.appendChild(pSi); pS.appendChild(el("span", "", "Historia"));
+    const bp = el("button", "nv-btn", "Agregar promo"); bp.type = "button";
+    bp.onclick = async () => { const d = []; dchk.forEach((c, k) => { if (c.checked) d.push(k + 1); }); if (!pT.value.trim() || !d.length) { mostrarAviso("Poné el texto y al menos un día.", "info"); return; } const { error } = await supabase.from("promos_prog").insert({ titulo: "", texto: pT.value.trim(), hora: pH.value || "18:00", dias: d, a_chat: pCi.checked, a_historia: pSi.checked, activo: true }); if (error) { mostrarAviso("No se pudo (¿SQL v40?)", "error"); return; } pT.value = ""; cargarPro(); };
+    [pT, pH, dias, pC, pS, bp].forEach((x) => fp.appendChild(x)); c4.appendChild(fp);
+    async function cargarPro() {
+      lp.innerHTML = ""; try { const { data, error } = await supabase.from("promos_prog").select("*").order("id"); if (error) throw error; if (!data.length) lp.appendChild(el("p", "adm-ayuda", "No hay promos programadas.")); data.forEach((p) => {
+        const f = el("div", "nv-item"); f.appendChild(el("b", "", (p.hora || "").slice(0, 5) + " · " + p.dias.map((d) => NOM[d - 1]).join(" ")));
+        f.appendChild(el("span", "", p.texto + (p.a_chat ? " · 💬" : "") + (p.a_historia ? " · ✨" : "") + (p.activo ? "" : " · PAUSADA")));
+        const a = el("button", "nv-mini", "Publicar ahora"); a.type = "button"; a.onclick = async () => { if (await rpcAdm("admin_promo_publicar_ahora", { p_id: p.id }, "Publicada ✔")) { cargarHistorias(); } };
+        const z = el("button", "nv-mini", p.activo ? "Pausar" : "Activar"); z.type = "button"; z.onclick = async () => { await supabase.from("promos_prog").update({ activo: !p.activo }).eq("id", p.id); cargarPro(); };
+        const d = el("button", "nv-mini nv-rojo", "Borrar"); d.type = "button"; d.onclick = async () => { if (confirm("¿Borrar esta promo?")) { await supabase.from("promos_prog").delete().eq("id", p.id); cargarPro(); } };
+        [a, z, d].forEach((x) => f.appendChild(x)); lp.appendChild(f); }); } catch (_) { lp.appendChild(el("p", "adm-ayuda", "No pude leer las promos (¿ejecutaste el SQL v40?).")); }
+    }
+    cargarPro();
+    // historias
+    const c5 = caja("✨ Historias: para aprobar y activas", "Al aprobar una foto, esa persona pasa a ser «de confianza»: sus próximas fotos salen sin esperar (el texto siempre se filtra solo). Con 4 reportes una historia se oculta sola.");
+    const lh = el("div", "nv-lista"); c5.appendChild(lh);
+    async function cargarHis() {
+      lh.innerHTML = ""; try {
+        const { data, error } = await supabase.from("historias").select("*").or("estado.eq.pendiente,and(estado.eq.aprobada,expira_at.gt." + new Date().toISOString() + ")").order("created_at", { ascending: false }).limit(60); if (error) throw error;
+        const pend = data.filter((h) => h.estado === "pendiente"); const bd = E("nv-pend-n"); if (bd) { bd.textContent = pend.length; bd.hidden = !pend.length; }
+        if (!data.length) lh.appendChild(el("p", "adm-ayuda", "No hay historias por ahora."));
+        data.forEach((h) => { const f = el("div", "nv-item nv-his"); if (h.imagen_path) { const im = el("img"); im.src = urlImg(h.imagen_path); im.alt = ""; f.appendChild(im); }
+          const t = el("div", "nv-his-t"); t.appendChild(el("b", "", h.nombre + (h.estado === "pendiente" ? " · POR APROBAR" : h.oculto ? " · OCULTA (reportes)" : ""))); t.appendChild(el("span", "", h.texto || "(solo foto)")); f.appendChild(t);
+          if (h.estado === "pendiente") { const ok = el("button", "nv-mini nv-verde", "Aprobar"); ok.type = "button"; ok.onclick = async () => { if (await rpcAdm("admin_historia_decidir", { p_id: h.id, p_aprobar: true, p_confiar: true }, "Aprobada ✔")) { cargarHis(); cargarHistorias(); } }; const no = el("button", "nv-mini nv-rojo", "Rechazar"); no.type = "button"; no.onclick = async () => { if (await rpcAdm("admin_historia_decidir", { p_id: h.id, p_aprobar: false, p_confiar: false })) cargarHis(); }; f.appendChild(ok); f.appendChild(no); }
+          const d = el("button", "nv-mini nv-rojo", "Borrar"); d.type = "button"; d.onclick = async () => { if (confirm("¿Borrar esta historia?") && await rpcAdm("admin_historia_borrar", { p_id: h.id })) { cargarHis(); cargarHistorias(); } }; f.appendChild(d); lh.appendChild(f); });
+      } catch (_) { lh.appendChild(el("p", "adm-ayuda", "No pude leer las historias (¿ejecutaste el SQL v40?).")); }
+    }
+    cargarHis();
+    const nuevoH = el("button", "nv-btn", "＋ Subir historia oficial"); nuevoH.type = "button"; nuevoH.onclick = abrirCreador; c5.appendChild(nuevoH);
+  }
+  window.novAdminCargar = adminCargar;
+
+  async function iniciar() {
+    await cargarCfg(); await cargarHistorias(); calcPuedeSubir();
+    E("hs-x")?.addEventListener("click", cerrarVisor);
+    E("hs-sig")?.addEventListener("click", () => { vi++; mostrarHist(); });
+    E("hs-ant")?.addEventListener("click", () => { vi = Math.max(0, vi - 1); mostrarHist(); });
+    E("hc-x")?.addEventListener("click", () => { E("hc-modal").hidden = true; });
+    E("hc-txt")?.addEventListener("input", pintarPrevHist);
+    E("hc-foto")?.addEventListener("click", () => E("hc-file").click());
+    E("hc-file")?.addEventListener("change", async (ev) => { const f = ev.target.files && ev.target.files[0]; if (!f) return; try { fotoBlob = await comprimir(f); E("hc-quitar").hidden = false; pintarPrevHist(); } catch (_) { mostrarAviso("No pude leer esa foto.", "error"); } ev.target.value = ""; });
+    E("hc-quitar")?.addEventListener("click", () => { fotoBlob = null; E("hc-quitar").hidden = true; pintarPrevHist(); });
+    E("hc-pub")?.addEventListener("click", publicarHist);
+    E("sb-premios")?.addEventListener("click", () => { try { if ($("sidebar-menu")?.classList.contains("open")) toggleMenu(); } catch (_) {} setTimeout(abrirPremios, 200); });
+    E("pr-x")?.addEventListener("click", () => { E("pr-modal").hidden = true; });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") { cerrarVisor(); E("hc-modal") && (E("hc-modal").hidden = true); E("pr-modal") && (E("pr-modal").hidden = true); } });
+    setInterval(() => { if (!document.hidden) { cargarCfg().then(cargarHistorias); } }, 90000);
+  }
+  supabase.auth.onAuthStateChange(() => { setTimeout(() => { calcPuedeSubir(); cargarHistorias(); }, 600); });
+  document.addEventListener("DOMContentLoaded", iniciar);
+  return { abrirPremios };
 })();
