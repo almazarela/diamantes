@@ -3226,3 +3226,77 @@ body.modo-admin .cm-fab{display:flex!important;bottom:84px}
 .hoy-nov span{font-size:1.5rem}.hoy-nov b{font-size:.9rem}.hoy-nov small{width:100%;color:#b9c8e8;margin-left:34px;margin-top:-6px}
 .nv-sub{margin:10px 0 2px;color:#fbbf24;font-size:.82rem}.nv-hilo{width:100%;background:#0c1022;border-radius:10px;padding:8px;max-height:260px;overflow:auto}
 .nv-hm{font-size:.8rem;padding:3px 0}.nv-hm.mal{color:#fca5a5}.nv-hm img{max-width:120px;border-radius:8px;display:block}
+
+/* ===== v58 · chat fijo arriba a la derecha (PC) ===== */
+@media (min-width:801px){
+ body:not(.modo-admin) .chat-widget-card.chat-v2,body:not(.modo-admin) .cm-panel,body:not(.modo-admin) .hub-panel,body:not(.modo-admin) .dm-panel{position:fixed!important;left:var(--cx,auto)!important;top:var(--cy,113px)!important;width:var(--cw,310px)!important;height:var(--ch,460px)!important;right:auto!important;bottom:auto!important;max-height:none}
+ body:not(.modo-admin):not(.soporte-abierto) .chat-widget-card.chat-v2{visibility:hidden}
+ body:not(.modo-admin):not(.soporte-abierto):not(.hub-abierto):not(.dm-abierto):not(.cm-abierto) .chat-fab{display:flex;position:fixed;right:24px;bottom:100px;top:auto;z-index:900;align-items:center;gap:8px;padding:13px 18px;border:none;border-radius:999px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#04170c;font-weight:800;font-size:.95rem;box-shadow:0 6px 20px rgba(0,0,0,.5),0 0 16px rgba(34,197,94,.5);cursor:pointer}
+}
+
+/* ===== v58 · perfiles, insignia ✔, bienvenida, agregar amigos, reacciones ===== */
+.vf{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;margin-left:4px;border-radius:50%;background:linear-gradient(135deg,#38bdf8,#2563eb);color:#fff;font-size:10px;font-weight:900;line-height:1;vertical-align:middle;box-shadow:0 0 6px rgba(56,189,248,.6)}
+.nvb-vf{display:inline-flex;align-items:center}
+.pf-link{cursor:pointer}.pf-link:hover{text-decoration:underline}
+.mini-av{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;font-size:.7rem;font-weight:800;flex:0 0 auto;vertical-align:middle;margin-right:6px}
+.mini-av img{width:100%;height:100%;object-fit:cover;display:block}
+.cm-cab{display:flex;align-items:center;flex-wrap:wrap}
+.cm-cab .cm-av{margin-right:6px}
+.cm-nom-c{cursor:pointer}
+.cm-amg{white-space:nowrap;font-size:.74rem!important;padding:6px 10px!important}
+.hub-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+/* perfil */
+.pf-wrap{align-items:center;justify-content:center;padding:12px}
+.pf-card{position:relative;width:min(380px,100%);max-height:92vh;overflow:auto;background:#10142a;border:1px solid #2b3a6a;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.7);color:#e6efff}
+.pf-card.pf-oro{border-color:#e7b53a;box-shadow:0 20px 60px rgba(0,0,0,.7),0 0 28px rgba(231,181,58,.35)}
+.pf-cover{height:112px;border-radius:20px 20px 0 0}
+.pf-x{position:absolute;top:10px;right:10px;width:32px;height:32px;border:none;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;font-size:15px;cursor:pointer;z-index:2}
+.pf-av{position:relative;margin:-44px 0 0 18px;width:88px;height:88px}
+.pf-av .pf-av-i{width:88px;height:88px;font-size:2rem;margin:0;border:4px solid #10142a;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+.pf-oro .pf-av .pf-av-i{border-color:#e7b53a}
+.pf-cuerpo{padding:8px 18px 18px}
+.pf-nom{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.pf-nom h3{margin:0;font-size:1.25rem}
+.pf-vf{width:19px;height:19px;font-size:12px;margin:0}
+.pf-sello-of{padding:2px 9px;border-radius:99px;background:linear-gradient(135deg,#f5c542,#c98f0a);color:#2a1d00;font-size:.7rem;font-weight:900}
+.pf-sub{display:flex;gap:10px;flex-wrap:wrap;color:#8da2c8;font-size:.78rem;margin:3px 0 8px}.pf-sub b{color:#f5c542}
+.pf-bio{margin:10px 0;font-size:.9rem;line-height:1.4;word-break:break-word}.pf-bio.vacio{color:#7d8bad;font-style:italic}
+.pf-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:8px;margin:10px 0}
+.pf-dato{background:#171d3b;border:1px solid #27325c;border-radius:12px;padding:8px 6px;text-align:center}.pf-dato b{display:block;font-size:1rem}.pf-dato small{color:#8da2c8;font-size:.66rem}
+.pf-acc{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.pf-like,.pf-sec{border:1px solid #34406a;background:#1b2140;color:#e6efff;border-radius:12px;padding:9px 14px;font-weight:700;cursor:pointer}.pf-like.on{background:#4a1530;border-color:#ec4899}
+.pf-sec:disabled{opacity:.6;cursor:default}
+.pf-carga{padding:30px 18px;text-align:center;color:#8da2c8}
+.pf-lab{display:block;font-size:.75rem;color:#8da2c8;margin:12px 0 4px}
+.pf-ta,.pf-in{width:100%;box-sizing:border-box;background:#0b0f22;border:1px solid #2b3a6a;border-radius:10px;color:#e6efff;padding:9px;font:inherit}
+.pf-sw{display:flex;gap:8px;flex-wrap:wrap}.pf-fb{width:34px;height:34px;border-radius:50%;border:2px solid transparent;cursor:pointer}.pf-fb.on{border-color:#fff;box-shadow:0 0 0 2px #38bdf8}
+.pf-chico{font-size:.74rem;color:#8da2c8;margin:8px 0 0}
+.pf-verif{margin-top:16px;padding:12px;border-radius:14px;background:#13193a;border:1px dashed #38bdf8}.pf-verif h5{margin:0 0 6px;font-size:.9rem}.pf-verif p{margin:6px 0;font-size:.82rem}
+.pf-req{margin:6px 0 10px;padding-left:4px;list-style:none;font-size:.8rem}.pf-req li{margin:4px 0}
+/* bienvenida */
+.bv-card{position:relative;width:min(440px,94vw);margin:auto;background:#0a1228;border-radius:22px;padding:18px;border:1px solid #2b3a6a;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.bv-card .sb-bienv{border-radius:16px;min-height:200px}
+.bv-x{position:absolute;top:8px;right:8px;z-index:2;width:30px;height:30px;border:none;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;cursor:pointer}
+.bv-ok{display:block;margin:14px auto 0;padding:11px 26px}
+#bv-modal{align-items:center;justify-content:center}
+/* agregar amigos */
+.am-yo2{text-align:center;padding:12px;border-radius:14px;background:linear-gradient(135deg,#13264f,#1b1f4a);border:1px solid #2b3a6a;margin-bottom:12px}
+.am-yo2 b{display:block;font-size:1.7rem;letter-spacing:1px;margin:2px 0 8px}
+.am-acc{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.am-wsp{background:linear-gradient(135deg,#22c55e,#16a34a)!important;color:#04170c!important}
+.am-ayu{display:block;margin-top:8px;color:#8da2c8}
+.am-h{margin:8px 0 6px;font-size:.85rem}
+/* reacciones en chats privados */
+.dm-rx{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.dm-rxc{border:1px solid #34406a;background:#1b2140;color:#fff;border-radius:99px;padding:1px 8px;font-size:.78rem;cursor:pointer}.dm-rxc.mia{border-color:#38bdf8;background:#143559}
+.dm-rxbar{display:flex;gap:2px;margin-top:4px;background:#0b0f22;border:1px solid #2b3a6a;border-radius:99px;padding:2px 6px;width:max-content}.dm-rxbar button{background:none;border:none;font-size:1.05rem;cursor:pointer;padding:2px 4px}
+.dm-mas{opacity:.55;margin-left:4px}
+/* admin */
+.nv-pt{display:inline-block;min-width:18px;padding:1px 5px;margin-left:6px;border-radius:99px;background:#ef4444;color:#fff;font-style:normal;font-size:.66rem;font-weight:800;text-align:center}
+.nv-foto{display:block;max-width:150px;max-height:150px;border-radius:8px;margin-top:4px;cursor:zoom-in}
+#am-modal .nh-card{width:min(440px,94vw);box-sizing:border-box}
+#am-modal .al-cuerpo{box-sizing:border-box;max-width:100%;overflow-x:hidden}
+#am-modal .pr-fila{display:flex;gap:8px}#am-modal .pr-fila input{min-width:0;flex:1}
+#am-modal .am-fila{min-width:0}#am-modal .am-t{min-width:0;flex:1}
+.am-ayu{white-space:normal}
+#am-modal .al-cuerpo>*{width:auto!important;max-width:100%;box-sizing:border-box;align-self:stretch}
+#am-modal .al-cuerpo{grid-template-columns:minmax(0,1fr)}.pf-card .al-ok,.bv-card .al-ok{width:auto}
+@media (min-width:801px){body:not(.modo-admin) .cm-panel .cm-top{gap:6px}body:not(.modo-admin) .cm-panel .cm-top b{white-space:nowrap;font-size:.92rem}body:not(.modo-admin) .cm-panel .cm-amg{flex:0 0 auto;margin-left:auto;font-size:.64rem!important;padding:4px 7px!important}body:not(.modo-admin) .cm-panel .cm-top{padding-left:8px;padding-right:8px}}

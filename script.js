@@ -179,7 +179,7 @@ function procesarPagoMPSeguro() {
 }
 
 // ------------------------- CARRUSEL ----------------------------------
-let slideActual = 3;
+let slideActual = 2;
 let timerCarrusel = null;
 let esperaAyuda = false;
 let carruselPausado = false;
@@ -892,6 +892,11 @@ async function cargarOpiniones() {
   respuestas = r1.error ? [] : (r1.data || []);
   reacciones = r2.error ? [] : (r2.data || []);
   try { await cargarNivelesUsuarios(); } catch (_) {}
+  try {   // v58: siempre el nombre y la foto ACTUALES (si la persona cambió su nombre, se ve el nuevo)
+    await cargarPublicos([...opiniones, ...respuestas].map((x) => x.user_id), true);
+    const act = (x) => { const p = perfPub[x.user_id]; if (p) { x.nombre = p.nombre; if (p.foto) x.avatar_url = p.foto; } };
+    opiniones.forEach(act); respuestas.forEach(act);
+  } catch (_) {}
   opCargadas = true;
   renderOpiniones();
 }
@@ -958,6 +963,7 @@ function tarjetaOpinion(o) {
   const cu = document.createElement("div"); cu.className = "op-cuerpo";
   const cab = document.createElement("div"); cab.className = "op-cab";
   const nom = document.createElement("b"); nom.textContent = o.nombre;
+  nom.className = "pf-link"; nom.addEventListener("click", () => window.abrirPerfil && window.abrirPerfil(o.user_id));
   const t = document.createElement("time"); t.textContent = hace(o.created_at);
   cab.append(conBanner(nom, o.user_id), nodoEstrellas(o.estrellas), t);
   const tx = document.createElement("p"); tx.textContent = o.texto;
@@ -4994,14 +5000,36 @@ function nivelDeUsuario(uid) {
     return uid in nivelesUsr ? nivelDe(nivelesUsr[uid]) : -1;
   } catch (_) { return -1; }
 }
-// banner sutil que va desde la foto hasta el final del nombre
+// v58 · datos públicos actuales (nombre, foto, ✔) de cualquier persona
+const perfPub = {}, verifUsr = new Set();
+async function cargarPublicos(ids, forzar) {
+  ids = [...new Set((ids || []).filter(Boolean))].filter((u) => forzar || !(u in perfPub)).slice(0, 300);
+  if (!ids.length) return;
+  try {
+    const { data, error } = await conTimeout(supabase.rpc("perfiles_publicos", { p_ids: ids }), 7000);
+    if (error) throw error;
+    (data || []).forEach((r) => { perfPub[r.id] = r; if (r.verificado || r.es_soporte) verifUsr.add(r.id); else verifUsr.delete(r.id); });
+  } catch (_) { /* hasta que se ejecute novedades_clientes_v43.sql */ }
+}
+function miniAv(nombre, foto, cls) {
+  const a = document.createElement("span"); a.className = "mini-av " + (cls || "");
+  const ini = () => { a.textContent = (nombre || "?").trim().charAt(0).toUpperCase(); };
+  if (foto && /^https:\/\//.test(foto)) { const im = document.createElement("img"); im.alt = ""; im.referrerPolicy = "no-referrer"; im.onerror = () => { im.remove(); ini(); }; im.src = foto; a.appendChild(im); } else ini();
+  return a;
+}
+function selloVerif() { const v = document.createElement("span"); v.className = "vf"; v.title = "Cuenta verificada"; v.textContent = "✔"; return v; }
+// banner sutil que va desde la foto hasta el final del nombre (+ ✔ si está verificada)
 function conBanner(nodoNombre, uid, conEtiqueta = true) {
-  const i = nivelDeUsuario(uid);
-  if (i < 0) return nodoNombre;
-  const w = document.createElement("span"); w.className = "nvb nvb-" + i; w.title = "Nivel " + NIVELES[i].n;
+  const i = nivelDeUsuario(uid), vf = !!uid && verifUsr.has(uid);
+  if (i < 0 && !vf) return nodoNombre;
+  const w = document.createElement("span");
+  if (i >= 0) { w.className = "nvb nvb-" + i; w.title = "Nivel " + NIVELES[i].n; } else w.className = "nvb-vf";
   w.appendChild(nodoNombre);
-  const ic = document.createElement("span"); ic.className = "nvb-ico"; ic.textContent = NIVELES[i].ico; w.appendChild(ic);
-  if (conEtiqueta) { const t = document.createElement("span"); t.className = "nvb-t"; t.textContent = NIVELES[i].n; w.appendChild(t); }
+  if (vf) w.appendChild(selloVerif());
+  if (i >= 0) {
+    const ic = document.createElement("span"); ic.className = "nvb-ico"; ic.textContent = NIVELES[i].ico; w.appendChild(ic);
+    if (conEtiqueta) { const t = document.createElement("span"); t.className = "nvb-t"; t.textContent = NIVELES[i].n; w.appendChild(t); }
+  }
   return w;
 }
 function insigniaNivel(uid) {
@@ -6685,6 +6713,8 @@ async function opInvitar() {
   try {
     if (!usuarioActual || document.hidden) return;
     if (opiniones.some((o) => o.user_id === usuarioActual.id)) return;
+    const st = opInvEstado();   // v58: se pide como mucho 2 veces en total; si tocó «opinar» o ya opinó, nunca más
+    if (st.listo || st.veces >= 2 || (st.veces === 1 && Date.now() - st.ult < 14 * 86400000)) return;
     const { data } = await supabase.from("ordenes_recarga").select("id,updated_at").eq("user_id", usuarioActual.id).eq("estado", "completada").order("updated_at", { ascending: false }).limit(1);
     const o = data && data[0]; if (!o) return;
     const edad = Date.now() - new Date(o.updated_at).getTime(); if (edad < 120000 || edad > 86400000) return;
@@ -6693,14 +6723,18 @@ async function opInvitar() {
     const el = $("op-inv"); if (!el) return; el.dataset.id = o.id; el.hidden = false;
   } catch (_) {}
 }
-function opInvCerrar() {
+const opInvClave = () => "zarela_opinv2_" + (usuarioActual ? usuarioActual.id : "x");
+function opInvEstado() { try { return Object.assign({ veces: 0, ult: 0, listo: false }, JSON.parse(localStorage.getItem(opInvClave()) || "{}")); } catch (_) { return { veces: 0, ult: 0, listo: false }; } }
+function opInvGuardar(st) { try { localStorage.setItem(opInvClave(), JSON.stringify(st)); } catch (_) {} }
+function opInvCerrar(acepto) {
   const el = $("op-inv"); if (!el) return; const id = Number(el.dataset.id); el.hidden = true;
+  { const st = opInvEstado(); if (acepto === true) st.listo = true; else { st.veces += 1; st.ult = Date.now(); } opInvGuardar(st); }
   try { const v = JSON.parse(localStorage.getItem(OPINV_KEY) || "[]"); if (id && !v.includes(id)) v.push(id); localStorage.setItem(OPINV_KEY, JSON.stringify(v.slice(-30))); } catch (_) {}
 }
 document.addEventListener("DOMContentLoaded", () => {
-  $("op-inv-x")?.addEventListener("click", opInvCerrar);
+  $("op-inv-x")?.addEventListener("click", () => opInvCerrar(false));
   $("op-inv-ok")?.addEventListener("click", () => {
-    opInvCerrar();
+    opInvCerrar(true);
     const f = $("op-form") || $("comments-list"); try { f.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (_) {}
     setTimeout(() => { try { $("op-texto")?.focus(); } catch (_) {} }, 500);
   });
@@ -6939,6 +6973,7 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
       msgs = (data || []).reverse();
       const ids = [...new Set(msgs.map((m) => m.user_id).filter(Boolean))].filter((u) => !(u in nivelesUsr)).slice(0, 200);
       if (ids.length) { try { const { data: n } = await conTimeout(supabase.rpc("niveles_de_usuarios", { p_ids: ids }), 6000); (n || []).forEach((r) => { nivelesUsr[r.user_id] = Number(r.diamantes) || 0; }); } catch (_) {} }
+      try { await cargarPublicos(msgs.map((m) => m.user_id)); } catch (_) {}
       try { const { data: f } = await supabase.from("chat_fijado").select("*"); fijados = {}; (f || []).forEach((r) => { fijados[r.sala] = r.texto; }); } catch (_) {}
       const nuevo = msgs.length ? msgs[msgs.length - 1].id : 0;
       if (!abierto && ultimoId && nuevo > ultimoId) { sinLeer += msgs.filter((m) => m.id > ultimoId).length; pintarPunto(); }
@@ -6956,15 +6991,18 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
     msgs.forEach((m) => {
       const d = document.createElement("div");
       if (m.tipo === "sistema") {
-        d.className = "cm-sis"; const b = document.createElement("b"); b.textContent = m.nombre; d.appendChild(m.user_id ? conBanner(b, m.user_id, true) : b);
+        d.className = "cm-sis"; const b = document.createElement("b"); b.textContent = (perfPub[m.user_id] && perfPub[m.user_id].nombre) || m.nombre; d.appendChild(m.user_id ? conBanner(b, m.user_id, true) : b);
         d.appendChild(document.createTextNode(" " + m.texto));
       } else {
         const mio = usuarioActual && m.user_id === usuarioActual.id;
         d.className = "cm-msg" + (m.tipo === "admin" ? " cm-adm" : "") + (mio ? " cm-mio" : "") + (m.oculto ? " cm-oculto" : "");
         const cab = document.createElement("div"); cab.className = "cm-cab";
-        const n = document.createElement("b"); n.textContent = m.nombre;
-        if (m.tipo === "user" && !mio && usuarioActual) { n.className = "cm-nom-c"; n.title = "Tocá para agregar como amigo"; n.onclick = () => window.abrirAmigos && window.abrirAmigos(m.nombre); }
-        cab.appendChild(m.tipo === "user" ? conBanner(n, m.user_id, true) : n);
+        const pp = perfPub[m.user_id];
+        const n = document.createElement("b"); n.textContent = (pp && pp.nombre) || m.nombre;
+        if (m.user_id) { n.className = "cm-nom-c"; n.title = "Ver perfil"; n.onclick = () => window.abrirPerfil && window.abrirPerfil(m.user_id); }
+        const fotoM = m.tipo === "admin" ? (perfilSoporte && perfilSoporte.avatar_url) || (pp && pp.foto) : pp && pp.foto;
+        const avM = miniAv(n.textContent, fotoM, "cm-av"); if (m.user_id) { avM.onclick = n.onclick; avM.style.cursor = "pointer"; } cab.appendChild(avM);
+        cab.appendChild(m.tipo === "user" ? conBanner(n, m.user_id, true) : (m.tipo === "admin" ? conBanner(n, m.user_id, false) : n));
         if (m.tipo === "admin") { const s = document.createElement("span"); s.className = "cm-sello"; s.textContent = "💬 Soporte"; cab.appendChild(s); }
         
         const h = document.createElement("small"); h.textContent = hora(m.created_at); cab.appendChild(h);
@@ -7007,12 +7045,7 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
   }
   const esPC = () => matchMedia("(min-width: 801px)").matches && !document.body.classList.contains("modo-admin");
   let rafPC = 0;
-  function posPC() {
-    const w = E("cm-panel"), ref = E("chat-widget"); if (!w || !ref || !abierto || !esPC()) { rafPC = 0; return; }
-    const r = ref.getBoundingClientRect();
-    if (r.width > 50) { w.style.left = r.left + "px"; w.style.top = r.top + "px"; w.style.width = r.width + "px"; w.style.height = r.height + "px"; w.style.right = "auto"; w.style.bottom = "auto"; }
-    rafPC = requestAnimationFrame(posPC);
-  }
+  function posPC() { rafPC = 0; /* v58: la posición ahora es fija por CSS (ver fijarChat) */ }
   function marcarTabs(t) { document.querySelectorAll(".ch-tab").forEach((b) => b.classList.toggle("on", b.dataset.t === t)); }
   window.abrirChatMundo = () => {
     try { window.cerrarPanelesChat && window.cerrarPanelesChat(); } catch (_) {}
@@ -7058,7 +7091,7 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
     E("cm-fab")?.addEventListener("click", () => (abierto ? cerrar() : abrir()));
     document.querySelectorAll(".ch-tab").forEach((b) => b.addEventListener("click", () => { const t = b.dataset.t; if (t === "mundial") window.abrirChatMundo(); else if (t === "soporte") window.abrirChatSoporte(); else if (window.abrirAmigos) window.abrirAmigos(""); }));
     marcarTabs("soporte");
-    E("sb-mundo")?.addEventListener("click", () => { try { if ($("sidebar-menu")?.classList.contains("open")) toggleMenu(); } catch (_) {} setTimeout(() => window.abrirChatMundo(), 200); });
+    E("sb-mundo")?.addEventListener("click", () => { try { if ($("sidebar-menu")?.classList.contains("open")) toggleMenu(); } catch (_) {} setTimeout(() => window.abrirHub && window.abrirHub(), 200); });
     E("cm-x")?.addEventListener("click", () => window.abrirHub && window.abrirHub());
     E("cm-amg")?.addEventListener("click", () => window.abrirAmigos && window.abrirAmigos(""));
     E("cm-env")?.addEventListener("click", enviar);
@@ -7157,7 +7190,8 @@ const NOV = (function novedades() {
   function avatarGrupo(g, cls) {
     const c = el("span", "hs-av " + (cls || ""));
     const ini = () => { c.textContent = g.oficial ? "💎" : (g.nombre || "?").trim().charAt(0).toUpperCase(); };
-    if (!g.oficial && g.foto && /^https:\/\//.test(g.foto)) { const im = el("img"); im.alt = ""; im.referrerPolicy = "no-referrer"; im.onerror = () => { im.remove(); ini(); }; im.src = g.foto; c.appendChild(im); } else ini();
+    const fo = g.oficial ? (perfilSoporte && perfilSoporte.avatar_url) : g.foto;
+    if (fo && /^https:\/\//.test(fo)) { const im = el("img"); im.alt = ""; im.referrerPolicy = "no-referrer"; im.onerror = () => { im.remove(); ini(); }; im.src = fo; c.appendChild(im); } else ini();
     return c;
   }
   async function cargarHistorias() {
@@ -7343,7 +7377,7 @@ const NOV = (function novedades() {
     } catch (_) { l.appendChild(el("p", "adm-ayuda", "No se pudo cargar (¿ejecutaste el SQL v41?).")); }
   }
   function fila(a, acciones) {
-    const f = el("div", "am-fila"); const av = avatarGrupo({ nombre: a.nombre, foto: a.foto }, "am-av"); f.appendChild(av);
+    const f = el("div", "am-fila"); const av = avatarGrupo({ nombre: a.nombre, foto: a.foto }, "am-av"); av.style.cursor = "pointer"; av.title = "Ver perfil"; av.onclick = () => window.abrirPerfil && window.abrirPerfil(a.id); f.appendChild(av);
     const t = el("div", "am-t"); t.appendChild(el("b", "", a.nombre)); t.appendChild(el("small", "", "#" + a.num_id)); f.appendChild(t);
     (acciones || []).forEach(([txt, fn]) => { const b = el("button", "pr-mini", txt); b.type = "button"; b.onclick = fn; f.appendChild(b); }); return f;
   }
@@ -7517,9 +7551,79 @@ const NOV = (function novedades() {
           f.appendChild(v); f.appendChild(hilo); lpz.appendChild(f); }); } catch (_) { lpz.appendChild(el("p", "adm-ayuda", "No pude leer (¿ejecutaste el SQL v42?).")); }
     }
     cargarPares();
+
+    // ---------- 📷 Fotos nuevas en chats privados ----------
+    const cF = caja("📷 Fotos nuevas en chats privados", "Las fotos se envían libres (sin esperar tu OK). Acá te avisamos cuando hay nuevas: tocá «Ver chat» para mirar la conversación completa.");
+    const lF = el("div", "nv-lista"); cF.appendChild(lF);
+    const fotoU2 = (p) => { try { return supabase.storage.from("chatfotos").getPublicUrl(p).data.publicUrl; } catch (_) { return ""; } };
+    async function cargarFotosN() {
+      lF.innerHTML = ""; try { const { data, error } = await supabase.rpc("admin_dm_fotos_nuevas"); if (error) throw error; if (!data.length) lF.appendChild(el("p", "adm-ayuda", "No hay fotos nuevas 🎉"));
+        data.forEach((p) => { const f = el("div", "nv-item"); f.appendChild(el("b", "", p.n1 + " ↔ " + p.n2)); f.appendChild(el("span", "", "📷 " + p.fotos + (p.fotos === 1 ? " foto nueva" : " fotos nuevas")));
+          const v = el("button", "nv-mini nv-verde", "Ver chat"); v.type = "button"; const hilo = el("div", "nv-hilo"); hilo.hidden = true;
+          v.onclick = async () => { if (!hilo.hidden) { hilo.hidden = true; return; } hilo.hidden = false; hilo.textContent = "Cargando…";
+            try { const { data: h, error: e2 } = await supabase.rpc("admin_dm_hilo", { p_a: p.u1, p_b: p.u2 }); if (e2) throw e2; hilo.innerHTML = "";
+              h.forEach((m) => { const r = el("div", "nv-hm"); r.appendChild(el("b", "", m.de + ": ")); if (m.tipo === "foto" && m.foto) { const im = el("img", "nv-foto"); im.src = fotoU2(m.foto); im.alt = "foto"; im.onclick = () => window.open(im.src, "_blank"); r.appendChild(im); } else r.appendChild(document.createTextNode(m.tipo === "id" ? "🎮 " + m.texto : (m.texto || ""))); hilo.appendChild(r); });
+              await supabase.rpc("admin_dm_fotos_vistas", { p_a: p.u1, p_b: p.u2 }); pintarPuntoAdmin();
+              const ok = el("button", "nv-mini", "Listo, ya la vi"); ok.type = "button"; ok.onclick = cargarFotosN; hilo.appendChild(ok);
+            } catch (_) { hilo.textContent = "No pude leer el chat."; } };
+          f.appendChild(v); f.appendChild(hilo); lF.appendChild(f); }); } catch (_) { lF.appendChild(el("p", "adm-ayuda", "No pude leer (¿ejecutaste el SQL v43?).")); }
+    }
+    cargarFotosN();
+
+    // ---------- ✔ Verificación ----------
+    const cV = caja("✔ Insignia de verificación", "Es el tilde que aparece junto al nombre del cliente (comentarios, chats, perfil). Sirve para destacar a clientes de confianza y, si querés, como un extra pago. Cómo funciona: 1) vos fijás los requisitos y el precio acá abajo; 2) el cliente toca «Pedir mi insignia» en su perfil (solo si cumple las recargas mínimas); 3) te llega el pedido a esta lista; 4) si hay precio, se coordina el pago por el chat de soporte y vos la activás con un toque. También podés dársela vos directo a quien quieras. Precio 0 = gratis. Duración 0 = de por vida.");
+    const vF = el("div", "nv-fila"); vF.appendChild(el("b", "", "Estado"));
+    const vs = el("select"); [["on", "🟢 Activa (los clientes pueden pedirla)"], ["pronto", "🕓 Próximamente"], ["off", "⚫ Apagada (no se ve nada)"]].forEach(([v, t]) => { const o = el("option", "", t); o.value = v; vs.appendChild(o); }); vs.value = cfg.f_verif || "off";
+    const vb = el("button", "nv-btn", "Guardar"); vb.type = "button"; vb.onclick = async () => { if (await rpcAdm("admin_nov_config", { p_clave: "f_verif", p_valor: vs.value }, "Guardado ✔")) cfg.f_verif = vs.value; };
+    vF.appendChild(vs); vF.appendChild(vb); cV.appendChild(vF);
+    const VAJ = [["verif_min_recargas", "Recargas mínimas para poder pedirla"], ["verif_precio_ars", "Precio en pesos ($) · 0 = gratis"], ["verif_precio_usd", "Precio en dólares (US$) · 0 = gratis"], ["verif_dias", "Duración en días · 0 = de por vida"]];
+    const vin = {}; VAJ.forEach(([k, n]) => { const f = el("label", "nv-fila"); f.appendChild(el("span", "", n)); const i = el("input"); i.type = "number"; i.step = "any"; i.min = "0"; i.value = cfg[k] ?? ""; vin[k] = i; f.appendChild(i); cV.appendChild(f); });
+    const vg = el("button", "nv-btn nv-grande", "Guardar requisitos y precio"); vg.type = "button";
+    vg.onclick = async () => { let ok = true; for (const [k] of VAJ) ok = (await rpcAdm("admin_nov_config", { p_clave: k, p_valor: String(vin[k].value || "0") })) && ok; if (ok) mostrarAviso("Guardado ✔", "exito"); };
+    cV.appendChild(vg);
+    cV.appendChild(el("h5", "nv-sub", "📨 Pedidos"));
+    const lVp = el("div", "nv-lista"); cV.appendChild(lVp);
+    cV.appendChild(el("h5", "nv-sub", "✔ Cuentas verificadas"));
+    const lVa = el("div", "nv-lista"); cV.appendChild(lVa);
+    cV.appendChild(el("h5", "nv-sub", "➕ Darle la insignia a alguien"));
+    const fB = el("div", "nv-form"); const iB = el("input"); iB.placeholder = "Nombre o # de ID (ej: #25)"; iB.style.minWidth = "200px"; const bB = el("button", "nv-btn", "Buscar"); bB.type = "button"; fB.appendChild(iB); fB.appendChild(bB); cV.appendChild(fB);
+    const lVb = el("div", "nv-lista"); cV.appendChild(lVb);
+    const diasDef = () => Number(vin.verif_dias.value) || 0;
+    async function cargarVerifAdm() {
+      lVp.innerHTML = ""; lVa.innerHTML = "";
+      try { const { data, error } = await supabase.rpc("admin_verif_listar"); if (error) throw error;
+        if (!data.pedidos.length) lVp.appendChild(el("p", "adm-ayuda", "No hay pedidos nuevos."));
+        data.pedidos.forEach((x) => { const f = el("div", "nv-item"); f.appendChild(el("b", "", x.nombre + " · #" + x.num_id)); f.appendChild(el("span", "", x.recargas + " recargas"));
+          const ok = el("button", "nv-mini nv-verde", "Dar ✔"); ok.type = "button"; ok.onclick = async () => { if (await rpcAdm("admin_verif_dar", { p_user: x.id, p_dias: diasDef() }, "Insignia activada ✔")) cargarVerifAdm(); };
+          const no = el("button", "nv-mini nv-rojo", "Descartar"); no.type = "button"; no.onclick = async () => { if (await rpcAdm("admin_verif_quitar", { p_user: x.id })) cargarVerifAdm(); };
+          f.appendChild(ok); f.appendChild(no); lVp.appendChild(f); });
+        if (!data.activos.length) lVa.appendChild(el("p", "adm-ayuda", "Todavía no hay cuentas verificadas."));
+        data.activos.forEach((x) => { const f = el("div", "nv-item"); f.appendChild(el("b", "", "✔ " + x.nombre + " · #" + x.num_id)); f.appendChild(el("span", "", x.hasta ? "vence " + new Date(x.hasta).toLocaleDateString("es-AR") : "de por vida"));
+          const q = el("button", "nv-mini nv-rojo", "Quitar"); q.type = "button"; q.onclick = async () => { if (confirm("¿Quitarle la insignia a " + x.nombre + "?") && await rpcAdm("admin_verif_quitar", { p_user: x.id })) cargarVerifAdm(); };
+          f.appendChild(q); lVa.appendChild(f); });
+      } catch (_) { lVp.appendChild(el("p", "adm-ayuda", "No pude leer (¿ejecutaste el SQL v43?).")); }
+    }
+    bB.onclick = async () => { lVb.innerHTML = ""; try { const { data, error } = await supabase.rpc("admin_verif_buscar", { p_q: iB.value }); if (error) throw error; if (!data.length) lVb.appendChild(el("p", "adm-ayuda", "No encontré a nadie."));
+      data.forEach((x) => { const f = el("div", "nv-item"); f.appendChild(el("b", "", x.nombre + " · #" + x.num_id)); f.appendChild(el("span", "", x.recargas + " recargas" + (x.verificado ? " · ya tiene ✔" : "")));
+        const ok = el("button", "nv-mini nv-verde", x.verificado ? "Renovar ✔" : "Dar ✔"); ok.type = "button"; ok.onclick = async () => { if (await rpcAdm("admin_verif_dar", { p_user: x.id, p_dias: diasDef() }, "Insignia activada ✔")) { cargarVerifAdm(); lVb.innerHTML = ""; } };
+        f.appendChild(ok); lVb.appendChild(f); }); } catch (_) { lVb.appendChild(el("p", "adm-ayuda", "No pude buscar (¿SQL v43?).")); } };
+    iB.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); bB.click(); } });
+    cargarVerifAdm();
     const nuevoH = el("button", "nv-btn", "＋ Subir historia oficial"); nuevoH.type = "button"; nuevoH.onclick = abrirCreador; c5.appendChild(nuevoH);
   }
   window.novAdminCargar = adminCargar;
+  // punto rojo con el número de fotos nuevas (pestaña Novedades y acceso en Pendientes)
+  let fotosPrev = null;
+  async function pintarPuntoAdmin() {
+    if (!adm()) return;
+    let n = 0; try { const { data } = await supabase.rpc("admin_dm_fotos_nuevas"); n = (data || []).reduce((a, x) => a + Number(x.fotos || 0), 0); } catch (_) { return; }
+    document.querySelectorAll("#admin-tab-novedades, .hoy-nov").forEach((b) => { let p = b.querySelector(".nv-pt"); if (!n) { if (p) p.remove(); return; } if (!p) { p = el("em", "nv-pt"); b.appendChild(p); } p.textContent = n > 99 ? "99+" : String(n); p.title = n + " foto(s) nueva(s) en chats privados"; });
+    if (fotosPrev !== null && n > fotosPrev) mostrarAviso("📷 Hay fotos nuevas en chats privados", "info");
+    fotosPrev = n;
+  }
+  window.novPuntoAdmin = pintarPuntoAdmin;
+  setInterval(() => { if (!document.hidden) pintarPuntoAdmin(); }, 60000);
+  setTimeout(pintarPuntoAdmin, 5000);
 
   async function iniciar() {
     await cargarCfg(); await cargarHistorias(); calcPuedeSubir();
@@ -7567,24 +7671,43 @@ const NOV = (function novedades() {
   let rafP = 0, activo = null, convs = [], dmCon = null, dmT = 0, fotosModo = "off";
   const PANELES = { hub: "hub-panel", dm: "dm-panel" };
 
-  function pos(idp) {
-    const w = E(idp), ref = E("chat-widget");
-    if (!w || !ref || !w.classList.contains("abierto") || !esPC()) { rafP = 0; return; }
-    const r = ref.getBoundingClientRect();
-    if (r.width > 50) { w.style.left = r.left + "px"; w.style.top = r.top + "px"; w.style.width = r.width + "px"; w.style.height = r.height + "px"; w.style.right = "auto"; w.style.bottom = "auto"; }
-    rafP = requestAnimationFrame(() => pos(idp));
+  function pos() { rafP = 0; }
+  // v58: chat FIJO arriba a la derecha (debajo del encabezado). No se mueve al scrollear.
+  // Cuando la página baja hasta las secciones anchas, el chat se achica a un botón flotante.
+  function fijarChat() {
+    const rs = document.documentElement.style;
+    if (!esPC()) { document.body.classList.remove("chat-mini"); return; }
+    const col = document.querySelector(".right-widgets-col"), nav = document.querySelector(".navbar");
+    if (!col) return;
+    const c = col.getBoundingClientRect(), hb = nav ? Math.round(nav.getBoundingClientRect().bottom) : 103;
+    if (c.width < 50) return;
+    const top = Math.max(hb, 0) + 10, h = Math.max(300, Math.min(470, innerHeight - top - 16));
+    rs.setProperty("--cx", Math.round(c.left) + "px"); rs.setProperty("--cw", Math.round(c.width) + "px");
+    rs.setProperty("--cy", top + "px"); rs.setProperty("--ch", h + "px");
+    const ancho = document.getElementById("top-mes") || document.getElementById("auth-section");
+    let mini = false;
+    if (ancho) { const y = ancho.getBoundingClientRect().top; mini = y < top + h + 12; }
+    const antes = document.body.classList.contains("chat-mini");
+    document.body.classList.toggle("chat-mini", mini);
+    if (!mini) forzadoMini = false;
+    if (mini && !antes && !forzadoMini && (activo || document.body.classList.contains("soporte-abierto"))) { try { todoCerrado(); } catch (_) {} }
   }
+  let forzadoMini = false;
+  let fcT = 0; const pedirFijar = () => { if (!fcT) fcT = requestAnimationFrame(() => { fcT = 0; fijarChat(); }); };
+  addEventListener("scroll", pedirFijar, { passive: true }); addEventListener("resize", pedirFijar);
+  setTimeout(fijarChat, 300); setTimeout(fijarChat, 1500); setTimeout(fijarChat, 4000);
   function cerrarPaneles(salvo) {
     Object.entries(PANELES).forEach(([k, id]) => { if (k === salvo) return; const w = E(id); if (w) { w.classList.remove("abierto"); w.style.cssText = ""; } document.body.classList.remove(k + "-abierto"); });
     if (salvo !== "dm") { clearTimeout(dmT); dmCon = null; }
   }
   function abrirPanel(k) {
-    cerrarPaneles(k); try { window.cerrarChatMundo && window.cerrarChatMundo(); } catch (_) {}
+    cerrarPaneles(k); document.body.classList.remove("soporte-abierto"); try { window.cerrarChatMundo && window.cerrarChatMundo(); } catch (_) {}
     try { if (!esPC() && typeof alternarChat === "function") alternarChat(false); } catch (_) {}
     const w = E(PANELES[k]); w.classList.add("abierto"); document.body.classList.add(k + "-abierto"); activo = k;
+    if (document.body.classList.contains("chat-mini")) forzadoMini = true;
     if (esPC()) { cancelAnimationFrame(rafP); rafP = requestAnimationFrame(() => pos(PANELES[k])); }
   }
-  function todoCerrado() { cerrarPaneles(null); try { window.cerrarChatMundo && window.cerrarChatMundo(); } catch (_) {} activo = null; }
+  function todoCerrado() { document.body.classList.remove("soporte-abierto"); cerrarPaneles(null); try { window.cerrarChatMundo && window.cerrarChatMundo(); } catch (_) {} activo = null; }
 
   // ------------------------- HUB -------------------------
   async function cargarConvs() {
@@ -7599,7 +7722,7 @@ const NOV = (function novedades() {
   function fila(av, tit, sub, meta, n, fijado, fn) {
     const b = el("button", "hub-fila" + (fijado ? " fij" : "")); b.type = "button"; b.appendChild(av);
     const t = el("div", "hub-t"); const h = el("div", "hub-h"); h.appendChild(el("b", "", tit)); if (fijado) h.appendChild(el("span", "hub-pin", "📌")); t.appendChild(h); t.appendChild(el("small", "", sub)); b.appendChild(t);
-    const m = el("div", "hub-m"); if (meta) m.appendChild(el("small", "", meta)); if (n) m.appendChild(el("em", "hub-n", n > 9 ? "9+" : String(n))); b.appendChild(m); b.onclick = fn; return b;
+    const m = el("div", "hub-m"); if (meta) m.appendChild(el("small", "", meta)); if (n) m.appendChild(el("em", "hub-n", n > 99 ? "99+" : String(n))); b.appendChild(m); b.onclick = fn; return b;
   }
   async function pintarHub() {
     const l = E("hub-lista"); if (!l) return;
@@ -7610,21 +7733,22 @@ const NOV = (function novedades() {
     l.appendChild(fila(mundo, "Mundial", ult.slice(0, 48), "", (window.cmSinLeer && window.cmSinLeer()) || 0, true, () => { cerrarPaneles(null); window.abrirChatMundo(); }));
     let sop = "Dudas, comprobantes y ayuda"; try { const ms = document.querySelectorAll("#chat-messages-container .chat-message"); if (ms.length) sop = ms[ms.length - 1].textContent.trim().replace(/\s+/g, " "); } catch (_) {}
     let nsop = 0; try { nsop = parseInt((document.querySelector("#chat-fab .chat-dot:not(#hub-dot)") || {}).textContent, 10) || 0; } catch (_) {}
-    l.appendChild(fila(el("span", "hub-av hub-sop", "💎"), "Alma Zarela · Soporte", sop.slice(0, 48), "", nsop, true, () => { cerrarPaneles(null); activo = null; try { if (!esPC()) alternarChat(true); } catch (_) {} }));
+    const fSop = perfilSoporte && perfilSoporte.avatar_url;
+    l.appendChild(fila(fSop ? avatar("Alma Zarela", fSop, "hub-sop") : el("span", "hub-av hub-sop", "💎"), "Alma Zarela · Soporte", sop.slice(0, 48), "", nsop, true, () => { cerrarPaneles(null); activo = null; document.body.classList.add("soporte-abierto"); try { if (!esPC()) alternarChat(true); } catch (_) {} }));
     const sep = el("div", "hub-sep", "Mis amigos"); l.appendChild(sep);
     if (!usuarioActual) l.appendChild(el("p", "hub-vacio", "Ingresá con Google para agregar amigos y escribirles."));
-    else if (!convs.length) l.appendChild(el("p", "hub-vacio", "Todavía no tenés amigos. Tocá «＋ Amigos» para buscarlos por nombre o por ID."));
+    else if (!convs.length) l.appendChild(el("p", "hub-vacio", "Todavía no tenés amigos. Tocá «＋ Agregar amigos» para buscarlos por nombre o por ID."));
     convs.forEach((c) => l.appendChild(fila(avatar(c.nombre, c.foto), c.nombre, c.ult_texto ? (c.ult_mio ? "Vos: " : "") + (c.ult_tipo === "id" ? "🎮 ID de Free Fire" : c.ult_tipo === "foto" ? "📷 Foto" : c.ult_texto).slice(0, 44) : "Escribile para jugar juntos 🎮", c.ult_at ? hora(c.ult_at) : "", Number(c.no_leidos) || 0, false, () => abrirDM(c))));
     pintarPunto();
   }
   async function pintarPunto() {
     let n = 0; if (usuarioActual) { try { const { data } = await supabase.rpc("dm_total_no_leidos"); n = Number(data) || 0; } catch (_) {} }
     let s = 0; try { s = parseInt((document.querySelector("#chat-fab .chat-dot:not(#hub-dot)") || {}).textContent, 10) || 0; } catch (_) {}
-    const t = n + s + ((window.cmSinLeer && window.cmSinLeer()) || 0), d = E("hub-dot"); if (d) { d.textContent = t > 9 ? "9+" : String(t); d.hidden = !t; }
+    const t = n + s + ((window.cmSinLeer && window.cmSinLeer()) || 0), d = E("hub-dot"); if (d) { d.textContent = t > 99 ? "99+" : String(t); d.hidden = !t; }
   }
   window.cerrarPanelesChat = () => cerrarPaneles(null);
   window.abrirHub = async () => { abrirPanel("hub"); pintarHub(); };
-  window.abrirChatSoporte = () => { todoCerrado(); try { if (!esPC() && typeof alternarChat === "function") alternarChat(true); } catch (_) {} };
+  window.abrirChatSoporte = () => { todoCerrado(); document.body.classList.add("soporte-abierto"); try { if (!esPC() && typeof alternarChat === "function") alternarChat(true); } catch (_) {} };
 
   // ------------------------- CHAT PRIVADO -------------------------
   async function cargarModoFotos() { try { const { data } = await supabase.from("novedades_config").select("valor").eq("clave", "dm_fotos").maybeSingle(); fotosModo = (data && data.valor) || "off"; } catch (_) {} E("dm-fotob").hidden = fotosModo === "off" && !esAdm(); }
@@ -7644,7 +7768,7 @@ const NOV = (function novedades() {
     dmT = setTimeout(() => cargarDM(false), 4000);
   }
   function pintarDM(ms, forzar) {
-    const l = E("dm-lista"), abajo = l.scrollHeight - l.scrollTop - l.clientHeight < 80, firma = ms.map((m) => m.id + m.estado + m.leido).join(",");
+    const l = E("dm-lista"), abajo = l.scrollHeight - l.scrollTop - l.clientHeight < 80, firma = ms.map((m) => m.id + m.estado + m.leido + JSON.stringify(m.rx || [])).join(",");
     if (!forzar && l.dataset.f === firma) return; l.dataset.f = firma; l.innerHTML = "";
     if (!ms.length) l.appendChild(el("p", "cm-vacio", "Saluda a " + (dmCon ? dmCon.nombre : "tu amigo") + " 👋 ¿Juegan juntos el torneo?"));
     ms.forEach((m) => {
@@ -7654,10 +7778,21 @@ const NOV = (function novedades() {
       else d.appendChild(el("div", "cm-txt", m.texto));
       const pie = el("small", "dm-pie", hora(m.created_at) + (m.mio ? (m.estado === "revision" ? " · ⏳ en revisión" : m.leido ? " ✓✓" : " ✓") : "")); d.appendChild(pie);
       if (!m.mio) { const r = el("button", "dm-rep", "🚩"); r.type = "button"; r.title = "Reportar"; r.onclick = async () => { try { await supabase.rpc("dm_reportar", { p_id: m.id }); mostrarAviso("Gracias, lo revisamos 🙏", "exito"); } catch (_) {} }; pie.appendChild(r); }
+      if (m.estado === "ok") {
+        if ((m.rx || []).length) { const rr = el("div", "dm-rx"); m.rx.forEach((z) => { const b = el("button", "dm-rxc" + (z.mia ? " mia" : ""), z.e + (z.n > 1 ? " " + z.n : "")); b.type = "button"; b.onclick = () => reaccionarDM(m.id, z.e); rr.appendChild(b); }); d.appendChild(rr); }
+        const pl = el("button", "dm-rep dm-mas", "☺"); pl.type = "button"; pl.title = "Reaccionar";
+        pl.onclick = () => { const ya = d.querySelector(".dm-rxbar"); if (ya) { ya.remove(); return; } const bar = el("div", "dm-rxbar"); ["❤️", "🔥", "😂", "😮", "👏", "👍"].forEach((e) => { const b = el("button", "", e); b.type = "button"; b.onclick = () => reaccionarDM(m.id, e); bar.appendChild(b); }); d.appendChild(bar); };
+        pie.appendChild(pl);
+      }
       l.appendChild(d);
     });
     if (abajo || forzar) l.scrollTop = l.scrollHeight;
   }
+  async function reaccionarDM(id, emoji) {
+    try { const { error } = await supabase.rpc("dm_reaccionar", { p_id: id, p_emoji: emoji }); if (error) throw error; await cargarDM(true); }
+    catch (_) { mostrarAviso("No se pudo reaccionar ahora.", "error"); }
+  }
+  window.abrirDMCon = (c) => abrirDM(c);
   let envDM = false;
   async function enviarDM(texto, tipo, path) {
     if (!dmCon || envDM) return; if (tipo === "texto" && !texto.trim()) return;
@@ -7685,6 +7820,10 @@ const NOV = (function novedades() {
     E("chat-volver")?.addEventListener("click", () => { try { if (!esPC()) alternarChat(false); } catch (_) {} window.abrirHub(); });
     E("dm-back")?.addEventListener("click", () => window.abrirHub());
     E("dm-menu")?.addEventListener("click", menuDM);
+    const verPerfilDM = () => { if (dmCon && window.abrirPerfil) window.abrirPerfil(dmCon.id); };
+    E("dm-av")?.addEventListener("click", verPerfilDM); document.querySelector(".dm-quien")?.addEventListener("click", verPerfilDM);
+    document.querySelector(".chat-agente")?.addEventListener("click", () => { if (perfilSoporte && perfilSoporte.user_id && window.abrirPerfil) window.abrirPerfil(perfilSoporte.user_id); });
+    document.querySelector(".chat-cerrar")?.addEventListener("click", () => { if (esPC()) todoCerrado(); });
     E("dm-env")?.addEventListener("click", () => enviarDM(E("dm-in").value, "texto"));
     E("dm-in")?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); enviarDM(E("dm-in").value, "texto"); } });
     E("dm-idb")?.addEventListener("click", compartirId);
@@ -7695,8 +7834,168 @@ const NOV = (function novedades() {
     setInterval(() => { if (!document.hidden) { pintarPunto(); if (activo === "hub") pintarHub(); } }, 20000);
     setTimeout(pintarPunto, 4000);
     // PC: la lista de chats es lo primero que se ve en el lugar del chat
-    setTimeout(() => { if (esPC() && !activo && !document.body.classList.contains("tour-on")) window.abrirHub(); }, 1500);
+    setTimeout(() => { if (esPC() && !activo && !document.body.classList.contains("tour-on") && !document.body.classList.contains("chat-mini")) window.abrirHub(); }, 500);
   }
   supabase.auth.onAuthStateChange(() => { setTimeout(() => { pintarPunto(); if (activo === "hub") pintarHub(); }, 700); });
+  document.addEventListener("DOMContentLoaded", iniciar);
+})();
+
+
+// =====================================================================
+// v58 · PERFILES (con Me gusta), insignia ✔, bienvenida, link de amigos, avisos
+// =====================================================================
+(function perfilesMod() {
+  const E = (id) => document.getElementById(id);
+  const el = (t, c, txt) => { const e = document.createElement(t); if (c) e.className = c; if (txt !== undefined) e.textContent = txt; return e; };
+  const FONDOS = [["f1", "linear-gradient(135deg,#0f2a5c,#2b7bff)"], ["f2", "linear-gradient(135deg,#3b0f33,#ec4899)"], ["f3", "linear-gradient(135deg,#0b3d2e,#19e68c)"], ["f4", "linear-gradient(135deg,#2a1a5e,#a855f7)"], ["f5", "linear-gradient(135deg,#5a2a00,#f59e0b)"], ["f6", "linear-gradient(135deg,#4a0d0d,#ef4444)"], ["f7", "linear-gradient(135deg,#102a43,#38bdf8,#19e68c)"], ["f8", "linear-gradient(135deg,#0b0b12,#4b5563)"]];
+  const ORO = "linear-gradient(135deg,#3a2a00,#c98f0a 45%,#ffe58a 75%,#c98f0a)";
+  const fondoCss = (k, oro) => (oro && !k ? ORO : (FONDOS.find((x) => x[0] === k) || (oro ? ["", ORO] : FONDOS[0]))[1]);
+  const fmtN = (n) => Number(n || 0).toLocaleString("es-AR");
+  const ERR = { LINK: "No se permiten links ni redes en tu descripción 🚫", TELEFONO: "No pongas teléfonos 🚫", VENTA: "Esa descripción no está permitida 🚫", TEXTO_INVALIDO: "Hasta 140 letras.", NO_DISPONIBLE: "La insignia todavía no está disponible.", REQUISITO: "Todavía no cumplís los requisitos." };
+  const msgErr = (e, d) => { const m = String((e && e.message) || ""); const k = Object.keys(ERR).find((x) => m.includes(x)); return k ? ERR[k] : d; };
+  const yo = () => (usuarioActual ? usuarioActual.id : null);
+  const cerrar = () => { const m = E("pf-modal"); if (m) m.hidden = true; };
+  let vEstado = null;
+  async function cargarVerif() { try { const { data } = await supabase.rpc("verif_estado"); vEstado = data || null; } catch (_) { vEstado = null; } return vEstado; }
+  const cfgV = (k, d) => { const v = vEstado && vEstado.cfg ? vEstado.cfg[k] : null; return v == null || v === "" ? d : v; };
+
+  async function abrirPerfil(uid) {
+    if (!uid) return;
+    const m = E("pf-modal"), card = E("pf-card"); if (!m || !card) return;
+    m.hidden = false; card.innerHTML = ""; card.appendChild(el("p", "pf-carga", "Cargando perfil…"));
+    let p = null;
+    try { const { data, error } = await supabase.rpc("perfil_publico", { p_id: uid }); if (error) throw error; p = data; } catch (_) {}
+    if (!p) { card.innerHTML = ""; card.appendChild(botonX()); card.appendChild(el("p", "pf-carga", "No pude cargar este perfil. (¿Ejecutaste el SQL v43?)")); return; }
+    if (p.verificado || p.es_soporte) verifUsr.add(p.id);
+    perfPub[p.id] = Object.assign(perfPub[p.id] || {}, { id: p.id, nombre: p.nombre, foto: p.foto, num_id: p.num_id, verificado: p.verificado, es_soporte: p.es_soporte });
+    if (p.yo && !p.es_soporte) await cargarVerif();
+    pintarPerfil(p, false);
+  }
+  const botonX = () => { const b = el("button", "pf-x", "✕"); b.type = "button"; b.setAttribute("aria-label", "Cerrar"); b.onclick = cerrar; return b; };
+
+  function pintarPerfil(p, editando) {
+    const card = E("pf-card"); card.innerHTML = ""; card.className = "pf-card" + (p.es_soporte ? " pf-oro" : "");
+    const cov = el("div", "pf-cover"); cov.style.background = fondoCss(p.fondo, p.es_soporte); card.appendChild(cov); card.appendChild(botonX());
+    const av = el("div", "pf-av"); av.appendChild(miniAv(p.nombre, p.foto, "pf-av-i")); card.appendChild(av);
+    const cu = el("div", "pf-cuerpo"); card.appendChild(cu);
+    // nombre + sellos
+    const nom = el("div", "pf-nom"); nom.appendChild(el("h3", "", p.nombre));
+    if (p.es_soporte) nom.appendChild(el("span", "pf-sello-of", "✔ Oficial"));
+    else if (p.verificado) { const v = selloVerif(); v.classList.add("pf-vf"); nom.appendChild(v); }
+    cu.appendChild(nom);
+    const sub = el("div", "pf-sub"); if (p.es_soporte && p.titulo) sub.appendChild(el("b", "", p.titulo)); else if (p.es_soporte) sub.appendChild(el("b", "", "Soporte de Recargas Zarela"));
+    if (p.num_id) sub.appendChild(el("span", "", "#" + p.num_id));
+    try { if (p.desde) sub.appendChild(el("span", "", "Desde " + new Date(p.desde).toLocaleDateString("es-AR", { month: "short", year: "numeric" }))); } catch (_) {}
+    cu.appendChild(sub);
+    const ni = !p.es_soporte && typeof nivelDe === "function" ? nivelDe(Number(p.diamantes) || 0) : -1;
+    if (ni >= 0 && NIVELES[ni]) { const b = el("span", "niv-ins n" + ni, NIVELES[ni].ico + " " + NIVELES[ni].n); b.title = "Nivel " + NIVELES[ni].n; cu.appendChild(b); }
+    if (editando) return pintarEditor(p, cu);
+    // descripción
+    cu.appendChild(el("p", "pf-bio" + (p.bio ? "" : " vacio"), p.bio || (p.yo ? "Todavía no escribiste nada sobre vos. ¡Tocá «Editar perfil»!" : p.es_soporte ? "Estamos para ayudarte con tus recargas 💎" : "Sin descripción todavía.")));
+    // números
+    const st = el("div", "pf-stats");
+    const dato = (n, t) => { const d = el("div", "pf-dato"); d.appendChild(el("b", "", n)); d.appendChild(el("small", "", t)); st.appendChild(d); return d; };
+    dato(fmtN(p.recargas), p.es_soporte ? "Recargas hechas" : "Recargas"); dato(fmtN(p.diamantes) + " 💎", p.es_soporte ? "Entregados" : "Diamantes");
+    const dl = dato(fmtN(p.likes), "Me gusta ❤️"); if (!p.es_soporte) dato(fmtN(p.amigos), "Amigos");
+    cu.appendChild(st);
+    // acciones
+    const ac = el("div", "pf-acc"); cu.appendChild(ac);
+    if (p.yo) {
+      const e = el("button", "al-ok", "✏️ Editar perfil"); e.type = "button"; e.onclick = () => pintarPerfil(p, true); ac.appendChild(e);
+      if (!p.es_soporte) pintarVerif(cu, p);
+    } else {
+      const lk = el("button", "pf-like" + (p.mi_like ? " on" : ""), (p.mi_like ? "❤️" : "🤍") + " Me gusta"); lk.type = "button";
+      lk.onclick = async () => { if (!usuarioActual) { mostrarAviso("Ingresá con Google para dar Me gusta.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
+        try { const { data, error } = await supabase.rpc("perfil_like", { p_user: p.id }); if (error) throw error; p.mi_like = data.mi_like; p.likes = data.likes; lk.className = "pf-like" + (p.mi_like ? " on" : ""); lk.textContent = (p.mi_like ? "❤️" : "🤍") + " Me gusta"; dl.firstChild.textContent = fmtN(p.likes); } catch (_) { mostrarAviso("No se pudo ahora.", "error"); } };
+      ac.appendChild(lk);
+      if (p.es_soporte) { const w = el("button", "al-ok", "💬 Escribir a Soporte"); w.type = "button"; w.onclick = () => { cerrar(); window.abrirChatSoporte && window.abrirChatSoporte(); }; ac.appendChild(w); }
+      else {
+        const r = p.relacion;
+        if (r === "amigos") { const w = el("button", "al-ok", "💬 Escribir"); w.type = "button"; w.onclick = () => { cerrar(); window.abrirDMCon && window.abrirDMCon({ id: p.id, nombre: p.nombre, num_id: p.num_id, foto: p.foto }); }; ac.appendChild(w); }
+        else if (r === "enviada") { const w = el("button", "pf-sec", "Solicitud enviada ✔"); w.type = "button"; w.disabled = true; ac.appendChild(w); }
+        else { const w = el("button", "al-ok", r === "recibida" ? "✔ Aceptar amistad" : "＋ Agregar amigo"); w.type = "button";
+          w.onclick = async () => { if (!usuarioActual) { mostrarAviso("Ingresá con Google para agregar amigos.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
+            try { const { error } = await supabase.rpc(r === "recibida" ? "amigo_responder" : "amigo_pedir", r === "recibida" ? { p_user: p.id, p_ok: true } : { p_user: p.id }); if (error) throw error; mostrarAviso(r === "recibida" ? "¡Ahora son amigos! 🎉" : "Solicitud enviada 🤝", "exito"); abrirPerfil(p.id); } catch (e) { mostrarAviso("No se pudo ahora.", "error"); } };
+          ac.appendChild(w); }
+      }
+    }
+  }
+
+  function pintarVerif(cu, p) {
+    const caja = el("div", "pf-verif"); cu.appendChild(caja);
+    const v = vEstado; if (!v) return;
+    const on = String(cfgV("f_verif", "off")) === "on";
+    caja.appendChild(el("h5", "", "✔ Insignia de verificación"));
+    if (v.activo) { caja.appendChild(el("p", "", "¡Tu cuenta está verificada! 🎉" + (v.hasta ? " Vence el " + new Date(v.hasta).toLocaleDateString("es-AR") + "." : ""))); return; }
+    if (!on) { caja.appendChild(el("p", "pf-chico", "Muy pronto vas a poder pedir tu insignia ✔ para que todos vean que sos un cliente de confianza.")); return; }
+    const min = Number(cfgV("verif_min_recargas", 3)), pa = Number(cfgV("verif_precio_ars", 0)), pu = Number(cfgV("verif_precio_usd", 0)), dias = Number(cfgV("verif_dias", 0));
+    caja.appendChild(el("p", "", "La insignia ✔ aparece al lado de tu nombre en comentarios, chats y tu perfil: muestra que sos un cliente de confianza."));
+    const ul = el("ul", "pf-req");
+    ul.appendChild(el("li", "", (v.recargas >= min ? "✅ " : "⬜ ") + "Tener " + min + " recargas completadas (vos tenés " + v.recargas + ")"));
+    ul.appendChild(el("li", "", (pa > 0 || pu > 0) ? "💳 Precio: " + [pa > 0 ? "$" + fmtN(pa) + " ARS" : "", pu > 0 ? "US$ " + fmtN(pu) : ""].filter(Boolean).join(" o ") + (dias > 0 ? " por " + dias + " días" : " (una sola vez)") + " · se abona con Zarela por el chat de soporte" : "🎁 Es gratis: la revisa Zarela"));
+    caja.appendChild(ul);
+    if (v.pedido) { caja.appendChild(el("div", "pr-ok", "Pedido enviado ✅ Zarela te escribe por el chat de soporte.")); return; }
+    const b = el("button", "al-ok", "Pedir mi insignia ✔"); b.type = "button"; b.disabled = v.recargas < min;
+    b.onclick = async () => { b.disabled = true; try { const { error } = await supabase.rpc("verif_pedir"); if (error) throw error; mostrarAviso("¡Pedido enviado! Zarela te escribe por soporte ✔", "exito"); await cargarVerif(); pintarPerfil(p, false); } catch (e) { mostrarAviso(msgErr(e, "No se pudo enviar el pedido."), "error"); b.disabled = false; } };
+    caja.appendChild(b);
+  }
+
+  function pintarEditor(p, cu) {
+    const bio = el("textarea", "pf-ta"); bio.maxLength = 140; bio.rows = 3; bio.value = p.bio || ""; bio.placeholder = p.es_soporte ? "Escribí tu presentación…" : "Contá algo sobre vos (máx. 140 letras, sin links ni teléfonos)";
+    cu.appendChild(el("label", "pf-lab", "Descripción")); cu.appendChild(bio);
+    let tit = null; if (p.es_soporte) { cu.appendChild(el("label", "pf-lab", "Título (debajo de tu nombre)")); tit = el("input", "pf-in"); tit.maxLength = 40; tit.value = p.titulo || ""; tit.placeholder = "Ej: Dueña · Soporte de Recargas Zarela"; cu.appendChild(tit); }
+    cu.appendChild(el("label", "pf-lab", "Fondo de tu perfil"));
+    let sel = p.fondo || ""; const sw = el("div", "pf-sw");
+    const mk = (k, css) => { const b = el("button", "pf-fb" + (sel === k ? " on" : "")); b.type = "button"; b.style.background = css; b.onclick = () => { sel = k; sw.querySelectorAll(".pf-fb").forEach((x) => x.classList.remove("on")); b.classList.add("on"); const c = E("pf-card").querySelector(".pf-cover"); if (c) c.style.background = fondoCss(k, p.es_soporte); }; sw.appendChild(b); };
+    if (p.es_soporte) mk("", ORO); FONDOS.forEach(([k, css]) => mk(k, css)); cu.appendChild(sw);
+    cu.appendChild(el("p", "pf-chico", "Tu foto es la de tu cuenta de Google. Si la cambiás ahí, acá se actualiza sola."));
+    const ac = el("div", "pf-acc"); cu.appendChild(ac);
+    const g = el("button", "al-ok", "Guardar"); g.type = "button";
+    g.onclick = async () => { g.disabled = true; try { const { error } = await supabase.rpc("mi_perfil_guardar", { p_bio: bio.value, p_fondo: sel, p_titulo: tit ? tit.value : null }); if (error) throw error; mostrarAviso("Perfil guardado ✔", "exito"); abrirPerfil(p.id); } catch (e) { mostrarAviso(msgErr(e, "No se pudo guardar."), "error"); g.disabled = false; } };
+    const c = el("button", "pf-sec", "Cancelar"); c.type = "button"; c.onclick = () => pintarPerfil(p, false);
+    ac.appendChild(g); ac.appendChild(c);
+  }
+  window.abrirPerfil = abrirPerfil; window.abrirMiPerfil = () => { if (!usuarioActual) { mostrarAviso("Ingresá con Google para ver tu perfil.", "info"); try { window.loginConGoogle(); } catch (_) {} return; } abrirPerfil(usuarioActual.id); };
+
+  // ------------------- BIENVENIDA (una sola vez por cuenta) -------------------
+  function bienvenida() {
+    if (!usuarioActual) return;
+    const k = "zarela_bienv_" + usuarioActual.id;
+    try { if (localStorage.getItem(k)) return; } catch (_) {}
+    const m = E("bv-modal"); if (!m || !m.hidden) return;
+    if (document.body.classList.contains("tour-on") || document.body.classList.contains("modo-admin")) return;
+    m.hidden = false;
+    const fin = () => { m.hidden = true; try { localStorage.setItem(k, "1"); } catch (_) {} };
+    E("bv-ok").onclick = fin; E("bv-x").onclick = fin; m.onclick = (e) => { if (e.target === m) fin(); };
+  }
+
+  // ------------------- LINK / ID DE AMIGO -------------------
+  const miNum = () => (E("am-miid") ? E("am-miid").textContent.replace(/[^0-9]/g, "") : "");
+  const linkAmigo = () => location.origin + "/?amigo=" + miNum();
+  function pendienteAmigo() {
+    if (!usuarioActual) return;
+    let n = null; try { n = localStorage.getItem("zarela_amigo_pend"); } catch (_) {}
+    if (!n || !window.abrirAmigos) return;
+    try { localStorage.removeItem("zarela_amigo_pend"); } catch (_) {}
+    setTimeout(() => window.abrirAmigos("#" + n), 1200);
+  }
+  function leerParam() {
+    try { const u = new URL(location.href), n = (u.searchParams.get("amigo") || "").replace(/[^0-9]/g, ""); if (n) { localStorage.setItem("zarela_amigo_pend", n); u.searchParams.delete("amigo"); history.replaceState(null, "", u.pathname + (u.search || "") + u.hash); } } catch (_) {}
+  }
+  leerParam();
+
+  function iniciar() {
+    E("pf-modal")?.addEventListener("click", (e) => { if (e.target.id === "pf-modal") cerrar(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrar(); });
+    E("sb-miperfil")?.addEventListener("click", () => { try { if ($("sidebar-menu")?.classList.contains("open")) toggleMenu(); } catch (_) {} setTimeout(window.abrirMiPerfil, 200); });
+    E("am-copiar")?.addEventListener("click", async () => { try { await navigator.clipboard.writeText("#" + miNum()); mostrarAviso("ID copiado 📋", "exito"); } catch (_) { mostrarAviso("Tu ID es #" + miNum(), "info"); } });
+    E("am-compartir")?.addEventListener("click", async () => {
+      const txt = "Sumate a Recargas Zarela y agregame de amigo 💎 Mi ID es #" + miNum() + ". Entrá acá:"; const url = linkAmigo();
+      try { if (navigator.share) { await navigator.share({ title: "Recargas Zarela", text: txt, url }); return; } } catch (e) { if (e && e.name === "AbortError") return; }
+      try { await navigator.clipboard.writeText(txt + " " + url); mostrarAviso("Link copiado: pegalo donde quieras 📲", "exito"); } catch (_) { mostrarAviso(url, "info"); }
+    });
+    setTimeout(() => { bienvenida(); pendienteAmigo(); cargarPublicos([yo()], true); }, 2500);
+  }
+  supabase.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_IN") setTimeout(() => { bienvenida(); pendienteAmigo(); }, 3000); });
   document.addEventListener("DOMContentLoaded", iniciar);
 })();
