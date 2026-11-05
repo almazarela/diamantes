@@ -7621,7 +7621,7 @@ const NOV = (function novedades() {
   }
 
   // ------------------------------ PANEL ADMIN: NOVEDADES ------------------------------
-  const FLAGS = [["f_historias", "✨ Historias"], ["f_cupones", "🎟️ Cupones"], ["f_referidos", "🤝 Referidos"], ["f_puntos", "⭐ Puntos"]];
+  const FLAGS = [["f_historias", "✨ Historias"], ["f_cupones", "🎟️ Cupones"], ["f_referidos", "🤝 Referidos"], ["f_puntos", "⭐ Puntos"], ["x_ayuda", "❓ Centro de ayuda y Chats bloqueados"], ["x_ahorro", "⚡ Modo ahorro automático en celulares lentos"]];
   const AJUSTES = [["ref_amigo_pct", "Bono del amigo invitado (% de su 1ª recarga)"], ["ref_amigo_tope_ars", "…tope en pesos ($)"], ["ref_amigo_tope_usd", "…tope en dólares (US$)"], ["ref_puntos", "Puntos que gana quien invita"], ["pts_unidad_ars", "1 punto cada ($ pesos recargados)"], ["pts_unidad_usd", "1 punto cada (US$ recargados)"], ["pts_valor_ars", "Valor de 1 punto ($ pesos)"], ["pts_min", "Mínimo de puntos para canjear"]];
   const aLocal = (iso) => { if (!iso) return ""; const d = new Date(iso); if (isNaN(d)) return ""; const p = (n) => String(n).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "T" + p(d.getHours()) + ":" + p(d.getMinutes()); };
   async function rpcAdm(fn, args, ok) { try { const { error } = await supabase.rpc(fn, args); if (error) throw error; if (ok) mostrarAviso(ok, "exito"); return true; } catch (e) { mostrarAviso("No se pudo: " + ((e && e.message) || "revisá el SQL v40"), "error"); return false; } }
@@ -7700,7 +7700,7 @@ const NOV = (function novedades() {
     const c1 = caja("🎛️ Interruptores", "Activo = lo ven todos. Próximamente = los clientes ven la etiqueta (y se activa solo a la hora que pongas). Apagado = lo oculta. Vos siempre podés probarlo.");
     FLAGS.forEach(([k, n]) => {
       const f = el("div", "nv-fila"); f.appendChild(el("b", "", n));
-      const s = el("select"); [["on", "🟢 Activo"], ["pronto", "🕓 Próximamente"], ["off", "⚫ Apagado"]].forEach(([v, t]) => { const o = el("option", "", t); o.value = v; s.appendChild(o); }); s.value = cfg[k] || "pronto";
+      const s = el("select"); [["on", "🟢 Activo"], ["pronto", "🕓 Próximamente"], ["off", "⚫ Apagado"]].forEach(([v, t]) => { const o = el("option", "", t); o.value = v; s.appendChild(o); }); s.value = cfg[k] || (k.startsWith("x_") ? "on" : "pronto");
       const h = el("input"); h.type = "datetime-local"; h.value = aLocal(cfg[k + "_hora"]); h.title = "Se activa solo a esta hora (si está en Próximamente)";
       const b = el("button", "nv-btn", "Guardar"); b.type = "button";
       b.onclick = async () => { const ok1 = await rpcAdm("admin_nov_config", { p_clave: k, p_valor: s.value }); const ok2 = await rpcAdm("admin_nov_config", { p_clave: k + "_hora", p_valor: h.value ? new Date(h.value).toISOString() : "" }); if (ok1 && ok2) { mostrarAviso("Guardado ✔", "exito"); cargarCfg().then(pintarSlide); } };
@@ -8526,7 +8526,7 @@ const NOV = (function novedades() {
   const CAPAS = [
     [() => document.querySelector(".adm-zoom"), (n) => n.remove()],
     mod("#dm-zoom", (n) => n.click()), mod("#al-modal", clic("al-x")), mod("#pf-modal", () => document.querySelector("#pf-card .pf-x, #pf-card .pf-volver")?.click()),
-    mod("#am-modal", clic("am-x")), mod("#pr-modal", clic("pr-x")), mod("#hc-modal", clic("hc-x")), mod("#ha-modal", clic("ha-x")),
+    mod("#am-modal", clic("am-x")), mod("#ay-modal", clic("ay-x")), mod("#bq-modal", clic("bq-x")), mod("#pr-modal", clic("pr-x")), mod("#hc-modal", clic("hc-x")), mod("#ha-modal", clic("ha-x")),
     mod("#hs-visor", clic("hs-x")), mod("#hs-panel", clic("hsp-x")), mod("#bv-modal", clic("bv-x")), mod("#nv-ayuda", (n) => { n.hidden = true; }),
     mod("#modal-compra", () => cerrarCompra()), mod("#modal-seleccion-carga", () => mostrarModal("modal-seleccion-carga", false)), mod("#modal-binance", () => mostrarModal("modal-binance", false)),
     mod("#modal-mercadopago", () => mostrarModal("modal-mercadopago", false)), mod("#modal-convertir", () => mostrarModal("modal-convertir", false)),
@@ -8602,4 +8602,56 @@ const NOV = (function novedades() {
     if (!matchMedia("(max-width: 800px)").matches) return;
     const y = window.scrollY; [0, 120, 320].forEach((t) => setTimeout(() => { if (Math.abs(window.scrollY - y) > 2) window.scrollTo(0, y); }, t));
   });
+})();
+
+
+// ===== Extras v67: sin conexión, modo ahorro, centro de ayuda, chats bloqueados =====
+(function extrasZarela() {
+  const E = (i) => document.getElementById(i);
+  let cx = {}; const on = (k) => (cx[k] || "on") !== "off";
+  // --- sin conexión
+  const off = E("z-offline"); let tOff = 0;
+  const avisoRed = (ok) => { if (!off) return; clearTimeout(tOff); off.hidden = false; off.className = "z-offline " + (ok ? "ok" : "mal"); off.textContent = ok ? "✅ Conexión recuperada" : "📡 Sin conexión. Revisá tu internet: tus datos no se pierden."; if (ok) tOff = setTimeout(() => { off.hidden = true; }, 2200); };
+  addEventListener("offline", () => avisoRed(false)); addEventListener("online", () => avisoRed(true)); if (!navigator.onLine) avisoRed(false);
+  // --- modo ahorro
+  const LS = "zarela_ahorro";
+  const lento = () => { try { const c = navigator.connection || {}; return matchMedia("(max-width: 800px)").matches && ((navigator.deviceMemory && navigator.deviceMemory <= 4) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || c.saveData === true || matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (_) { return false; } };
+  const modo = () => { let v = null; try { v = localStorage.getItem(LS); } catch (_) {} return v === "1" ? true : v === "0" ? false : (on("x_ahorro") && lento()); };
+  function aplicarAhorro() { const a = modo(); document.body.classList.toggle("ahorro", a); const b = E("sb-ahorro"); if (b) { b.setAttribute("aria-pressed", String(a)); const sm = b.querySelector("small"); if (sm) { sm.textContent = a ? "Activado: página más liviana." : "Apagado. Activalo si tu celu va lento."; sm.className = a ? "sb-okv" : ""; } } }
+  E("sb-ahorro")?.addEventListener("click", () => { const nuevo = !document.body.classList.contains("ahorro"); try { localStorage.setItem(LS, nuevo ? "1" : "0"); } catch (_) {} aplicarAhorro(); mostrarAviso(nuevo ? "Modo ahorro activado ⚡" : "Modo ahorro apagado", "exito"); });
+  // --- centro de ayuda
+  const FAQ = [
+    ["💎 ¿Cómo cargo saldo?", "Arriba a la derecha tocá «Cargar saldo» y elegí Mercado Pago (pesos) o Binance (dólares). Cuando se acredita, ya podés comprar diamantes."],
+    ["⏱️ ¿Cuánto tarda mi recarga?", "Casi siempre unos minutos. Si arriba dice «Recargas demoradas», puede tardar más: tu pago queda registrado y no se pierde. Seguilo en «Mis compras»."],
+    ["🆔 Me dice que mi ID no existe", "Revisá que sea el ID numérico de tu perfil de Free Fire (solo números, sin espacios). Si seguís con el problema, escribile a Soporte."],
+    ["🔁 Pagué y no me llegó", "Entrá a «Mis compras» para ver en qué paso va. Si pasó mucho tiempo, escribile a Soporte con tu comprobante."],
+    ["🔒 Seguridad", "Zarela NUNCA te pide contraseñas ni códigos de verificación de tu cuenta de juego. Si alguien te los pide, no se los des."],
+    ["💬 Reglas de chats e historias", "Respeto ante todo. No se permiten links, teléfonos, ventas ni insultos. Los mensajes dudosos se revisan. Podés bloquear o reportar a quien te moleste."],
+    ["📝 Notas y perfil", "Tu nota dura 24 horas y se ve en tu perfil y en Historias. El título bajo tu nombre lo elegís vos (no se pueden usar nombres oficiales)."],
+    ["🛡️ Tus datos", "Usamos tu email y nombre de Google, y tus compras, solo para darte el servicio. Es un resumen simple, no reemplaza los términos legales."]
+  ];
+  function abrirAyuda() {
+    const c = E("ay-cuerpo"); c.innerHTML = "";
+    FAQ.forEach(([q, a]) => { const d = document.createElement("details"); d.className = "ay-it"; const sm = document.createElement("summary"); sm.textContent = q; const p = document.createElement("p"); p.textContent = a; d.append(sm, p); c.appendChild(d); });
+    const b = document.createElement("button"); b.type = "button"; b.className = "al-ok"; b.textContent = "💬 Hablar con Soporte"; b.onclick = () => { E("ay-modal").hidden = true; try { window.abrirChatSoporte && window.abrirChatSoporte(); } catch (_) {} }; c.appendChild(b);
+    E("ay-modal").hidden = false;
+  }
+  E("sb-ayuda")?.addEventListener("click", () => { try { if (document.getElementById("sidebar-menu")?.classList.contains("open")) toggleMenu(); } catch (_) {} setTimeout(abrirAyuda, 200); });
+  E("ay-x")?.addEventListener("click", () => { E("ay-modal").hidden = true; });
+  // --- chats bloqueados
+  async function abrirBloq() {
+    if (!usuarioActual) { mostrarAviso("Ingresá con Google para ver tus bloqueados.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
+    const c = E("bq-cuerpo"); c.textContent = "Cargando…"; E("bq-modal").hidden = false;
+    try { const { data, error } = await supabase.rpc("dm_conversaciones"); if (error) throw error; const l = (data || []).filter((x) => x.bloqueado); c.innerHTML = "";
+      if (!l.length) { const p = document.createElement("p"); p.className = "adm-ayuda"; p.textContent = "No bloqueaste a nadie. 🎉"; c.appendChild(p); return; }
+      l.forEach((x) => { const f = document.createElement("div"); f.className = "bq-fila"; const n = document.createElement("b"); n.textContent = x.nombre + " · #" + x.num_id; const d = document.createElement("button"); d.type = "button"; d.className = "dm-desb"; d.textContent = "Desbloquear";
+        d.onclick = async () => { d.disabled = true; try { const r = await supabase.rpc("dm_bloquear", { p_user: x.id, p_si: false }); if (r.error) throw r.error; f.remove(); mostrarAviso("Desbloqueaste a " + x.nombre + " ✅", "exito"); } catch (_) { d.disabled = false; mostrarAviso("No se pudo ahora.", "error"); } };
+        f.append(n, d); c.appendChild(f); }); } catch (_) { c.textContent = "No se pudo cargar. Probá de nuevo."; }
+  }
+  E("sb-bloq")?.addEventListener("click", () => { try { if (document.getElementById("sidebar-menu")?.classList.contains("open")) toggleMenu(); } catch (_) {} setTimeout(abrirBloq, 200); });
+  E("bq-x")?.addEventListener("click", () => { E("bq-modal").hidden = true; });
+  // --- configuración del admin (interruptores)
+  async function leer() { try { const { data } = await supabase.from("novedades_config").select("clave,valor"); cx = {}; (data || []).forEach((r) => { if (String(r.clave).startsWith("x_")) cx[r.clave] = r.valor; }); } catch (_) {}
+    ["sb-ayuda", "sb-bloq"].forEach((i) => { const b = E(i); if (b) b.hidden = !on("x_ayuda"); }); aplicarAhorro(); }
+  aplicarAhorro(); leer(); setInterval(() => { if (!document.hidden) leer(); }, 120000);
 })();
