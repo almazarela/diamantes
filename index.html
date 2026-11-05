@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
   <title>Alma Zarela - Centro de Recargas Free Fire</title>
   <meta name="description" content="Alma Zarela, centro de recargas de diamantes de Free Fire. Cargá saldo con Mercado Pago o Binance y recibí tus diamantes por ID de jugador.">
   <link rel="canonical" href="https://almazarela.com/">
@@ -1095,7 +1095,6 @@
   <div class="chat-chips" aria-label="Preguntas rápidas">
   <button type="button" onclick="document.getElementById('chat-file-input').click()">🧾 Comprobante</button>
   <button type="button" onclick="chatGuia()">💎 Quiero recargar</button>
-  <button type="button" onclick="chatRapido('Tengo un problema con mi pedido')">⚠️ Problema</button>
   </div>
   <div class="chat-input-area">
    <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="enviarMensajeWebhook()">
@@ -1155,7 +1154,7 @@
 
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="adm-top">
-  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 63</small></span>
+  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 64</small></span>
   <label class="adm-soporte" title="Lo que ven tus clientes arriba del chat"><span>Estado ante clientes:</span>
   <select id="adm-soporte" aria-label="Estado que ven los clientes"><option value="en_linea">🟢 En línea (si estoy en la página)</option><option value="desconectada">⚪ Desconectada</option><option value="oculto">🙈 No mostrar nada</option></select></label>
   <button type="button" class="adm-salir" onclick="salirModoAdmin()" aria-label="Volver al modo normal"><i class="fa-solid fa-arrow-left"></i> <span>Volver al modo normal</span></button>
@@ -1459,9 +1458,9 @@ function irAlChat(){
 <!-- CHAT MUNDIAL -->
 <button type="button" id="cm-fab" class="cm-fab" aria-label="Abrir chat mundial"><i class="fa-solid fa-earth-americas"></i><span>Chat mundial</span><i id="cm-dot" class="chat-dot" hidden></i></button>
 <div id="cm-panel" class="cm-panel" role="dialog" aria-label="Chat mundial">
-  <div class="cm-top"><button type="button" id="cm-x" class="cm-back" aria-label="Volver">‹</button><b>🌎 Chat mundial</b><span class="hs-sp"></span><button type="button" class="cm-fondo" onclick="abrirSelectorFondo()" aria-label="Fondo del chat" title="Fondo del chat">🖼</button><button type="button" class="cm-amg" id="cm-amg">＋ Amigos</button><button type="button" id="cm-mas" class="cm-cerrar" hidden aria-label="Más opciones">⋮</button></div>
+  <div class="cm-top"><button type="button" id="cm-x" class="cm-back" aria-label="Volver">‹</button><b>🌎 Chat mundial</b><span class="hs-sp"></span><button type="button" class="cm-fondo" onclick="abrirSelectorFondo()" aria-label="Fondo del chat" title="Fondo del chat">🖼</button><button type="button" id="cm-mas" class="cm-cerrar" hidden aria-label="Más opciones">⋮</button><button type="button" id="cm-xx" class="cm-cerrar" aria-label="Cerrar">✕</button></div>
   
-    <div id="cm-fijado" class="cm-fijado" hidden>📌 <b></b><span></span></div>
+    <div id="cm-fijado" class="cm-fijado" hidden><span></span><b></b><em>📌</em></div>
   <div id="cm-lista" class="cm-lista"></div>
   <div id="cm-aviso" class="cm-av"></div>
   <div id="cm-form" class="cm-form" hidden><input id="cm-in" maxlength="200" placeholder="Escribí un mensaje (sin links)…" autocomplete="off"><button type="button" id="cm-env">Enviar</button></div>

@@ -371,6 +371,7 @@ async function verificarJugador() {
 
   btn.disabled = true;
   estadoVerificacion("Verificando ID…", "loading");
+  try { const ri = await conTimeout(Promise.resolve(supabase.rpc("id_es_invalido", { p_id: id })), 3500); if (mi === verifSeq && ri && ri.data === true) { estadoVerificacion("Ese ID no existe en Free Fire ❌ Revisá que esté bien escrito.", "error"); btn.disabled = false; input?.focus(); return; } } catch (_) {}
 
   // Nombre confirmado por Zarela (registro propio): sale en una fracción de segundo, sin esperar a los servicios externos
   let confirmado = "";
@@ -3296,6 +3297,13 @@ function posicionarMenu(menu, burbuja) {
   colocar(vh - mh - M, alineado());
 }
 
+async function compartirPerfilNum(num, nombre) {
+  const url = location.origin + "/?perfil=" + num;
+  try { if (navigator.share) { await navigator.share({ title: (nombre || "Perfil") + " · Zarela", text: "Mirá el perfil de " + (nombre || "este jugador") + " en Zarela 💎", url }); return; } } catch (e) { if (e && e.name === "AbortError") return; }
+  try { await navigator.clipboard.writeText(url); mostrarAviso("Link del perfil copiado 🔗", "exito"); } catch (_) { try { window.prompt("Copiá este link:", url); } catch (__) {} }
+}
+window.compartirPerfilNum = compartirPerfilNum;
+
 // ===== Mantener presionado (estilo WhatsApp) =====
 function mantenerPresionado(nodo, cb) {
   let t = null, x0 = 0, y0 = 0;
@@ -3754,6 +3762,7 @@ async function comprarPaquete(ev, paqueteId, moneda = "USD") {
     $("player-id")?.focus();
     return;
   }
+  try { const ri = await conTimeout(Promise.resolve(supabase.rpc("id_es_invalido", { p_id: id })), 3500); if (ri && ri.data === true) { mostrarAviso("Ese ID no existe en Free Fire ❌ Revisá que esté bien escrito.", "error"); $("player-id")?.scrollIntoView({ behavior: "smooth", block: "center" }); $("player-id")?.focus(); return; } } catch (_) {}
 
   const caja = btn ? btn.closest(".diamond-box") : null;
   const nombre = caja?.querySelector("h4")?.textContent.trim() || paqueteId;
@@ -7082,7 +7091,7 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
     TELEFONO: "No se permiten teléfonos en el chat 🚫", PROMO: "No se puede hacer publicidad ni ofrecer recargas acá 🚫", VENTA: "No se permite vender ni ofrecer cosas en el chat 🚫",
     SILENCIADO: "Estás silenciado por un rato 🤫", TEXTO_INVALIDO: "Escribí un mensaje de hasta 200 letras.", NO_AUTENTICADO: "Ingresá con Google para escribir.",
   };
-  let sala = "general", abierto = false, msgs = [], fijados = {}, puede = null, canal = null, timer = 0, ultimoId = 0, sinLeer = 0, enviando = false;
+  let sala = "general", abierto = false, msgs = [], reacc = {}, fijados = {}, puede = null, canal = null, timer = 0, ultimoId = 0, sinLeer = 0, enviando = false;
   const E = (id) => document.getElementById(id);
   const esAdm = () => { try { return esAdminActual(); } catch (_) { return false; } };
 
@@ -7097,12 +7106,19 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
       const ids = [...new Set(msgs.map((m) => m.user_id).filter(Boolean))].filter((u) => !(u in nivelesUsr)).slice(0, 200);
       if (ids.length) { try { const { data: n } = await conTimeout(supabase.rpc("niveles_de_usuarios", { p_ids: ids }), 6000); (n || []).forEach((r) => { nivelesUsr[r.user_id] = Number(r.diamantes) || 0; }); } catch (_) {} }
       try { await cargarPublicos(msgs.map((m) => m.user_id)); } catch (_) {}
+      try { const { data: rx } = await conTimeout(supabase.from("chat_global_reacc").select("msg_id,user_id,emoji").in("msg_id", msgs.map((m) => m.id)), 6000); reacc = {}; (rx || []).forEach((r) => { (reacc[r.msg_id] = reacc[r.msg_id] || []).push(r); }); } catch (_) {}
       try { const { data: f } = await supabase.from("chat_fijado").select("*"); fijados = {}; (f || []).forEach((r) => { fijados[r.sala] = r.texto; }); } catch (_) {}
       const nuevo = msgs.length ? msgs[msgs.length - 1].id : 0;
       if (!abierto && ultimoId && nuevo > ultimoId) { sinLeer += msgs.filter((m) => m.id > ultimoId).length; pintarPunto(); }
       ultimoId = nuevo;
       if (abierto) pintar();
     } catch (_) { if (abierto) { const l = E("cm-lista"); if (l && !msgs.length) l.innerHTML = '<p class="cm-vacio">El chat se activa en un momento… 💎</p>'; } }
+  }
+  const EMO_MUNDIAL = ["❤️", "🔥", "😂", "😮", "👏", "👍"];
+  async function reaccionar(id, emo) {
+    if (!usuarioActual) { mostrarAviso("Ingresá con Google para reaccionar.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
+    try { const { error } = await supabase.rpc("cm_reaccionar", { p_id: id, p_emoji: emo }); if (error) throw error; cargar(); }
+    catch (_) { mostrarAviso("No se pudo reaccionar ahora.", "error"); }
   }
   function pintarPunto() { const d = E("cm-dot"); if (d) { d.textContent = sinLeer > 9 ? "9+" : sinLeer; d.hidden = !sinLeer || abierto; } }
   function hora(t) { try { return new Date(t).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }); } catch (_) { return ""; } }
@@ -7131,6 +7147,8 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
         const t = document.createElement("div"); t.className = "cm-txt"; t.textContent = m.texto;
         const h = document.createElement("small"); h.className = "cm-hora"; h.textContent = hora(m.created_at); t.appendChild(h);
         d.appendChild(t);
+        { const rs = reacc[m.id]; if (rs && rs.length) { const fila = document.createElement("div"); fila.className = "cm-rx"; const por = {}; rs.forEach((r) => { const o = por[r.emoji] || (por[r.emoji] = { n: 0, yo: false }); o.n++; if (usuarioActual && r.user_id === usuarioActual.id) o.yo = true; });
+          Object.keys(por).forEach((e) => { const b = document.createElement("button"); b.type = "button"; b.className = "cm-rxb" + (por[e].yo ? " yo" : ""); b.textContent = e + " " + por[e].n; b.onclick = (ev) => { ev.stopPropagation(); reaccionar(m.id, e); }; fila.appendChild(b); }); d.appendChild(fila); } }
         if (m.oculto) { const o = document.createElement("em"); o.textContent = esAdm() ? "Oculto (" + (m.motivo || "") + ") — solo lo ves vos" : "Solo lo ves vos: lo revisamos"; d.appendChild(o); }
         mantenerPresionado(d, (x, y) => {
           const ops = [["📋", "Copiar", () => { try { navigator.clipboard.writeText(m.texto); mostrarAviso("Copiado", "exito"); } catch (_) {} }]];
@@ -7143,13 +7161,13 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
             ops.push(["↩️", "Responder", () => { const i = E("cm-in"); if (i) { i.value = "@" + ((pp && pp.nombre) || m.nombre) + " " + i.value; i.focus(); } }]);
             if (usuarioActual && !mio && m.tipo === "user") ops.push(["🚩", "Reportar", () => reportar(m.id, document.createElement("button")), true]);
           }
-          menuHold(x, y, ops);
+          menuHold(x, y, ops, EMO_MUNDIAL.map((e) => ({ e, fn: () => reaccionar(m.id, e) })));
         });
       }
       l.appendChild(d);
     });
     const fj = fijados[sala], pf = E("cm-fijado");
-    if (pf) { pf.hidden = !fj; if (fj) { pf.querySelector("span").textContent = fj; pf.querySelector("b").textContent = "Alma Zarela ✔ Oficial"; } }
+    if (pf) { pf.hidden = !fj; if (fj) { pf.querySelector("span").textContent = fj; pf.querySelector("b").textContent = "Alma Zarela ✔"; } }
     if (abajo || l.dataset.nuevo !== "1") { l.scrollTop = l.scrollHeight; l.dataset.nuevo = "1"; }
   }
   async function admAcc(fn, args, ok) {
@@ -7219,6 +7237,7 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
     marcarTabs("soporte");
     E("sb-mundo")?.addEventListener("click", () => { try { if ($("sidebar-menu")?.classList.contains("open")) toggleMenu(); } catch (_) {} setTimeout(() => window.abrirHub && window.abrirHub(), 200); });
     E("cm-x")?.addEventListener("click", () => window.abrirHub && window.abrirHub());
+    E("cm-xx")?.addEventListener("click", () => (window.cerrarTodoChats ? window.cerrarTodoChats() : cerrar()));
     E("cm-amg")?.addEventListener("click", () => window.abrirAmigos && window.abrirAmigos(""));
     E("cm-env")?.addEventListener("click", enviar);
     E("cm-in")?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); enviar(); } });
@@ -7518,7 +7537,7 @@ const NOV = (function novedades() {
     try {
       const { data, error } = await supabase.rpc("amigo_buscar", { p_q: q }); if (error) throw error;
       if (!data.length) r.appendChild(el("p", "adm-ayuda", "No encontré a nadie con ese nombre o ID."));
-      data.forEach((a) => { const txt = { ninguna: "Agregar", enviada: "Enviada ✔", amigos: "Ya son amigos", recibida: "Aceptar" }[a.relacion]; r.appendChild(fila(a, [[txt, async () => { if (a.relacion === "ninguna" || a.relacion === "recibida") { try { await supabase.rpc("amigo_pedir", { p_user: a.id }); mostrarAviso(a.relacion === "ninguna" ? "Solicitud enviada 🤝" : "¡Ahora son amigos!", "exito"); buscarAmigos(); pintarAmigos(); } catch (_) { mostrarAviso("No se pudo", "error"); } } }]])); });
+      data.forEach((a) => { const txt = { ninguna: "Agregar", enviada: "Enviada ✔", amigos: "Ya son amigos", recibida: "Aceptar", seguir: "Seguir", siguiendo: "Siguiendo ✓" }[a.relacion]; r.appendChild(fila(a, [[txt, async () => { if (a.relacion === "seguir" || a.relacion === "siguiendo") { try { await supabase.rpc("seguir_alternar", { p_user: a.id }); buscarAmigos(); } catch (_) { mostrarAviso("No se pudo", "error"); } return; } if (a.relacion === "ninguna" || a.relacion === "recibida") { try { await supabase.rpc("amigo_pedir", { p_user: a.id }); mostrarAviso(a.relacion === "ninguna" ? "Solicitud enviada 🤝" : "¡Ahora son amigos!", "exito"); buscarAmigos(); pintarAmigos(); } catch (_) { mostrarAviso("No se pudo", "error"); } } }]])); });
     } catch (_) { r.appendChild(el("p", "adm-ayuda", "No se pudo buscar (¿SQL v41?).")); }
   }
   window.abrirAmigos = abrirAmigos;
@@ -7964,6 +7983,7 @@ const NOV = (function novedades() {
     if (document.body.classList.contains("chat-mini")) forzadoMini = true;
     if (esPC()) { cancelAnimationFrame(rafP); rafP = requestAnimationFrame(() => pos(PANELES[k])); }
   }
+  window.cerrarTodoChats = () => todoCerrado();
   function todoCerrado() { document.body.classList.remove("soporte-abierto"); cerrarPaneles(null); try { window.cerrarChatMundo && window.cerrarChatMundo(); } catch (_) {} activo = null; }
 
   // ------------------------- HUB -------------------------
@@ -7976,10 +7996,25 @@ const NOV = (function novedades() {
     const a = el("span", "hub-av " + (c || "")); const ini = () => { a.textContent = (nombre || "?").trim().charAt(0).toUpperCase(); };
     if (foto && /^https:\/\//.test(foto)) { const im = el("img"); im.alt = ""; im.referrerPolicy = "no-referrer"; im.onerror = () => { im.remove(); ini(); }; im.src = foto; a.appendChild(im); } else ini(); return a;
   }
-  function fila(av, tit, sub, meta, n, fijado, fn) {
-    const b = el("button", "hub-fila" + (fijado ? " fij" : "")); b.type = "button"; b.appendChild(av);
+  const PREF = "zarela_chat_pref";
+  const prefLeer = () => { try { const o = JSON.parse(localStorage.getItem(PREF) || "{}") || {}; return { pin: o.pin || [], mute: o.mute || [], nl: o.nl || [] }; } catch (_) { return { pin: [], mute: [], nl: [] }; } };
+  const prefGuardar = (o) => { try { localStorage.setItem(PREF, JSON.stringify(o)); } catch (_) {} };
+  function fila(av, tit, sub, meta, n, fijado, fn, clave, compartir) {
+    const pr = prefLeer(), esPin = !!clave && pr.pin.includes(clave), esMute = !!clave && pr.mute.includes(clave), esNL = !!clave && pr.nl.includes(clave);
+    if (esMute) n = 0; else if (!n && esNL) n = 1;
+    const b = el("button", "hub-fila" + (fijado ? " fij" : "")); b.type = "button"; b.appendChild(av); if (clave) { b.dataset.k = clave; if (esPin) b.dataset.pin = String(pr.pin.indexOf(clave)); }
     const t = el("div", "hub-t"); const h = el("div", "hub-h"); { const bb = el("b", "", tit.replace(" ✔ Oficial", "")); if (/ ✔ Oficial$/.test(tit)) { bb.appendChild(el("span", "vf-of", "✔")); bb.appendChild(el("span", "of-tag", "Oficial")); } h.appendChild(bb); }  t.appendChild(h); t.appendChild(el("small", "", sub)); b.appendChild(t);
-    const m = el("div", "hub-m"); if (meta) m.appendChild(el("small", "", meta)); if (n) m.appendChild(el("em", "hub-n", n > 99 ? "99+" : String(n))); b.appendChild(m); b.onclick = fn; if (n) b.classList.add("nl"); if (soloNL && !n) b.hidden = true; return b;
+    const m = el("div", "hub-m"); if (meta) m.appendChild(el("small", "", meta)); if (esPin || esMute) m.appendChild(el("small", "hub-ic", (esPin ? "📌" : "") + (esMute ? "🔇" : ""))); if (n) m.appendChild(el("em", "hub-n", n > 99 ? "99+" : String(n))); b.appendChild(m);
+    let lp = false; b.onclick = () => { if (lp) { lp = false; return; } fn(); };
+    if (clave) { mantenerPresionado(b, (x, y) => { lp = true; setTimeout(() => { lp = false; }, 900);
+      const o = prefLeer(), tog = (k, v) => { const i = o[k].indexOf(v); if (i >= 0) o[k].splice(i, 1); else o[k].push(v); };
+      const ops = [
+        [esMute ? "🔔" : "🔇", esMute ? "Quitar silencio" : "Silenciar", () => { tog("mute", clave); prefGuardar(o); pintarHub(); }],
+        [(esNL || n) ? "✔️" : "🔵", (esNL || n) ? "Marcar como leído" : "Marcar como no leído", () => { if (esNL) tog("nl", clave); else if (!n) tog("nl", clave); prefGuardar(o); pintarHub(); }],
+        [esPin ? "📌" : "📍", esPin ? "Desfijar chat" : "Fijar chat (hasta 3)", () => { if (!esPin && o.pin.length >= 3) { mostrarAviso("Solo podés fijar hasta 3 chats. Desfijá uno primero.", "info"); return; } tog("pin", clave); prefGuardar(o); pintarHub(); }],
+        compartir ? ["🔗", "Compartir perfil", () => compartir()] : null];
+      menuHold(x, y, ops); }); }
+    if (n) b.classList.add("nl"); if (soloNL && !n) b.hidden = true; return b;
   }
   let soloNL = false;
   async function pintarHub() {
@@ -7989,15 +8024,16 @@ const NOV = (function novedades() {
     if (soloNL) { const av = el("button", "hub-aviso", "🔵 Mostrando solo no leídos · tocá para ver todos"); av.type = "button"; av.onclick = () => { soloNL = false; pintarHub(); }; l.appendChild(av); }
     const mundo = el("span", "hub-av hub-mundo", "🌎");
     let ult = "Chateá con todos los clientes"; try { const ms = document.querySelectorAll("#cm-lista .cm-msg .cm-txt"); if (ms.length) ult = ms[ms.length - 1].textContent; } catch (_) {}
-    l.appendChild(fila(mundo, "Mundial", ult.slice(0, 48), "", (window.cmSinLeer && window.cmSinLeer()) || 0, true, () => { cerrarPaneles(null); window.abrirChatMundo(); }));
+    l.appendChild(fila(mundo, "Mundial", ult.slice(0, 48), "", (window.cmSinLeer && window.cmSinLeer()) || 0, true, () => { cerrarPaneles(null); window.abrirChatMundo(); }, "m"));
     let sop = "Dudas, comprobantes y ayuda"; try { const ms = document.querySelectorAll("#chat-messages-container .chat-message"); if (ms.length) sop = ms[ms.length - 1].textContent.trim().replace(/\s+/g, " "); } catch (_) {}
     let nsop = 0; try { nsop = parseInt((document.querySelector("#chat-fab .chat-dot:not(#hub-dot)") || {}).textContent, 10) || 0; } catch (_) {}
     const fSop = perfilSoporte && perfilSoporte.avatar_url;
-    l.appendChild(fila(fSop ? avatar("Alma Zarela", fSop, "hub-sop") : el("span", "hub-av hub-sop", "💎"), "Alma Zarela ✔ Oficial", sop.slice(0, 48), "", nsop, true, () => { cerrarPaneles(null); activo = null; document.body.classList.add("soporte-abierto"); try { if (!esPC()) alternarChat(true); } catch (_) {} }));
+    l.appendChild(fila(fSop ? avatar("Alma Zarela", fSop, "hub-sop") : el("span", "hub-av hub-sop", "💎"), "Alma Zarela ✔ Oficial", sop.slice(0, 48), "", nsop, true, () => { cerrarPaneles(null); activo = null; document.body.classList.add("soporte-abierto"); try { if (!esPC()) alternarChat(true); } catch (_) {} }, "s", () => compartirPerfilNum(1, "Alma Zarela")));
     l.appendChild(el("div", "hub-sep"));
     if (!usuarioActual) l.appendChild(el("p", "hub-vacio", "Ingresá con Google para agregar amigos y escribirles."));
     else if (!convs.length) l.appendChild(el("p", "hub-vacio", "Todavía no tenés amigos. Tocá «＋ Agregar amigos» para buscarlos por nombre o por ID."));
-    convs.forEach((c) => l.appendChild(fila(avatar(c.nombre, c.foto), c.nombre, c.ult_texto ? (c.ult_mio ? "Vos: " : "") + (c.ult_tipo === "id" ? "🎮 ID de Free Fire" : c.ult_tipo === "foto" ? "📷 Foto" : c.ult_texto).slice(0, 44) : "Escribile para jugar juntos 🎮", c.ult_at ? hora(c.ult_at) : "", Number(c.no_leidos) || 0, false, () => abrirDM(c))));
+    convs.forEach((c) => l.appendChild(fila(avatar(c.nombre, c.foto), c.nombre, c.ult_texto ? (c.ult_mio ? "Vos: " : "") + (c.ult_tipo === "id" ? "🎮 ID de Free Fire" : c.ult_tipo === "foto" ? "📷 Foto" : c.ult_texto).slice(0, 44) : "Escribile para jugar juntos 🎮", c.ult_at ? hora(c.ult_at) : "", Number(c.no_leidos) || 0, false, () => abrirDM(c), "u:" + c.id, () => compartirPerfilNum(c.num_id, c.nombre))));
+    { const filas = [...l.querySelectorAll(".hub-fila[data-pin]")].sort((a, b) => Number(b.dataset.pin) - Number(a.dataset.pin)); filas.forEach((f) => l.insertBefore(f, l.querySelector(".hub-fila"))); }
     pintarPunto();
   }
   async function pintarPunto() {
@@ -8147,14 +8183,15 @@ const NOV = (function novedades() {
     if (p.portada && !editando) { cov.classList.add("pf-zoom"); cov.title = "Tocá para ver la foto"; cov.onclick = () => visor([{ url: urlPortada(p.portada) }], 0); }
     const vol = el("button", "pf-volver", "‹ Volver"); vol.type = "button"; vol.onclick = cerrar; card.appendChild(vol); card.appendChild(botonX());
     const av = el("div", "pf-av"); av.appendChild(miniAv(p.nombre, p.foto, "pf-av-i")); card.appendChild(av);
-    if (p.foto && !editando) { av.classList.add("pf-zoom"); av.title = "Tocá para ver la foto"; av.onclick = () => visor([{ url: p.foto }], 0); }
+    if (p.foto && !editando) { av.classList.add("pf-zoom"); av.title = "Tocá para ver la foto"; av.onclick = () => visor([{ url: String(p.foto).replace(/=s\d+(-c)?(?=$|[?&])/, "=s640-c"), av: true }], 0); }
+    if (p.nota) av.appendChild(el("div", "pf-nota", p.nota));
     const cu = el("div", "pf-cuerpo"); card.appendChild(cu);
     // nombre + sellos
     const nom = el("div", "pf-nom"); nom.appendChild(el("h3", "", p.nombre));
     if (p.es_soporte) nom.appendChild(el("span", "pf-sello-of", "✔ Oficial"));
     else if (p.verificado) { const v = selloVerif(); v.classList.add("pf-vf"); nom.appendChild(v); }
     cu.appendChild(nom);
-    const sub = el("div", "pf-sub"); if (p.es_soporte && p.titulo) sub.appendChild(el("b", "", p.titulo)); else if (p.es_soporte) sub.appendChild(el("b", "", "Soporte de Recargas Zarela"));
+    const sub = el("div", "pf-sub"); if (p.titulo) sub.appendChild(el("b", "", p.titulo)); else if (p.es_soporte) sub.appendChild(el("b", "", "Soporte de Recargas Zarela"));
     if (p.num_id) sub.appendChild(el("span", "pf-num", "#" + p.num_id));
     try { if (p.desde) sub.appendChild(el("span", "", "Desde " + new Date(p.desde).toLocaleDateString("es-AR", { month: "short", year: "numeric" }))); } catch (_) {}
     cu.appendChild(sub);
@@ -8167,7 +8204,7 @@ const NOV = (function novedades() {
     const st = el("div", "pf-stats");
     const dato = (n, t) => { const d = el("div", "pf-dato"); d.appendChild(el("b", "", n)); d.appendChild(el("small", "", t)); st.appendChild(d); return d; };
     dato(fmtN(p.recargas), "Recargas"); dato(fmtN(p.diamantes) + " 💎", "Diamantes recargados");
-    const dl = dato(fmtN(p.likes), "Me gusta ❤️"); if (!p.es_soporte) dato(fmtN(p.amigos), "Amigos");
+    const dl = dato(fmtN(p.likes), "Me gusta ❤️"); if (!p.es_soporte) dato(fmtN(p.amigos), "Amigos"); const dsg = dato(fmtN(p.seguidores || 0), "Seguidores");
     cu.appendChild(st);
     // acciones
     const ac = el("div", "pf-acc"); cu.appendChild(ac);
@@ -8181,6 +8218,10 @@ const NOV = (function novedades() {
         try { const { data, error } = await supabase.rpc("perfil_like", { p_user: p.id }); if (error) throw error; p.mi_like = true; p.likes = data.likes; lk.className = "pf-like on"; lk.textContent = txtLk(); lk.disabled = true; dl.firstChild.textContent = fmtN(p.likes); mostrarAviso("❤️ ¡Listo! Mañana podés darle otro.", "exito"); }
         catch (e) { if (String((e && e.message) || "").includes("YA_HOY")) { p.mi_like = true; lk.className = "pf-like on"; lk.textContent = txtLk(); lk.disabled = true; mostrarAviso("Hoy ya le diste Me gusta. ¡Volvé mañana! ❤️", "info"); } else mostrarAviso("No se pudo ahora.", "error"); } };
       ac.appendChild(lk);
+      const sg = el("button", "pf-sec pf-seg" + (p.sigo ? " on" : ""), p.sigo ? "✓ Siguiendo" : "＋ Seguir"); sg.type = "button";
+      sg.onclick = async () => { if (!usuarioActual) { mostrarAviso("Ingresá con Google para seguir.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
+        try { const { data, error } = await supabase.rpc("seguir_alternar", { p_user: p.id }); if (error) throw error; p.sigo = data.sigo; p.seguidores = data.seguidores; sg.className = "pf-sec pf-seg" + (p.sigo ? " on" : ""); sg.textContent = p.sigo ? "✓ Siguiendo" : "＋ Seguir"; dsg.firstChild.textContent = fmtN(p.seguidores); } catch (_) { mostrarAviso("No se pudo ahora (¿SQL v48?).", "error"); } };
+      ac.appendChild(sg);
       if (p.es_soporte) { const w = el("button", "al-ok", "💬 Escribir a Soporte"); w.type = "button"; w.onclick = () => { cerrar(); window.abrirChatSoporte && window.abrirChatSoporte(); }; ac.appendChild(w); }
       else {
         const r = p.relacion;
@@ -8192,6 +8233,7 @@ const NOV = (function novedades() {
           ac.appendChild(w); }
       }
     }
+    { const cp = el("button", "pf-sec pf-comp", "🔗 Compartir perfil"); cp.type = "button"; cp.onclick = () => compartirPerfilNum(p.num_id, p.nombre); ac.appendChild(cp); }
     pintarGaleria(cu, p);
   }
 
@@ -8213,7 +8255,7 @@ const NOV = (function novedades() {
     const cerrarV = () => { v.remove(); document.removeEventListener("keydown", tecla, true); };
     const tecla = (e) => { if (e.key === "Escape") { e.stopPropagation(); cerrarV(); } else if (e.key === "ArrowLeft" && i > 0) { i--; pintar(); } else if (e.key === "ArrowRight" && i < items.length - 1) { i++; pintar(); } };
     function pintar() {
-      const it = items[i]; im.src = it.url; pie.innerHTML = ""; pr.hidden = i <= 0; nx.hidden = i >= items.length - 1;
+      const it = items[i]; im.src = it.url; im.className = "pfv-img" + (it.av ? " av" : ""); pie.innerHTML = ""; pr.hidden = i <= 0; nx.hidden = i >= items.length - 1;
       if (opc.titulo) pie.appendChild(el("b", "pfv-t", opc.titulo + (items.length > 1 ? "  " + (i + 1) + "/" + items.length : "")));
       if (it.id) {
         const lk = el("button", "pfv-like" + (it.mi_like ? " on" : ""), (it.mi_like ? "❤️ " : "🤍 ") + (it.likes || 0)); lk.type = "button";
@@ -8300,6 +8342,9 @@ const NOV = (function novedades() {
     let marco = p.marco || ""; cu.appendChild(el("label", "pf-lab", "Color del marco de tu descripción")); const mw = el("div", "pf-sw");
     ["", "#7fd6ff", "#19e68c", "#ffd75e", "#ff8a00", "#ff4d6d", "#ff8fc7", "#b388ff", "#ffffff"].forEach((c) => { const b = el("button", "pf-fb" + (marco === c ? " on" : "")); b.type = "button"; b.style.background = c || "rgba(255,255,255,.12)"; b.title = c ? "Color" : "Sin color"; if (!c) b.textContent = "∅"; b.onclick = () => { marco = c; mw.querySelectorAll(".pf-fb").forEach((x) => x.classList.remove("on")); b.classList.add("on"); }; mw.appendChild(b); }); cu.appendChild(mw);
     let tit = null; if (p.es_soporte) { cu.appendChild(el("label", "pf-lab", "Título (debajo de tu nombre)")); tit = el("input", "pf-in"); tit.maxLength = 40; tit.value = p.titulo || ""; tit.placeholder = "Ej: Dueña · Soporte de Recargas Zarela"; cu.appendChild(tit); }
+    let titU = null, notaU = null;
+    if (!p.es_soporte) { cu.appendChild(el("label", "pf-lab", "Tu título (debajo de tu nombre)")); titU = el("input", "pf-in"); titU.maxLength = 24; titU.value = p.titulo || ""; titU.placeholder = "Ej: Jugador Pro 🔥"; cu.appendChild(titU); cu.appendChild(el("small", "pf-chico", "No se puede usar admin, soporte, oficial ni el nombre Zarela."));
+      cu.appendChild(el("label", "pf-lab", "Tu nota (se ve 24 horas)")); notaU = el("input", "pf-in"); notaU.maxLength = 60; notaU.value = p.nota || ""; notaU.placeholder = "Ej: Buscando dúo 🎮"; cu.appendChild(notaU); }
     cu.appendChild(el("label", "pf-lab", "Fondo de tu perfil"));
     let sel = p.fondo || "", portada = null, subiendo = false; const sw = el("div", "pf-sw");
     const cover = () => E("pf-card").querySelector(".pf-cover");
@@ -8334,10 +8379,14 @@ const NOV = (function novedades() {
     const g = el("button", "al-ok", "Guardar"); g.type = "button";
     g.onclick = async () => { if (subiendo) return; g.disabled = true; try {
       if (pend) { const blob = await recortarPortada(pend.file, pend.fy); const path = usuarioActual.id + "/portada-" + Date.now() + ".jpg"; const { error: eu } = await supabase.storage.from("chatfotos").upload(path, blob, { contentType: "image/jpeg", upsert: false }); if (eu) throw eu; portada = path; }
-      const { error } = await supabase.rpc("mi_perfil_guardar", { p_bio: bio.value, p_fondo: sel, p_titulo: tit ? tit.value : null, p_portada: portada }); if (error) throw error; try { await supabase.rpc("mi_perfil_marco", { p_color: marco }); } catch (_) {} mostrarAviso("Perfil guardado ✔", "exito"); abrirPerfil(p.id); } catch (e) { mostrarAviso(msgErr(e, "No se pudo guardar."), "error"); g.disabled = false; } };
+      const { error } = await supabase.rpc("mi_perfil_guardar", { p_bio: bio.value, p_fondo: sel, p_titulo: tit ? tit.value : null, p_portada: portada }); if (error) throw error; try { await supabase.rpc("mi_perfil_marco", { p_color: marco }); } catch (_) {}
+      if (titU) { const rt = await supabase.rpc("mi_perfil_titulo", { p_titulo: titU.value }); if (rt.error) { mostrarAviso(String(rt.error.message || "").includes("RESERVADO") ? "Ese título no está permitido. Probá con otro." : "No se pudo guardar el título.", "error"); g.disabled = false; return; } }
+      if (notaU) { const rn = await supabase.rpc("mi_nota", { p_texto: notaU.value }); if (rn.error) { mostrarAviso(String(rn.error.message || "").includes("RESERVADO") ? "Esa nota no está permitida. Probá con otra." : "No se pudo guardar la nota.", "error"); g.disabled = false; return; } } mostrarAviso("Perfil guardado ✔", "exito"); abrirPerfil(p.id); } catch (e) { mostrarAviso(msgErr(e, "No se pudo guardar."), "error"); g.disabled = false; } };
     const c = el("button", "pf-sec", "Cancelar"); c.type = "button"; c.onclick = () => pintarPerfil(p, false);
     ac.appendChild(g); ac.appendChild(c);
   }
+  try { const pm = E("pf-modal"); if (pm) new MutationObserver(() => document.body.classList.toggle("pf-abierto", !pm.hidden)).observe(pm, { attributes: true, attributeFilter: ["hidden"] }); } catch (_) {}
+  try { const qp = new URLSearchParams(location.search).get("perfil"); if (/^\d{1,9}$/.test(qp || "")) setTimeout(async () => { try { const { data } = await supabase.rpc("perfil_id_por_num", { p_num: Number(qp) }); if (data) abrirPerfil(data); } catch (_) {} }, 1800); } catch (_) {}
   window.abrirPerfil = abrirPerfil; window.abrirMiPerfil = () => { if (!usuarioActual) { mostrarAviso("Ingresá con Google para ver tu perfil.", "info"); try { window.loginConGoogle(); } catch (_) {} return; } abrirPerfil(usuarioActual.id); };
 
   // ------------------- BIENVENIDA (una sola vez por cuenta) -------------------
@@ -8458,4 +8507,17 @@ const NOV = (function novedades() {
     asa.addEventListener("pointerup", () => { if (r) { r = null; guardar(); } });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciar); else iniciar();
+})();
+
+
+// ===== Teclado en el celular: la pantalla no salta, solo se achica =====
+(function () {
+  const vv = window.visualViewport; if (!vv) return;
+  const aj = () => { document.documentElement.style.setProperty("--vvh", Math.round(vv.height) + "px"); };
+  vv.addEventListener("resize", aj); aj();
+  document.addEventListener("focusin", (e) => {
+    if (!e.target.matches || !e.target.matches("#cm-in,#dm-in,#chat-soporte-txt,.chat-input-area input,.chat-input-area textarea")) return;
+    if (!matchMedia("(max-width: 800px)").matches) return;
+    const y = window.scrollY; [0, 120, 320].forEach((t) => setTimeout(() => { if (Math.abs(window.scrollY - y) > 2) window.scrollTo(0, y); }, t));
+  });
 })();
