@@ -2915,14 +2915,14 @@ body.es-admin .navbar{background:radial-gradient(120% 220% at 50% -60%,rgba(255,
 /* v53: 8 niveles estilo Free Fire — cada uno más llamativo que el anterior */
 @keyframes nvLat{0%,100%{box-shadow:0 0 10px rgba(var(--c),.45)}50%{box-shadow:0 0 22px rgba(var(--c),.95)}}
 @keyframes nvFuego{0%{background-position:0 0}100%{background-position:200% 0}}
-.niv-ins.n0{linear-gradient(135deg,#a85d2a,#e8a064);color:#2a1202}
-.niv-ins.n1{linear-gradient(135deg,#8e9aab,#f1f5fb);color:#1d2430}
-.niv-ins.n2{linear-gradient(135deg,#d49a06,#ffe27a);color:#3a2700}
-.niv-ins.n3{linear-gradient(135deg,#19b8b0,#d9fffb);color:#033b38}
-.niv-ins.n4{linear-gradient(135deg,#0a6bff,#7df9ff);color:#00133a}
-.niv-ins.n5{linear-gradient(120deg,#c1121f,#ff5f28,#ffd23f,#ff5f28,#c1121f);background-size:250% 100%;color:#2a0600;animation:nvFuego 3s linear infinite}
-.niv-ins.n6{linear-gradient(120deg,#5b1fb0,#c264ff,#ff7ad9,#c264ff,#5b1fb0);background-size:250% 100%;color:#fff;animation:nvFuego 3.5s linear infinite}
-.niv-ins.n7{linear-gradient(120deg,#ff2d55,#ff9a1f,#ffe14a,#34e89e,#2fc4ff,#b266ff);background-size:250% 100%;color:#1a0020;animation:bannerMov 4s linear infinite}
+.niv-ins.n0{background:linear-gradient(135deg,#a85d2a,#e8a064);color:#2a1202}
+.niv-ins.n1{background:linear-gradient(135deg,#8e9aab,#f1f5fb);color:#1d2430}
+.niv-ins.n2{background:linear-gradient(135deg,#d49a06,#ffe27a);color:#3a2700}
+.niv-ins.n3{background:linear-gradient(135deg,#19b8b0,#d9fffb);color:#033b38}
+.niv-ins.n4{background:linear-gradient(135deg,#0a6bff,#7df9ff);color:#00133a}
+.niv-ins.n5{background:linear-gradient(120deg,#c1121f,#ff5f28,#ffd23f,#ff5f28,#c1121f);background-size:250% 100%;color:#2a0600;animation:nvFuego 3s linear infinite}
+.niv-ins.n6{background:linear-gradient(120deg,#5b1fb0,#c264ff,#ff7ad9,#c264ff,#5b1fb0);background-size:250% 100%;color:#fff;animation:nvFuego 3.5s linear infinite}
+.niv-ins.n7{background:linear-gradient(120deg,#ff2d55,#ff9a1f,#ffe14a,#34e89e,#2fc4ff,#b266ff);background-size:250% 100%;color:#1a0020;animation:bannerMov 4s linear infinite}
 .niv-ins.n2::after,.niv-ins.n3::after,.niv-ins.n4::after,.niv-ins.n5::after,.niv-ins.n6::after,.niv-ins.n7::after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-60%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.75),transparent);animation:brilloPasa 3.2s ease-in-out infinite}
 .nvb-0{--c:226,150,86}
 .nvb-1{--c:205,218,238}
@@ -3753,3 +3753,29 @@ body.pf-abierto{overflow:hidden}
 #hc-modal .al-nota{display:block;margin:8px 0 10px;color:rgba(255,255,255,.8)}
 #hc-modal .al-ok{display:block;width:100%;margin-top:6px}
 #hc-modal #hc-nota-q{margin-top:8px;width:100%}
+
+/* ===== v66 ===== */
+/* celular: animaciones suaves */
+@media (max-width:800px){
+  .btn-cargar-saldo,.btn-cargar-saldo i{animation:none!important;box-shadow:none!important}
+  .hero-envivo,.hero-envivo i{animation:none!important;filter:none!important;text-shadow:none!important}
+  .live-green-dot{animation:none!important;box-shadow:0 0 3px #25d366!important;opacity:.95}
+  .live-counter-badge{animation:none!important;box-shadow:none!important}
+  .niv-ins::after{animation-duration:6s!important}
+}
+/* perfil: Amigos / Seguidores como datos con brillo (no botones) */
+.pf-mini{gap:12px;align-items:center;padding-top:2px}
+.pf-dato.pf-mi{background:none!important;border:none!important;box-shadow:none!important;padding:0!important;min-width:0!important;text-align:center;cursor:default!important}
+.pf-dato.pf-mi b{font-size:17px;background:linear-gradient(100deg,#fff 30%,#ffe9a6 45%,#fff 60%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:pfBrillo 4.5s ease-in-out infinite}
+.pf-dato.pf-mi small{font-size:10.5px;color:rgba(255,255,255,.8)}
+@keyframes pfBrillo{0%,100%{background-position:100% 0}50%{background-position:0 0}}
+.pf-sec.pf-seg{background:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,.08));box-shadow:0 4px 10px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.6)}
+.pf-sec.pf-seg.on{background:linear-gradient(180deg,rgba(60,200,120,.55),rgba(60,200,120,.18));border-color:rgba(120,230,160,.8)}
+.pf-acc{display:flex;flex-wrap:wrap;gap:8px}
+.pf-acc .al-ok,.pf-acc .pf-sec{flex:1 1 auto;white-space:nowrap}
+.pf-notaf{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap}
+.pf-notaf input{flex:1 1 180px}
+/* chat privado bloqueado */
+.dm-bloq{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 8px 8px;padding:10px 12px;border-radius:14px;background:linear-gradient(135deg,rgba(255,80,80,.25),rgba(160,20,40,.2));border:1px solid rgba(255,120,120,.5);color:#fff;font-size:.82rem;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.dm-bloq[hidden]{display:none}
+.dm-desb{border:none;border-radius:999px;padding:7px 12px;font-weight:800;cursor:pointer;background:#fff;color:#a01530}

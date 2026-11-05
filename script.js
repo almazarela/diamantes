@@ -1469,6 +1469,8 @@ function pintarBotonNoLeidos() {
   const b = document.createElement("button"); b.type = "button"; b.id = "adm-nl-btn"; b.className = "nl-btn"; b.setAttribute("aria-label", "Filtrar chats"); b.textContent = "⋮"; fila.appendChild(b);
   b.onclick = (e) => { e.stopPropagation(); menuNoLeidos(b, () => soloNoLeidos, (v) => { soloNoLeidos = v; b.classList.toggle("on", v); renderListaClientes(); }); };
 }
+const admPinLeer = () => { try { return JSON.parse(localStorage.getItem("zarela_adm_pin") || "[]") || []; } catch (_) { return []; } };
+const admPinGuardar = (a) => { try { localStorage.setItem("zarela_adm_pin", JSON.stringify(a)); } catch (_) {} };
 function renderListaClientes() {
   try { pintarBotonNoLeidos(); } catch (_) {}
   const lista = $("admin-users-list");
@@ -1477,6 +1479,7 @@ function renderListaClientes() {
 
   const dato = (f) => resumenAdmin.get(f[CONFIG.COL_ID]) || { ultima: 0, noLeidos: 0 };
   const filas = [...clientesAdmin].filter((f) => pasaFiltroChats(f[CONFIG.COL_ID])).sort((a, b) => {
+    const pa = admPinLeer(), qa = pa.includes(a[CONFIG.COL_ID]), qb = pa.includes(b[CONFIG.COL_ID]); if (qa !== qb) return qa ? -1 : 1;
     const d = dato(b).ultima - dato(a).ultima;   // más reciente arriba
     return d !== 0 ? d : String(a[CONFIG.COL_EMAIL] || "").localeCompare(String(b[CONFIG.COL_EMAIL] || ""));
   });
@@ -1520,7 +1523,19 @@ function renderListaClientes() {
     fila2.textContent = noLeidos ? `${noLeidos} sin leer · ${tiempoRelativo(ultima)}` : tiempoRelativo(ultima);
     b.append(fila1, fila2);
 
-    b.addEventListener("click", () => seleccionarCliente(fila, etiqueta));
+    let lpA = false;
+    b.addEventListener("click", () => { if (lpA) { lpA = false; return; } seleccionarCliente(fila, etiqueta); });
+    mantenerPresionado(b, (x, y) => { lpA = true; setTimeout(() => { lpA = false; }, 900);
+      const m = metaDe(id), pin = admPinLeer(), esPin = pin.includes(id);
+      menuHold(x, y, [
+        [m.archivado ? "📤" : "🗄️", m.archivado ? "Sacar de archivados" : "Archivar chat", () => { guardarMeta(id, { archivado: !m.archivado }); mostrarAviso(m.archivado ? "Sacado de archivados" : "Chat archivado", "exito"); }],
+        [esPin ? "📌" : "📍", esPin ? "Desfijar" : "Fijar arriba (hasta 3)", () => { if (!esPin && pin.length >= 3) { mostrarAviso("Solo podés fijar hasta 3 chats.", "info"); return; } admPinGuardar(esPin ? pin.filter((z) => z !== id) : [...pin, id]); renderListaClientes(); }],
+        ["🎮", m.salas.includes(1) ? "Quitar de Sala 1" : "Mandar a Sala 1", () => { const sa = m.salas.includes(1) ? m.salas.filter((z) => z !== 1) : [...m.salas, 1].sort(); guardarMeta(id, { salas: sa }); }],
+        ["🎮", m.salas.includes(2) ? "Quitar de Sala 2" : "Mandar a Sala 2", () => { const sa = m.salas.includes(2) ? m.salas.filter((z) => z !== 2) : [...m.salas, 2].sort(); guardarMeta(id, { salas: sa }); }],
+        ["🎮", m.salas.includes(3) ? "Quitar de Sala 3" : "Mandar a Sala 3", () => { const sa = m.salas.includes(3) ? m.salas.filter((z) => z !== 3) : [...m.salas, 3].sort(); guardarMeta(id, { salas: sa }); }],
+        ["👤", "Ver perfil", () => { try { window.abrirPerfil(id); } catch (_) {} }]
+      ]); });
+    if (admPinLeer().includes(id)) fila1.prepend(Object.assign(document.createElement("span"), { textContent: "📌 " }));
     lista.appendChild(b);
   });
   lista.scrollTop = scroll;
@@ -1839,7 +1854,7 @@ function mostrarVistaAdmin(vista) {
   mostrar("admin-vista-hoy", vista === "hoy"); mostrar("admin-vista-clientes", esChat); mostrar("admin-vista-ordenes", vista === "ordenes"); mostrar("admin-vista-stock", vista === "stock");
   mostrar("admin-vista-novedades", vista === "novedades"); mostrar("admin-vista-salas", vista === "todas"); mostrar("admin-vista-jugadores", vista === "jugadores"); mostrar("admin-vista-cobro", esCobro);
   TODAS_VISTAS.forEach((v) => { const t = $("admin-tab-" + v); if (t) { t.classList.toggle("activa", v === vista); t.setAttribute("aria-selected", String(v === vista)); } });
-  document.querySelectorAll("#admin-vista-cobro .cobro-sec").forEach((d) => { d.hidden = d.dataset.pane !== vista; d.open = true; });
+  document.querySelectorAll("#admin-vista-cobro .cobro-sec").forEach((d) => { d.hidden = false; d.open = true; });
   if (vista === "hoy") pintarHoy();
   if (vista === "ordenes") cargarOrdenesAdmin(false);
   if (vista === "stock") cargarStockPines();
@@ -7385,6 +7400,7 @@ const NOV = (function novedades() {
 
   // ---- panel completo con todas las historias de hoy
   let panLim = 12, notas = [];
+  window.cargarNotasHS = () => cargarNotas();
   async function cargarNotas() { try { const { data, error } = await conTimeout(supabase.rpc("notas_activas"), 6000); if (error) throw error; notas = data || []; } catch (_) { notas = []; } if (!E("hs-panel").hidden) pintarPanel(); }
   function pintarPanel() {
     const g0 = E("hsp-grid"); g0.innerHTML = "";
@@ -7393,7 +7409,7 @@ const NOV = (function novedades() {
     const fn = E("hsp-notas"); if (fn) { fn.innerHTML = ""; fn.hidden = !notas.length;
       notas.forEach((n) => { const b = el("button", "hsn"); b.type = "button"; b.appendChild(el("span", "hsn-t", n.nota)); b.appendChild(avatarGrupo({ nombre: n.nombre, foto: n.foto }, "hsn-av")); b.appendChild(el("small", "", n.user_id === mi ? "Tu nota" : n.nombre)); b.onclick = () => { try { window.abrirPerfil(n.user_id); } catch (_) {} }; fn.appendChild(b); }); }
     const nb = el("button", "hsp-it hsp-nueva"); nb.type = "button"; const nc = el("span", "hsp-c", "＋"); nb.appendChild(nc); nb.appendChild(el("small", "", "Historia o nota")); nb.onclick = () => { cerrarPanel(); abrirCreador(); }; g0.appendChild(nb);
-    const orden = [...grupos].filter((g) => (mi && g.user_id === mi && !g.oficial) || !g.items.every((h) => visto(h.id)))
+    const orden = [...grupos].filter((g) => g.oficial || (mi && g.user_id === mi) || !g.items.every((h) => visto(h.id)))
       .sort((a, b) => ((b.oficial ? 1 : 0) - (a.oficial ? 1 : 0)) || (b.ult - a.ult));
     orden.slice(0, panLim).forEach((g) => {
       const mia = mi && g.user_id === mi && !g.oficial;
@@ -7726,14 +7742,19 @@ const NOV = (function novedades() {
     const pC = el("label", "nv-d nv-dg"); const pCi = el("input"); pCi.type = "checkbox"; pCi.checked = true; pC.appendChild(pCi); pC.appendChild(el("span", "", "💬 Chat (fijado arriba del Mundial)"));
     const pS = el("label", "nv-d nv-dg"); const pSi = el("input"); pSi.type = "checkbox"; pSi.checked = true; pS.appendChild(pSi); pS.appendChild(el("span", "", "✨ Historia oficial (24 h)"));
     const dn = el("div", "nv-dias"); dn.appendChild(pC); dn.appendChild(pS);
-    paso("1", "¿Qué dice el mensaje?", pT); paso("2", "¿A qué hora?", pH); paso("3", "¿Qué días?", dd); paso("4", "¿Dónde se publica?", dn);
+    let pBlob = null; const pF = el("input"); pF.type = "file"; pF.accept = "image/*"; pF.hidden = true; const pFb = el("button", "nv-mini", "📷 Elegir foto (opcional)"); pFb.type = "button"; const pFq = el("button", "nv-mini nv-rojo", "Quitar foto"); pFq.type = "button"; pFq.hidden = true; const pFi = el("img"); pFi.style.cssText = "max-width:120px;max-height:120px;border-radius:10px;display:none;margin-top:6px"; const pFw = el("div", ""); pFw.append(pF, pFb, pFq, pFi);
+    pFb.onclick = () => pF.click(); pFq.onclick = () => { pBlob = null; pFq.hidden = true; pFi.style.display = "none"; };
+    pF.onchange = async (ev) => { const f = ev.target.files && ev.target.files[0]; if (!f) return; try { pBlob = await comprimir(f); pFi.src = URL.createObjectURL(pBlob); pFi.style.display = "block"; pFq.hidden = false; } catch (_) { mostrarAviso("No pude leer esa foto.", "error"); } ev.target.value = ""; };
+    paso("1", "¿Qué dice el mensaje?", pT); paso("2", "¿A qué hora?", pH); paso("3", "¿Qué días?", dd); paso("4", "¿Dónde se publica?", dn); paso("5", "Foto para la historia (ej: afiche del torneo)", pFw);
     const bp = el("button", "nv-btn nv-grande", "Agregar promo"); bp.type = "button";
-    bp.onclick = async () => { const d = []; dchk.forEach((c, k) => { if (c.checked) d.push(k + 1); }); if (!pT.value.trim() || !d.length) { mostrarAviso("Poné el texto y al menos un día.", "info"); return; } if (!pCi.checked && !pSi.checked) { mostrarAviso("Elegí dónde se publica: Chat o Historia.", "info"); return; } const { error } = await supabase.from("promos_prog").insert({ titulo: "", texto: pT.value.trim(), hora: pH.value || "18:00", dias: d, a_chat: pCi.checked, a_historia: pSi.checked, activo: true }); if (error) { mostrarAviso("No se pudo guardar la promo.", "error"); return; } pT.value = ""; mostrarAviso("Promo agregada ✔", "exito"); cargarPro(); };
+    bp.onclick = async () => { const d = []; dchk.forEach((c, k) => { if (c.checked) d.push(k + 1); }); if (!pT.value.trim() || !d.length) { mostrarAviso("Poné el texto y al menos un día.", "info"); return; } if (!pCi.checked && !pSi.checked) { mostrarAviso("Elegí dónde se publica: Chat o Historia.", "info"); return; } let ipath = null; if (pBlob) { ipath = usuarioActual.id + "/promo-" + Date.now() + ".jpg"; const up = await supabase.storage.from("historias").upload(ipath, pBlob, { contentType: "image/jpeg", upsert: false }); if (up.error) { mostrarAviso("No se pudo subir la foto.", "error"); return; } }
+      const fila = { titulo: "", texto: pT.value.trim(), hora: pH.value || "18:00", dias: d, a_chat: pCi.checked, a_historia: pSi.checked, activo: true }; if (ipath) fila.imagen_path = ipath;
+      const { error } = await supabase.from("promos_prog").insert(fila); if (error) { mostrarAviso(ipath ? "No se pudo guardar. ¿Corriste el SQL v50?" : "No se pudo guardar la promo.", "error"); return; } pT.value = ""; pBlob = null; pFq.hidden = true; pFi.style.display = "none"; mostrarAviso("Promo agregada ✔", "exito"); cargarPro(); };
     fp.appendChild(bp); c4.appendChild(fp);
     async function cargarPro() {
       lp.innerHTML = ""; try { const { data, error } = await supabase.from("promos_prog").select("*").order("id"); if (error) throw error; if (!data.length) lp.appendChild(el("p", "adm-ayuda", "No hay promos programadas.")); data.forEach((p) => {
         const f = el("div", "nv-item"); f.appendChild(el("b", "", (p.hora || "").slice(0, 5) + " · " + p.dias.map((d) => NOM[d - 1]).join(" ")));
-        f.appendChild(el("span", "", p.texto + (p.a_chat ? " · 💬" : "") + (p.a_historia ? " · ✨" : "") + (p.activo ? "" : " · PAUSADA")));
+        f.appendChild(el("span", "", (p.imagen_path ? "📷 " : "") + p.texto + (p.a_chat ? " · 💬" : "") + (p.a_historia ? " · ✨" : "") + (p.activo ? "" : " · PAUSADA")));
         const a = el("button", "nv-mini", "Publicar ahora"); a.type = "button"; a.onclick = async () => { if (await rpcAdm("admin_promo_publicar_ahora", { p_id: p.id }, "Publicada ✔")) { cargarHistorias(); } };
         const z = el("button", "nv-mini", p.activo ? "Pausar" : "Activar"); z.type = "button"; z.onclick = async () => { await supabase.from("promos_prog").update({ activo: !p.activo }).eq("id", p.id); cargarPro(); };
         const d = el("button", "nv-mini nv-rojo", "Borrar"); d.type = "button"; d.onclick = async () => { if (confirm("¿Borrar esta promo?")) { await supabase.from("promos_prog").delete().eq("id", p.id); cargarPro(); } };
@@ -8083,7 +8104,7 @@ const NOV = (function novedades() {
     dmCon = c; abrirPanel("dm"); E("dm-nom").textContent = c.nombre; E("dm-sub").textContent = "#" + c.num_id + " · amigo"; const av = E("dm-av"); av.innerHTML = ""; av.appendChild(avatar(c.nombre, c.foto, "hub-av-s"));
     E("dm-lista").innerHTML = ""; E("dm-in").value = "";
     { const ch = E("dm-chips"); if (ch) { ch.innerHTML = ""; ch.hidden = true; } }
-    cargarModoFotos(); await cargarDM(true);
+    pintarBloqDM(); cargarModoFotos(); await cargarDM(true);
   }
   async function cargarDM(forzar) {
     clearTimeout(dmT); if (!dmCon || activo !== "dm") return;
@@ -8139,10 +8160,30 @@ const NOV = (function novedades() {
     } catch (_) { l.textContent = "No se pudo cargar tus IDs."; }
   }
   function comprimirJPG(file) { return new Promise((res, rej) => { const im = new Image(), u = URL.createObjectURL(file); im.onload = () => { const k = Math.min(1, 900 / Math.max(im.width, im.height)); const cv = document.createElement("canvas"); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k); cv.getContext("2d").drawImage(im, 0, 0, cv.width, cv.height); cv.toBlob((b) => (b ? res(b) : rej()), "image/jpeg", 0.78); URL.revokeObjectURL(u); }; im.onerror = rej; im.src = u; }); }
-  async function menuDM() {
+  function pintarBloqDM() {
+    const ban = E("dm-bloq-ban"), bar = document.querySelector("#dm-panel .dm-barra"); if (!ban || !dmCon) return;
+    const b = !!dmCon.bloqueado; ban.hidden = !b; if (bar) bar.hidden = b;
+    if (b) { ban.innerHTML = ""; ban.appendChild(el("span", "", "🚫 Chat bloqueado: no pueden escribirse.")); const d = el("button", "dm-desb", "Desbloquear"); d.type = "button"; d.onclick = () => bloquearDM(false); ban.appendChild(d); }
+  }
+  async function bloquearDM(bloquear) {
+    const nom = dmCon.nombre || "este usuario";
+    const ok = await mostrarConfirmacion({ tono: bloquear ? "warn" : "ok", icono: bloquear ? "🚫" : "✅", titulo: bloquear ? "¿Bloquear a " + nom + "?" : "¿Desbloquear a " + nom + "?", texto: bloquear ? "No van a poder escribirse hasta que lo desbloquees. Podés hacerlo cuando quieras desde acá." : "Van a poder volver a escribirse.", confirmar: bloquear ? "Bloquear" : "Desbloquear", cancelar: "Cancelar" });
+    if (!ok) return;
+    try { const { error } = await supabase.rpc("dm_bloquear", { p_user: dmCon.id, p_si: bloquear }); if (error) throw error; dmCon.bloqueado = bloquear; pintarBloqDM(); mostrarAviso(bloquear ? "Bloqueaste a " + nom + " 🚫" : "Desbloqueaste a " + nom + " ✅", "exito"); } catch (_) { mostrarAviso("No se pudo ahora. Probá de nuevo.", "error"); }
+  }
+  function menuDM() {
     if (!dmCon) return;
-    const bloq = !!dmCon.bloqueado;
-    if (confirm(bloq ? "¿Desbloquear a " + dmCon.nombre + "?" : "¿Bloquear a " + dmCon.nombre + "? No podrán escribirse.")) { try { await supabase.rpc("dm_bloquear", { p_user: dmCon.id, p_si: !bloq }); dmCon.bloqueado = !bloq; mostrarAviso(bloq ? "Desbloqueado" : "Bloqueado", "exito"); } catch (_) {} }
+    const c = dmCon, k = "u:" + c.id, o = prefLeer(), esPin = o.pin.includes(k), esMute = o.mute.includes(k);
+    const tog = (kk) => { const i = o[kk].indexOf(k); if (i >= 0) o[kk].splice(i, 1); else o[kk].push(k); };
+    const r = E("dm-menu").getBoundingClientRect();
+    menuHold(r.right, r.bottom + 4, [
+      ["👤", "Ver perfil", () => window.abrirPerfil && window.abrirPerfil(c.id)],
+      [esMute ? "🔔" : "🔇", esMute ? "Quitar silencio" : "Silenciar", () => { tog("mute"); prefGuardar(o); mostrarAviso(esMute ? "Chat con sonido otra vez" : "Chat silenciado 🔇", "exito"); }],
+      ["🔵", "Marcar como no leído", () => { if (!o.nl.includes(k)) o.nl.push(k); prefGuardar(o); window.abrirHub(); }],
+      [esPin ? "📌" : "📍", esPin ? "Desfijar chat" : "Fijar chat (hasta 3)", () => { if (!esPin && o.pin.length >= 3) { mostrarAviso("Solo podés fijar hasta 3 chats.", "info"); return; } tog("pin"); prefGuardar(o); mostrarAviso(esPin ? "Chat desfijado" : "Chat fijado 📌", "exito"); }],
+      ["🔗", "Compartir perfil", () => compartirPerfilNum(c.num_id, c.nombre)],
+      [c.bloqueado ? "✅" : "🚫", c.bloqueado ? "Desbloquear" : "Bloquear", () => bloquearDM(!c.bloqueado), !c.bloqueado]
+    ]);
   }
   function iniciar() {
     E("hub-x")?.addEventListener("click", () => { todoCerrado(); });
@@ -8232,7 +8273,7 @@ const NOV = (function novedades() {
     if (ni >= 0 && NIVELES[ni]) { const b = el("span", "niv-ins n" + ni, NIVELES[ni].ico + " " + NIVELES[ni].n); b.title = "Nivel " + NIVELES[ni].n; izq.appendChild(b); }
     const mini = (n, t) => { const d = el("div", "pf-dato pf-mi"); d.appendChild(el("b", "", n)); d.appendChild(el("small", "", t)); der.appendChild(d); return d; };
     if (!p.es_soporte) mini(fmtN(p.amigos), "Amigos");
-    const dsg = mini(fmtN(p.seguidores || 0), p.sigo ? "Siguiendo ✓" : "Seguidores");
+    const dsg = mini(fmtN(p.seguidores || 0), "Seguidores");
     if (editando) return pintarEditor(p, cu);
     // descripción
     { const bi = el("p", "pf-bio" + (p.bio ? " pf-marco" : " vacio"), p.bio || (p.yo ? "Todavía no escribiste nada sobre vos. ¡Tocá «Editar perfil»!" : p.es_soporte ? "Estamos para ayudarte con tus recargas 💎" : "Sin descripción todavía.")); if (p.bio && p.marco) { bi.style.setProperty("--mc", p.marco); bi.classList.add("con-color"); } cu.appendChild(bi); }
@@ -8246,6 +8287,11 @@ const NOV = (function novedades() {
     const ac = el("div", "pf-acc"); cu.appendChild(ac);
     if (p.yo) {
       const e = el("button", "al-ok", "✏️ Editar perfil"); e.type = "button"; e.onclick = () => pintarPerfil(p, true); ac.appendChild(e);
+      if (!p.es_soporte) { const nb = el("button", "pf-sec pf-notab", p.nota ? "📝 Cambiar mi nota" : "📝 Agregar una nota"); nb.type = "button";
+        nb.onclick = () => { if (cu.querySelector(".pf-notaf")) return; const f = el("div", "pf-notaf"); const inp = el("input", "pf-in"); inp.maxLength = 60; inp.value = p.nota || ""; inp.placeholder = "Escribí tu nota (se ve 24 h)…"; const ok = el("button", "al-ok", "Publicar"); ok.type = "button"; const q = el("button", "pf-sec", "Borrar"); q.type = "button"; q.hidden = !p.nota;
+          const guardar = async (t) => { ok.disabled = true; try { const { error } = await supabase.rpc("mi_nota", { p_texto: t }); if (error) throw error; mostrarAviso(t ? "¡Nota publicada! 📝" : "Nota borrada", "exito"); try { window.cargarNotasHS && window.cargarNotasHS(); } catch (_) {} abrirPerfil(p.id); } catch (er) { mostrarAviso(String((er && er.message) || "").includes("RESERVADO") ? "Esa nota no está permitida (sin links, teléfonos ni nombres oficiales)." : "No se pudo guardar (¿SQL v48?).", "error"); ok.disabled = false; } };
+          ok.onclick = () => { if (inp.value.trim().length < 2) { mostrarAviso("Escribí tu nota.", "info"); return; } guardar(inp.value.trim()); }; q.onclick = () => guardar("");
+          f.append(inp, ok, q); ac.after(f); inp.focus(); }; ac.appendChild(nb); }
       if (!p.es_soporte) pintarVerif(cu, p);
     } else {
       dl.classList.add("btn"); if (p.mi_like) dl.classList.add("on"); dl.title = "Tocá para dar Me gusta (uno por día)";
@@ -8253,9 +8299,11 @@ const NOV = (function novedades() {
         if (p.mi_like) { mostrarAviso("Hoy ya le diste Me gusta. ¡Volvé mañana! ❤️", "info"); return; }
         try { const { data, error } = await supabase.rpc("perfil_like", { p_user: p.id }); if (error) throw error; p.mi_like = true; p.likes = data.likes; dl.classList.add("on"); dl.firstChild.textContent = fmtN(p.likes); mostrarAviso("❤️ ¡Listo! Mañana podés darle otro.", "exito"); }
         catch (e) { if (String((e && e.message) || "").includes("YA_HOY")) { p.mi_like = true; dl.classList.add("on"); mostrarAviso("Hoy ya le diste Me gusta. ¡Volvé mañana! ❤️", "info"); } else mostrarAviso("No se pudo ahora.", "error"); } };
-      dsg.classList.add("btn"); if (p.sigo) dsg.classList.add("on"); dsg.title = "Tocá para seguir / dejar de seguir";
-      dsg.onclick = async () => { if (!usuarioActual) { mostrarAviso("Ingresá con Google para seguir.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
-        try { const { data, error } = await supabase.rpc("seguir_alternar", { p_user: p.id }); if (error) throw error; p.sigo = data.sigo; p.seguidores = data.seguidores; dsg.classList.toggle("on", !!p.sigo); dsg.firstChild.textContent = fmtN(p.seguidores); dsg.lastChild.textContent = p.sigo ? "Siguiendo ✓" : "Seguidores"; } catch (_) { mostrarAviso("No se pudo ahora (¿SQL v48?).", "error"); } };
+      const segUI = (sg) => { sg.classList.toggle("on", !!p.sigo); sg.textContent = p.sigo ? "✓ Siguiendo" : "＋ Seguir"; };
+      const sgb = el("button", "pf-sec pf-seg"); sgb.type = "button"; segUI(sgb);
+      sgb.onclick = async () => { if (!usuarioActual) { mostrarAviso("Ingresá con Google para seguir.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
+        try { const { data, error } = await supabase.rpc("seguir_alternar", { p_user: p.id }); if (error) throw error; p.sigo = data.sigo; p.seguidores = data.seguidores; segUI(sgb); dsg.firstChild.textContent = fmtN(p.seguidores); } catch (_) { mostrarAviso("No se pudo ahora (¿SQL v48?).", "error"); } };
+      ac.appendChild(sgb);
       if (p.es_soporte) { const w = el("button", "al-ok", "💬 Escribir a Soporte"); w.type = "button"; w.onclick = () => { cerrar(); window.abrirChatSoporte && window.abrirChatSoporte(); }; ac.appendChild(w); }
       else {
         const r = p.relacion;
