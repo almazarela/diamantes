@@ -2513,28 +2513,60 @@ function seleccionarCliente(fila, etiqueta) {
 const esMovil = () => window.matchMedia("(max-width: 800px)").matches;
 // ---- Chat flotante (burbuja): se puede trabajar en Pendientes u otra pantalla con el chat del cliente a un costado ----
 let chatFlota = false, flotaMarca = null;
+function flotaPos(w) { try { const r = w.getBoundingClientRect(); localStorage.setItem("zarela_flota", JSON.stringify({ l: Math.round(r.left), t: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) })); } catch (_) {} }
+function flotaAjustar(w) {
+  // que nunca quede fuera de la pantalla
+  const r = w.getBoundingClientRect(); const mw = innerWidth, mh = innerHeight;
+  let l = Math.min(Math.max(0, r.left), Math.max(0, mw - r.width)), t = Math.min(Math.max(0, r.top), Math.max(0, mh - r.height));
+  w.style.left = l + "px"; w.style.top = t + "px"; w.style.right = "auto"; w.style.bottom = "auto";
+}
+function flotaMargen() {
+  const w = $("adm-flota"); const pc = matchMedia("(min-width: 801px)").matches;
+  const ocupa = w && pc && !w.classList.contains("min");
+  document.body.classList.toggle("adm-flota-lado", !!ocupa);
+  if (ocupa) { const r = w.getBoundingClientRect(); document.documentElement.style.setProperty("--flw", Math.round(Math.max(0, innerWidth - r.left) + 8) + "px"); }
+}
 function flotaSacar() {
   const v = $("admin-chat-view"); if (!v || chatFlota) return;
   if (!clienteSel) { mostrarAviso("Primero abrí el chat de un cliente.", "info"); return; }
   try { if ($("admin-vista-clientes")?.classList.contains("adm-chat-abierto")) { $("admin-vista-clientes").classList.remove("adm-chat-abierto"); document.body.classList.remove("adm-chat-on"); } } catch (_) {}
   flotaMarca = document.createComment("chat-flotante"); v.parentNode.insertBefore(flotaMarca, v);
   const w = document.createElement("div"); w.id = "adm-flota";
-  const bar = document.createElement("div"); bar.className = "flota-bar";
+  const bar = document.createElement("div"); bar.className = "flota-bar"; bar.title = "Arrastrá para mover";
   const t = document.createElement("b"); t.className = "flota-t"; t.textContent = "💬 " + (clienteSel.etiqueta || "Chat");
-  const mn = document.createElement("button"); mn.type = "button"; mn.textContent = "—"; mn.title = "Hacer burbuja"; mn.setAttribute("aria-label", "Minimizar");
+  const mn = document.createElement("button"); mn.type = "button"; mn.textContent = "—"; mn.title = "Guardar como burbuja"; mn.setAttribute("aria-label", "Hacer burbuja");
   const x = document.createElement("button"); x.type = "button"; x.textContent = "✕"; x.title = "Devolver el chat a su lugar"; x.className = "flota-x"; x.setAttribute("aria-label", "Devolver el chat");
-  mn.onclick = () => w.classList.toggle("min"); t.onclick = () => { if (w.classList.contains("min")) w.classList.remove("min"); };
-  x.onclick = () => flotaDevolver();
-  bar.append(t, mn, x); w.append(bar, v); document.body.appendChild(w); document.body.classList.add("adm-flotando"); chatFlota = true;
-  // nombre al día si cambia de cliente
+  const burb = document.createElement("button"); burb.type = "button"; burb.className = "flota-burb"; burb.textContent = "💬"; burb.title = "Abrir el chat";
+  const asa = document.createElement("i"); asa.className = "flota-asa"; asa.title = "Arrastrá para cambiar el tamaño";
+  const minimizar = (m) => { w.classList.toggle("min", m); flotaMargen(); };
+  mn.onclick = (e) => { e.stopPropagation(); minimizar(true); }; x.onclick = (e) => { e.stopPropagation(); flotaDevolver(); };
+  bar.append(t, mn, x); w.append(bar, v, burb, asa); document.body.appendChild(w);
+  // posición y tamaño guardados
+  let g = null; try { g = JSON.parse(localStorage.getItem("zarela_flota") || "null"); } catch (_) {}
+  const mov = matchMedia("(max-width: 800px)").matches;
+  if (!mov) { w.style.width = Math.min(Math.max((g && g.w) || 380, 300), innerWidth - 20) + "px"; w.style.height = Math.min(Math.max((g && g.h) || 520, 320), innerHeight - 20) + "px"; w.style.left = ((g ? g.l : innerWidth - 400)) + "px"; w.style.top = ((g ? g.t : Math.max(70, innerHeight - 540))) + "px"; w.style.right = "auto"; w.style.bottom = "auto"; flotaAjustar(w); }
+  // arrastrar (barra o burbuja)
+  let dx = 0, dy = 0, drag = null, movio = false;
+  const ini = (e) => { if (e.target.closest("button") && !e.target.classList.contains("flota-burb")) return; const r = w.getBoundingClientRect(); drag = { x: e.clientX, y: e.clientY, l: r.left, t: r.top }; movio = false; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} };
+  const mueve = (e) => { if (!drag) return; const ddx = e.clientX - drag.x, ddy = e.clientY - drag.y; if (Math.abs(ddx) + Math.abs(ddy) > 4) movio = true; if (!movio) return; w.style.left = (drag.l + ddx) + "px"; w.style.top = (drag.t + ddy) + "px"; w.style.right = "auto"; w.style.bottom = "auto"; };
+  const fin = () => { if (!drag) return; drag = null; flotaAjustar(w); flotaPos(w); flotaMargen(); };
+  [bar, burb].forEach((n) => { n.addEventListener("pointerdown", ini); n.addEventListener("pointermove", mueve); n.addEventListener("pointerup", fin); n.addEventListener("pointercancel", fin); });
+  burb.addEventListener("click", () => { if (!movio) minimizar(false); });
+  // cambiar tamaño (esquina de abajo a la derecha)
+  let rs = null;
+  asa.addEventListener("pointerdown", (e) => { const r = w.getBoundingClientRect(); rs = { x: e.clientX, y: e.clientY, w: r.width, h: r.height }; try { asa.setPointerCapture(e.pointerId); } catch (_) {} e.preventDefault(); });
+  asa.addEventListener("pointermove", (e) => { if (!rs) return; w.style.width = Math.min(Math.max(300, rs.w + e.clientX - rs.x), innerWidth - 10) + "px"; w.style.height = Math.min(Math.max(320, rs.h + e.clientY - rs.y), innerHeight - 10) + "px"; });
+  asa.addEventListener("pointerup", () => { rs = null; flotaAjustar(w); flotaPos(w); flotaMargen(); });
+  document.body.appendChild(w); document.body.classList.add("adm-flotando"); chatFlota = true; flotaMargen();
   w._i = setInterval(() => { const n = clienteSel && clienteSel.etiqueta; if (n) t.textContent = "💬 " + n; }, 1500);
+  w._r = () => { flotaAjustar(w); flotaMargen(); }; window.addEventListener("resize", w._r);
 }
 function flotaDevolver() {
   const w = $("adm-flota"), v = $("admin-chat-view"); if (!w) { chatFlota = false; return; }
-  clearInterval(w._i);
+  clearInterval(w._i); window.removeEventListener("resize", w._r);
   if (flotaMarca && flotaMarca.parentNode && v) { flotaMarca.parentNode.insertBefore(v, flotaMarca); flotaMarca.remove(); }
-  w.remove(); chatFlota = false; flotaMarca = null; document.body.classList.remove("adm-flotando");
-  try { mostrarVistaAdmin("clientes"); renderListaClientes(); } catch (_) {}
+  w.remove(); chatFlota = false; flotaMarca = null; document.body.classList.remove("adm-flotando", "adm-flota-lado");
+  try { renderListaClientes(); if (vistaAdmin !== "clientes") mostrarVistaAdmin("clientes"); } catch (_) {}
 }
 function abrirChatMovilAdmin() {
   if (!esMovil() || chatFlota) return;
@@ -6218,8 +6250,9 @@ async function pintarHoy() {
   segInp.addEventListener("input", () => { const v = parseInt(segInp.value, 10); if (v > 0) promoSegBorrador = v; });
   caja.querySelector(".hoy-seg small").textContent = d.modo ? "Fijo mientras esté prendido. Para cambiarlo, apagá y volvé a prender." : "Elegilo antes de prender (15 a 600).";
   caja.querySelector(".hoy-promo-d").textContent = d.modo
-    ? `ESTÁS DISPONIBLE: cada pedido nuevo espera hasta ${fmtSeg(d.segundos)} acá (cada uno con su propio reloj). Si lo comprás vos con descuento, apretá «Ya la cargué». Si no hacés nada, sale solo con tu PIN. Si apagás o salís de Pendientes, lo que esté esperando sale con PIN al instante. La primera compra de cada ID sale siempre con PIN. Desde la segunda te llega acá, salvo ese paquete que ya resolviste («Ya la cargué», o PIN dos veces).`
+    ? `ESTÁS DISPONIBLE: cada pedido nuevo espera hasta ${fmtSeg(d.segundos)} acá (cada uno con su propio reloj). Si lo comprás vos con descuento, apretá «Ya la cargué». Si no hacés nada, sale solo con tu PIN. Si apagás o salís de Pendientes, lo que esté esperando sale con PIN al instante. La primera compra de cada ID sale siempre con PIN. Desde la segunda te llega acá, salvo ese paquete que ya resolviste («Ya la cargué» o «Mandar con PIN» una vez).`
     : "Apagado: todos los pedidos salen al instante con tus PIN. Prendelo cuando estés frente a la compu y quieras aprovechar el 50 %.";
+  { const pd = caja.querySelector(".hoy-promo-d"); pd.title = "Tocá para leer todo"; pd.addEventListener("click", () => pd.classList.toggle("abierto")); }
   chk.addEventListener("change", async () => {
     const quiere = chk.checked;
     chk.disabled = true; segInp.disabled = true;

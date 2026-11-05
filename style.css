@@ -3397,17 +3397,6 @@ em.est-raro{flex:1 1 100%;font-style:normal;font-weight:700;font-size:.76rem;col
 .nv-his-t{gap:1px}.nv-his-t b{font-size:.8rem}.nv-his-t span{font-size:.78rem;flex:none!important}
 .nv-his-ac{margin-top:2px}.nv-his-ac .nv-mini{padding:4px 9px;font-size:.74rem}
 @media (max-width:800px){.nv-hgrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.nv-his img{height:100px!important}}
-/* Chat del cliente flotante (burbuja) */
-#adm-flota{position:fixed;right:14px;bottom:14px;z-index:1200;width:min(380px,calc(100vw - 20px));height:min(72vh,580px);display:flex;flex-direction:column;background:#0e1226;border:1px solid #38bdf8;border-radius:16px;box-shadow:0 14px 44px rgba(0,0,0,.7);overflow:hidden}
-.flota-bar{display:flex;align-items:center;gap:6px;padding:6px 8px;background:linear-gradient(90deg,#16336b,#4c1d95);color:#fff}
-.flota-t{flex:1;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
-.flota-bar button{background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:50%;width:28px;height:28px;font-weight:800;cursor:pointer}
-.flota-bar .flota-x{background:#ef4444}
-#adm-flota #admin-chat-view{flex:1 1 auto!important;display:flex!important;height:auto!important;min-height:0!important;max-height:none!important;border:0!important;border-radius:0!important;min-width:0!important}
-#adm-flota.min{width:auto;height:auto;border-radius:999px;max-width:70vw}
-#adm-flota.min #admin-chat-view{display:none!important}
-body:not(.modo-admin) #adm-flota{display:none}
-@media (max-width:800px){#adm-flota{right:8px;left:8px;width:auto;height:70dvh;bottom:8px}#adm-flota.min{left:auto}}
 
 /* ===== v60d · Historias estilo cristal (iPhone) ===== */
 .hs-panel{background:linear-gradient(160deg,rgba(255,255,255,.30),rgba(255,255,255,.10) 55%,rgba(200,220,255,.18))!important;-webkit-backdrop-filter:blur(34px) saturate(1.8);backdrop-filter:blur(34px) saturate(1.8);color:#fff}
@@ -3428,3 +3417,46 @@ body:not(.modo-admin) #adm-flota{display:none}
 .sh-todas,.sh-mini{background:rgba(255,255,255,.24);border-color:rgba(255,255,255,.5)}
 .hs-panel{background:linear-gradient(160deg,rgba(236,242,255,.46),rgba(160,175,220,.40) 55%,rgba(130,140,200,.46))!important;-webkit-backdrop-filter:blur(44px) saturate(1.8)!important;backdrop-filter:blur(44px) saturate(1.8)!important}
 .hsp-cab b{white-space:nowrap;font-size:1.05rem}.hsp-cab button{white-space:nowrap}
+
+/* ===== v60e ===== */
+/* Chat flotante: se mueve, se agranda/achica, y se guarda como burbuja */
+#adm-flota{position:fixed;z-index:1200;min-width:300px;min-height:320px;display:flex;flex-direction:column;background:#0e1226;border:1px solid #38bdf8;border-radius:16px;box-shadow:0 14px 44px rgba(0,0,0,.7);overflow:hidden}
+.flota-bar{display:flex;align-items:center;gap:6px;padding:7px 8px;background:linear-gradient(90deg,#16336b,#4c1d95);color:#fff;cursor:grab;touch-action:none;user-select:none;flex:none}
+.flota-bar:active{cursor:grabbing}
+.flota-t{flex:1;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flota-bar button{background:rgba(255,255,255,.16);border:0;color:#fff;border-radius:50%;width:28px;height:28px;font-weight:800;cursor:pointer;flex:none}
+.flota-bar .flota-x{background:#ef4444}
+#adm-flota #admin-chat-view{flex:1 1 0!important;display:flex!important;height:auto!important;min-height:0!important;max-height:none!important;border:0!important;border-radius:0!important;min-width:0!important;overflow:hidden!important}
+#adm-flota #admin-chat-view .adm-msgs{flex:1 1 0!important;min-height:0!important;height:auto!important;overflow-y:auto!important}
+.flota-asa{position:absolute;right:2px;bottom:2px;width:22px;height:22px;cursor:nwse-resize;touch-action:none;z-index:5;background:linear-gradient(135deg,transparent 50%,rgba(125,211,252,.9) 50%,rgba(125,211,252,.9) 58%,transparent 58%,transparent 68%,rgba(125,211,252,.9) 68%,rgba(125,211,252,.9) 76%,transparent 76%)}
+.flota-burb{display:none;background:linear-gradient(135deg,#2563eb,#7c3aed);border:0;color:#fff;font-size:1.5rem;width:100%;height:100%;cursor:pointer;touch-action:none}
+#adm-flota.min{min-width:0;min-height:0;width:58px!important;height:58px!important;border-radius:50%;border:2px solid #7dd3fc}
+#adm-flota.min .flota-bar,#adm-flota.min #admin-chat-view,#adm-flota.min .flota-asa{display:none!important}
+#adm-flota.min .flota-burb{display:block}
+body:not(.modo-admin) #adm-flota{display:none}
+@media (max-width:800px){#adm-flota:not(.min){left:6px!important;right:6px;top:auto!important;bottom:6px!important;width:auto!important;height:72dvh!important}.flota-asa{display:none}}
+/* con el chat al costado, el panel del administrador se corre a la izquierda para no taparse */
+@media (min-width:801px){body.adm-flota-lado.modo-admin .container{max-width:max(760px,min(950px,calc(100vw - var(--flw,400px) - 14px)));margin-left:10px;margin-right:0}}
+/* Pendientes: tarjetas sin huecos (se acomodan en columnas) y texto largo plegado */
+.hoy-grid{display:block!important;columns:2 250px;column-gap:8px}
+.hoy-grid>*{break-inside:avoid;margin:0 0 8px!important;display:block}
+.hoy-promo-d{max-height:2.7em;overflow:hidden;cursor:pointer;position:relative;margin:4px 0}
+.hoy-promo-d:not(.abierto)::after{content:" … tocá para leer todo";color:#7dd3fc;font-weight:700;background:linear-gradient(90deg,transparent,#0b1a2e 18%);position:absolute;right:0;bottom:0;padding-left:20px}
+.hoy-promo-d.abierto{max-height:none}
+.hoy-promo{padding:9px 11px!important}.hoy-promo .hoy-seg{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;margin:3px 12px 3px 0}
+.hoy-nov{padding:8px 12px!important}
+.hoy-masdet .hoy-grid{margin-top:8px}
+/* Celular: el menú del panel de administrador pasa arriba como barra deslizable (más ancho para el contenido) */
+@media (max-width:800px){
+  body.modo-admin .adm-layout{grid-template-columns:minmax(0,1fr)!important;gap:6px!important}
+  body.modo-admin .adm-rail{position:static!important;flex-direction:row!important;overflow-x:auto;gap:4px;padding:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  body.modo-admin .adm-rail::-webkit-scrollbar{display:none}
+  body.modo-admin .adm-rail .admin-tab{width:auto!important;flex:0 0 auto;min-width:54px;padding:6px 8px!important}
+  body.modo-admin .adm-rail .rt-sep{width:1px;height:auto!important;margin:2px 3px!important;align-self:stretch;flex:none}
+  .adm-top{flex-wrap:nowrap;gap:6px}.adm-tit{font-size:.9rem;line-height:1.1}.adm-tit small{display:block}
+  .adm-soporte{flex:1 1 0;min-width:0;margin-left:0}.adm-soporte select{width:100%;min-width:0;font-size:11px}
+  .adm-salir{flex:none;width:36px;height:36px;padding:0;justify-content:center}
+  .hoy-grid{columns:1}
+  .hoy-promo{padding:8px 10px!important}.hoy-promo-t b{font-size:.9rem}
+  .admin-panel-card{padding:8px!important}
+}
