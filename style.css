@@ -3388,3 +3388,32 @@ em.est-raro{flex:1 1 100%;font-style:normal;font-weight:700;font-size:.76rem;col
 .hoy-grid .cli-card{border-color:rgba(74,222,128,.55)}
 .hoy-grid .cli-card .hoy-cab b{color:#86efac}
 .hub-fila[hidden],.hub-aviso[hidden]{display:none!important}
+
+/* ===== v60c ===== */
+/* Historias del admin: tarjetas compactas (sin espacios vacíos) */
+.nv-hgrid{align-items:start;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))!important;gap:8px!important}
+.nv-his{gap:5px!important;padding:7px!important}
+.nv-his img{height:120px!important}
+.nv-his-t{gap:1px}.nv-his-t b{font-size:.8rem}.nv-his-t span{font-size:.78rem;flex:none!important}
+.nv-his-ac{margin-top:2px}.nv-his-ac .nv-mini{padding:4px 9px;font-size:.74rem}
+@media (max-width:800px){.nv-hgrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.nv-his img{height:100px!important}}
+/* Chat del cliente flotante (burbuja) */
+#adm-flota{position:fixed;right:14px;bottom:14px;z-index:1200;width:min(380px,calc(100vw - 20px));height:min(72vh,580px);display:flex;flex-direction:column;background:#0e1226;border:1px solid #38bdf8;border-radius:16px;box-shadow:0 14px 44px rgba(0,0,0,.7);overflow:hidden}
+.flota-bar{display:flex;align-items:center;gap:6px;padding:6px 8px;background:linear-gradient(90deg,#16336b,#4c1d95);color:#fff}
+.flota-t{flex:1;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.flota-bar button{background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:50%;width:28px;height:28px;font-weight:800;cursor:pointer}
+.flota-bar .flota-x{background:#ef4444}
+#adm-flota #admin-chat-view{flex:1 1 auto!important;display:flex!important;height:auto!important;min-height:0!important;max-height:none!important;border:0!important;border-radius:0!important;min-width:0!important}
+#adm-flota.min{width:auto;height:auto;border-radius:999px;max-width:70vw}
+#adm-flota.min #admin-chat-view{display:none!important}
+body:not(.modo-admin) #adm-flota{display:none}
+@media (max-width:800px){#adm-flota{right:8px;left:8px;width:auto;height:70dvh;bottom:8px}#adm-flota.min{left:auto}}
+/* PC: columna derecha con Top de recargas, Cuenta Revendedor y Opiniones; contenido principal más a la izquierda */
+@media (min-width:801px){
+  body:not(.modo-admin) .container{max-width:1040px;margin-left:max(14px,calc(50% - 610px));margin-right:auto}
+  body:not(.modo-admin) .main-layout-grid{grid-template-columns:minmax(0,1fr) 330px;align-items:start}
+  body.col-der:not(.modo-admin) .right-widgets-col{display:flex;flex-direction:column;gap:14px;min-width:0;position:static}
+  body.col-der .right-widgets-col>.card{margin:0;width:100%;box-sizing:border-box;padding:14px}
+  body.col-der .right-widgets-col>#top-mes[hidden]{display:none}
+  body.col-der .right-widgets-col .comments-section{max-height:none}
+}

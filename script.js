@@ -2511,8 +2511,33 @@ function seleccionarCliente(fila, etiqueta) {
 
 // ---- Celular: el chat del cliente se abre a pantalla completa (como WhatsApp) y "atrás" vuelve a la lista ----
 const esMovil = () => window.matchMedia("(max-width: 800px)").matches;
+// ---- Chat flotante (burbuja): se puede trabajar en Pendientes u otra pantalla con el chat del cliente a un costado ----
+let chatFlota = false, flotaMarca = null;
+function flotaSacar() {
+  const v = $("admin-chat-view"); if (!v || chatFlota) return;
+  if (!clienteSel) { mostrarAviso("Primero abrí el chat de un cliente.", "info"); return; }
+  try { if ($("admin-vista-clientes")?.classList.contains("adm-chat-abierto")) { $("admin-vista-clientes").classList.remove("adm-chat-abierto"); document.body.classList.remove("adm-chat-on"); } } catch (_) {}
+  flotaMarca = document.createComment("chat-flotante"); v.parentNode.insertBefore(flotaMarca, v);
+  const w = document.createElement("div"); w.id = "adm-flota";
+  const bar = document.createElement("div"); bar.className = "flota-bar";
+  const t = document.createElement("b"); t.className = "flota-t"; t.textContent = "💬 " + (clienteSel.etiqueta || "Chat");
+  const mn = document.createElement("button"); mn.type = "button"; mn.textContent = "—"; mn.title = "Hacer burbuja"; mn.setAttribute("aria-label", "Minimizar");
+  const x = document.createElement("button"); x.type = "button"; x.textContent = "✕"; x.title = "Devolver el chat a su lugar"; x.className = "flota-x"; x.setAttribute("aria-label", "Devolver el chat");
+  mn.onclick = () => w.classList.toggle("min"); t.onclick = () => { if (w.classList.contains("min")) w.classList.remove("min"); };
+  x.onclick = () => flotaDevolver();
+  bar.append(t, mn, x); w.append(bar, v); document.body.appendChild(w); document.body.classList.add("adm-flotando"); chatFlota = true;
+  // nombre al día si cambia de cliente
+  w._i = setInterval(() => { const n = clienteSel && clienteSel.etiqueta; if (n) t.textContent = "💬 " + n; }, 1500);
+}
+function flotaDevolver() {
+  const w = $("adm-flota"), v = $("admin-chat-view"); if (!w) { chatFlota = false; return; }
+  clearInterval(w._i);
+  if (flotaMarca && flotaMarca.parentNode && v) { flotaMarca.parentNode.insertBefore(v, flotaMarca); flotaMarca.remove(); }
+  w.remove(); chatFlota = false; flotaMarca = null; document.body.classList.remove("adm-flotando");
+  try { mostrarVistaAdmin("clientes"); renderListaClientes(); } catch (_) {}
+}
 function abrirChatMovilAdmin() {
-  if (!esMovil()) return;
+  if (!esMovil() || chatFlota) return;
   const v = $("admin-vista-clientes");
   if (!v || v.classList.contains("adm-chat-abierto")) return;
   v.classList.add("adm-chat-abierto");
@@ -5329,6 +5354,7 @@ function armarMenuChat() {
     if (det) det.open = abrirYa && nodos.includes(det);
     if (abrirYa && enfocar) setTimeout(() => enfocar.focus(), 50);
   };
+  item("🪟", chatFlota ? "Devolver el chat a su lugar" : "Sacar el chat afuera (burbuja)", () => { chatFlota ? flotaDevolver() : flotaSacar(); });
   item("✖️", "Cerrar chat", () => cerrarChatActual());
   const bArch = item("🗄️", "", () => { const m = metaDe(uid); guardarMeta(uid, { archivado: !m.archivado }); if (!m.archivado) cerrarChatActual(); });
   actualizadores.push(() => { bArch.querySelector("b").textContent = metaDe(uid).archivado ? "Sacar de archivados" : "Archivar chat"; bArch.firstElementChild.textContent = metaDe(uid).archivado ? "📤" : "🗄️"; });
@@ -7812,7 +7838,7 @@ const NOV = (function novedades() {
     const top = Math.max(hb, 0) + 10, h = Math.max(300, Math.min(470, innerHeight - top - 16));
     rs.setProperty("--cx", Math.round(c.left) + "px"); rs.setProperty("--cw", Math.round(c.width) + "px");
     rs.setProperty("--cy", top + "px"); rs.setProperty("--ch", h + "px");
-    const ancho = document.getElementById("top-mes") || document.getElementById("auth-section");
+    const ancho = document.body.classList.contains("col-der") ? null : (document.getElementById("top-mes") || document.getElementById("auth-section"));
     let mini = false;
     if (ancho) { const y = ancho.getBoundingClientRect().top; mini = y < top + h + 12; }
     const antes = document.body.classList.contains("chat-mini");
@@ -7965,7 +7991,7 @@ const NOV = (function novedades() {
     setInterval(() => { if (!document.hidden) { pintarPunto(); if (activo === "hub") pintarHub(); } }, 20000);
     setTimeout(pintarPunto, 4000);
     // PC: la lista de chats es lo primero que se ve en el lugar del chat
-    setTimeout(() => { if (esPC() && !activo && !document.body.classList.contains("tour-on") && !document.body.classList.contains("chat-mini")) window.abrirHub(); }, 500);
+    setTimeout(() => { if (esPC() && !document.body.classList.contains("col-der") && !activo && !document.body.classList.contains("tour-on") && !document.body.classList.contains("chat-mini")) window.abrirHub(); }, 500);
   }
   supabase.auth.onAuthStateChange(() => { setTimeout(() => { pintarPunto(); if (activo === "hub") pintarHub(); }, 700); });
   document.addEventListener("DOMContentLoaded", iniciar);
@@ -8197,4 +8223,23 @@ const NOV = (function novedades() {
   document.addEventListener("DOMContentLoaded", () => {
     new MutationObserver(revisar).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["hidden", "class"] });
   });
+})();
+
+
+// ===== v60c · PC: "Top de recargas", "Cuenta Revendedor" y "Opiniones" suben a la columna derecha (vacía) =====
+(function columnaDerecha() {
+  const IDS = ["top-mes", "auth-section", "opiniones"], marcas = {};
+  const mq = matchMedia("(min-width: 801px)");
+  function ubicar() {
+    const col = document.querySelector(".right-widgets-col"); if (!col) return;
+    IDS.forEach((id) => {
+      const n = document.getElementById(id); if (!n) return;
+      if (!marcas[id]) { marcas[id] = document.createComment(id); n.parentNode.insertBefore(marcas[id], n); }
+      if (mq.matches) { if (n.parentNode !== col) col.appendChild(n); }
+      else if (n.parentNode === col && marcas[id].parentNode) marcas[id].parentNode.insertBefore(n, marcas[id].nextSibling);
+    });
+    document.body.classList.toggle("col-der", mq.matches);
+  }
+  document.addEventListener("DOMContentLoaded", () => { ubicar(); setTimeout(ubicar, 800); });
+  (mq.addEventListener ? mq.addEventListener("change", ubicar) : mq.addListener(ubicar));
 })();
