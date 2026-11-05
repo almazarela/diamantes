@@ -3606,3 +3606,69 @@ body.chat-con-fondo .chat-v2 .chat-messages-area,body.chat-con-fondo #admin-msgs
 .pf-card .pf-sub,.pf-card .pf-dato small,.pf-card .pf-bio.vacio{color:#e2e9f8!important}
 .pf-card *{text-shadow:0 1px 6px rgba(0,0,0,.55)}
 .pf-num{display:inline-block;padding:2px 11px;border-radius:99px;background:linear-gradient(135deg,#ffd75e,#ff8a00);color:#2a1500!important;font-weight:900;font-size:.9rem;text-shadow:none!important;box-shadow:0 0 12px rgba(255,170,0,.5)}
+
+/* ===== v63 ===== */
+/* menú lateral: el fondo grande, la cabecera y el pie con el mismo vidrio que los chats */
+.sidebar-menu{background:linear-gradient(160deg,rgba(255,255,255,.14),rgba(20,28,64,.46) 60%,rgba(10,14,36,.55))!important;-webkit-backdrop-filter:blur(26px) saturate(1.6)!important;backdrop-filter:blur(26px) saturate(1.6)!important;border-right:1px solid rgba(255,255,255,.34)!important}
+.sidebar-menu .sidebar-header,.sidebar-menu .sidebar-content,.sidebar-menu .sidebar-footer{background:transparent!important;box-shadow:none!important}
+.sidebar-menu .sidebar-header,.sidebar-menu .sidebar-footer{border-color:rgba(255,255,255,.2)!important}
+.sidebar-menu .sb-txt small.sb-okv,.sidebar-menu small.sb-okv{color:#4ef38d!important;font-weight:700}
+
+/* barra de arriba: región más visible y saldos con los colores de "Cargar saldo" */
+.region{background:rgba(0,0,0,.38)!important;border:1px solid rgba(15,214,228,.6)!important;color:#fff!important;font-weight:700!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);text-shadow:0 1px 5px rgba(0,0,0,.8)}
+.region .region-es{color:#7fefff}
+.saldo-usd-badge{animation:none!important;border-radius:12px!important;color:#fff!important;font-weight:800;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:inset 0 1px 0 rgba(255,255,255,.22)!important;text-shadow:0 1px 4px rgba(0,0,0,.55)}
+.saldo-usd-badge i{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:8px;font-size:13px;flex:none;text-shadow:none}
+.saldo-binance{background:linear-gradient(135deg,rgba(243,186,47,.38),rgba(150,100,10,.2))!important;border:1.5px solid #f3ba2f!important;box-shadow:0 0 14px rgba(243,186,47,.25),inset 0 1px 0 rgba(255,255,255,.22)!important}
+.saldo-binance i{background:linear-gradient(135deg,#ffd75a,#f3ba2f);color:#2a1c00}
+.saldo-mp{background:linear-gradient(135deg,rgba(0,158,227,.4),rgba(0,90,170,.2))!important;border:1.5px solid #3fb4ff!important;box-shadow:0 0 14px rgba(0,158,227,.25),inset 0 1px 0 rgba(255,255,255,.22)!important}
+.saldo-mp i{background:linear-gradient(135deg,#00b4ff,#0072d6);color:#fff}
+@media (min-width:801px){.saldo-usd-badge{padding:8px 14px!important;font-size:.82rem!important}}
+
+/* logo Zarela: paz y fuego */
+.zl{background:linear-gradient(100deg,#7fffe0 0%,#fff3b0 18%,#ffc14d 36%,#ff6a1f 54%,#ff3d2e 66%,#ffc14d 82%,#7fffe0 100%)!important;background-size:260% 100%!important;-webkit-background-clip:text!important;background-clip:text!important;-webkit-text-fill-color:transparent!important;animation:zl-flow 6s linear infinite,zl-fuego 1.9s ease-in-out infinite!important;-webkit-text-stroke:.5px rgba(60,10,0,.45);letter-spacing:2.5px}
+@keyframes zl-fuego{0%,100%{filter:drop-shadow(0 0 4px rgba(255,120,30,.75)) drop-shadow(0 -2px 8px rgba(255,70,20,.5))}35%{filter:drop-shadow(0 0 8px rgba(255,170,50,.95)) drop-shadow(0 -4px 12px rgba(255,90,20,.65))}70%{filter:drop-shadow(0 0 5px rgba(127,255,224,.7)) drop-shadow(0 -2px 9px rgba(255,100,30,.55))}}
+.zl-flor{color:#ffb3d0!important;text-shadow:0 0 10px rgba(255,140,60,.9),0 0 20px rgba(127,255,224,.6)!important}
+
+/* perfil: botones claros y fijos arriba */
+#pf-modal .pf-volver,#pf-modal .pf-x{position:fixed!important;top:14px;z-index:30;display:inline-flex;align-items:center;gap:6px;height:42px;padding:0 18px!important;border-radius:99px!important;width:auto!important;font:800 .92rem Poppins,sans-serif!important;color:#fff!important;background:rgba(10,14,36,.45)!important;border:1px solid rgba(255,255,255,.55)!important;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 4px 18px rgba(0,0,0,.35);cursor:pointer}
+#pf-modal .pf-volver{left:14px}#pf-modal .pf-x{right:14px}
+#pf-modal .pf-volver:hover,#pf-modal .pf-x:hover{background:rgba(255,255,255,.22)!important}
+@media (max-width:520px){#pf-modal .pf-volver,#pf-modal .pf-x{height:38px;padding:0 13px!important;font-size:.82rem!important;top:10px}#pf-modal .pf-volver{left:10px}#pf-modal .pf-x{right:10px}}
+/* portada en formato ancho, sin deformarse */
+#pf-modal .pf-card>.pf-cover,.pf-card>.pf-cover{width:min(920px,100%)!important;height:auto!important;aspect-ratio:3.5/1;margin:0 auto;border-radius:0 0 22px 22px!important;background-size:cover!important;background-position:center}
+.pf-zoom{cursor:zoom-in}.pf-mover{cursor:ns-resize;touch-action:none;outline:2px dashed rgba(255,255,255,.7);outline-offset:-6px}
+#pf-modal .pf-av{margin-top:-52px!important}
+#pf-modal .pf-av,#pf-modal .pf-av .pf-av-i{width:104px!important;height:104px!important}
+@media (max-width:520px){#pf-modal .pf-av,#pf-modal .pf-av .pf-av-i{width:84px!important;height:84px!important}#pf-modal .pf-av{margin-top:-42px!important;margin-left:16px!important}#pf-modal .pf-cuerpo{padding:8px 16px 40px!important}}
+/* descripción con marco de cristal y color elegido */
+.pf-bio.pf-marco{padding:10px 14px;border-radius:16px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.4);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+.pf-bio.pf-marco.con-color{border-color:var(--mc);box-shadow:0 0 14px color-mix(in srgb,var(--mc) 45%,transparent),inset 0 1px 0 rgba(255,255,255,.35)}
+/* destacadas y fotos */
+.pf-gal{margin-top:16px}
+.pf-dest{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:none}.pf-dest::-webkit-scrollbar{display:none}
+.pf-d{flex:0 0 auto;width:72px;background:none;border:0;color:#fff;cursor:pointer;display:grid;justify-items:center;gap:5px;font:inherit}
+.pf-d-c{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;font-size:1.5rem;background:rgba(255,255,255,.1) center/cover;border:2px solid transparent;background-origin:border-box;box-shadow:0 0 0 2px rgba(255,200,90,.95),0 4px 14px rgba(0,0,0,.35)}
+.pf-d-nueva .pf-d-c{box-shadow:0 0 0 2px rgba(255,255,255,.55);border:2px dashed rgba(255,255,255,.7);color:#fff;font-size:1.8rem}
+.pf-d small{font-size:.7rem;font-weight:700;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (min-width:801px){.pf-d{width:84px}.pf-d-c{width:78px;height:78px}}
+.pf-gal-h{display:flex;align-items:center;justify-content:space-between;margin:8px 0 8px}.pf-gal-h b{font-size:1rem}
+.pf-add{padding:7px 14px!important;font-size:.8rem}
+.pf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+@media (min-width:801px){.pf-grid{grid-template-columns:repeat(4,1fr);gap:6px}}
+.pf-t{position:relative;aspect-ratio:1/1;border:0;padding:0;border-radius:10px;overflow:hidden;background:rgba(255,255,255,.08);cursor:pointer}
+.pf-t img{width:100%;height:100%;object-fit:cover;display:block}
+.pf-t-l{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.5);color:#fff;font-size:.68rem;font-weight:800;padding:2px 7px;border-radius:99px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.pf-grid-sel .pf-t.on{outline:3px solid #19e68c;outline-offset:-3px}.pf-grid-sel .pf-t.on::after{content:"✓";position:absolute;right:6px;top:6px;background:#19e68c;color:#04210f;border-radius:50%;width:20px;height:20px;display:grid;place-items:center;font-weight:900;font-size:.8rem}
+.pf-nd{display:grid;gap:8px;padding:12px;margin-bottom:10px;border-radius:16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.3)}
+/* visor */
+#pf-visor{position:fixed;inset:0;z-index:100050;background:rgba(4,6,18,.82);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);display:grid;grid-template-rows:1fr auto;place-items:center;padding:60px 12px 12px}
+#pf-visor .pfv-img{max-width:100%;max-height:calc(100dvh - 150px);object-fit:contain;border-radius:14px;box-shadow:0 10px 50px rgba(0,0,0,.6)}
+#pf-visor .pfv-x{position:absolute;top:14px;right:14px;height:42px;padding:0 18px;border-radius:99px;font:800 .92rem Poppins,sans-serif;color:#fff;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.55);cursor:pointer}
+#pf-visor .pfv-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.14);color:#fff;font-size:1.6rem;cursor:pointer}
+#pf-visor .pfv-prev{left:10px}#pf-visor .pfv-next{right:10px}
+#pf-visor .pfv-pie{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;padding-top:10px;color:#fff}
+#pf-visor .pfv-like,#pf-visor .pfv-bor{height:40px;padding:0 16px;border-radius:99px;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.14);color:#fff;font:800 .9rem Poppins,sans-serif;cursor:pointer}
+#pf-visor .pfv-like.on{background:rgba(236,72,153,.35);border-color:#ec4899}
+#pf-visor .pfv-bor{border-color:#ff9a9a;color:#ffd0d0}
+@media (max-width:520px){#pf-visor .pfv-x{top:10px;right:10px;height:38px;padding:0 13px;font-size:.82rem}}

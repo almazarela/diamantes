@@ -8139,13 +8139,15 @@ const NOV = (function novedades() {
     if (p.yo && !p.es_soporte) await cargarVerif();
     pintarPerfil(p, false);
   }
-  const botonX = () => { const b = el("button", "pf-x", "✕"); b.type = "button"; b.setAttribute("aria-label", "Cerrar"); b.onclick = cerrar; return b; };
+  const botonX = () => { const b = el("button", "pf-x", "✕ Cerrar"); b.type = "button"; b.setAttribute("aria-label", "Cerrar"); b.onclick = cerrar; return b; };
 
   function pintarPerfil(p, editando) {
     const card = E("pf-card"); card.innerHTML = ""; card.className = "pf-card" + (p.es_soporte ? " pf-oro" : "");
     const cov = el("div", "pf-cover"); cov.style.background = coverCss(p); card.appendChild(cov);
+    if (p.portada && !editando) { cov.classList.add("pf-zoom"); cov.title = "Tocá para ver la foto"; cov.onclick = () => visor([{ url: urlPortada(p.portada) }], 0); }
     const vol = el("button", "pf-volver", "‹ Volver"); vol.type = "button"; vol.onclick = cerrar; card.appendChild(vol); card.appendChild(botonX());
     const av = el("div", "pf-av"); av.appendChild(miniAv(p.nombre, p.foto, "pf-av-i")); card.appendChild(av);
+    if (p.foto && !editando) { av.classList.add("pf-zoom"); av.title = "Tocá para ver la foto"; av.onclick = () => visor([{ url: p.foto }], 0); }
     const cu = el("div", "pf-cuerpo"); card.appendChild(cu);
     // nombre + sellos
     const nom = el("div", "pf-nom"); nom.appendChild(el("h3", "", p.nombre));
@@ -8160,11 +8162,11 @@ const NOV = (function novedades() {
     if (ni >= 0 && NIVELES[ni]) { const b = el("span", "niv-ins n" + ni, NIVELES[ni].ico + " " + NIVELES[ni].n); b.title = "Nivel " + NIVELES[ni].n; cu.appendChild(b); }
     if (editando) return pintarEditor(p, cu);
     // descripción
-    cu.appendChild(el("p", "pf-bio" + (p.bio ? "" : " vacio"), p.bio || (p.yo ? "Todavía no escribiste nada sobre vos. ¡Tocá «Editar perfil»!" : p.es_soporte ? "Estamos para ayudarte con tus recargas 💎" : "Sin descripción todavía.")));
+    { const bi = el("p", "pf-bio" + (p.bio ? " pf-marco" : " vacio"), p.bio || (p.yo ? "Todavía no escribiste nada sobre vos. ¡Tocá «Editar perfil»!" : p.es_soporte ? "Estamos para ayudarte con tus recargas 💎" : "Sin descripción todavía.")); if (p.bio && p.marco) { bi.style.setProperty("--mc", p.marco); bi.classList.add("con-color"); } cu.appendChild(bi); }
     // números
     const st = el("div", "pf-stats");
     const dato = (n, t) => { const d = el("div", "pf-dato"); d.appendChild(el("b", "", n)); d.appendChild(el("small", "", t)); st.appendChild(d); return d; };
-    dato(fmtN(p.recargas), p.es_soporte ? "Recargas entregadas a clientes" : "Recargas"); dato(fmtN(p.diamantes) + " 💎", p.es_soporte ? "Diamantes entregados a clientes" : "Diamantes");
+    dato(fmtN(p.recargas), "Recargas"); dato(fmtN(p.diamantes) + " 💎", "Diamantes recargados");
     const dl = dato(fmtN(p.likes), "Me gusta ❤️"); if (!p.es_soporte) dato(fmtN(p.amigos), "Amigos");
     cu.appendChild(st);
     // acciones
@@ -8190,6 +8192,85 @@ const NOV = (function novedades() {
           ac.appendChild(w); }
       }
     }
+    pintarGaleria(cu, p);
+  }
+
+  // recorta la portada a formato ancho (3,5 : 1) eligiendo la franja que la persona acomodó
+  const recortarPortada = (file, fy) => new Promise((res, rej) => { const im = new Image(), u = URL.createObjectURL(file);
+    im.onload = () => { const R = 3.5, w = im.width, h = im.height; let sx = 0, sy = 0, cw = w, ch = h;
+      if (w / h < R) { ch = w / R; sy = (h - ch) * Math.min(1, Math.max(0, fy)); } else { cw = h * R; sx = (w - cw) / 2; }
+      const cv = document.createElement("canvas"); cv.width = 1400; cv.height = 400; cv.getContext("2d").drawImage(im, sx, sy, cw, ch, 0, 0, 1400, 400);
+      cv.toBlob((b) => (b ? res(b) : rej()), "image/jpeg", 0.8); URL.revokeObjectURL(u); }; im.onerror = rej; im.src = u; });
+
+  // visor de fotos a pantalla completa (portada, foto de perfil, fotos del perfil)
+  function visor(items, i0, opc) {
+    opc = opc || {}; let i = i0 || 0; document.getElementById("pf-visor")?.remove();
+    const v = el("div"); v.id = "pf-visor"; v.setAttribute("role", "dialog"); v.setAttribute("aria-modal", "true");
+    const x = el("button", "pfv-x", "✕ Cerrar"); x.type = "button";
+    const im = el("img", "pfv-img"); im.alt = "";
+    const pie = el("div", "pfv-pie"), pr = el("button", "pfv-nav pfv-prev", "‹"), nx = el("button", "pfv-nav pfv-next", "›");
+    pr.type = nx.type = "button";
+    const cerrarV = () => { v.remove(); document.removeEventListener("keydown", tecla, true); };
+    const tecla = (e) => { if (e.key === "Escape") { e.stopPropagation(); cerrarV(); } else if (e.key === "ArrowLeft" && i > 0) { i--; pintar(); } else if (e.key === "ArrowRight" && i < items.length - 1) { i++; pintar(); } };
+    function pintar() {
+      const it = items[i]; im.src = it.url; pie.innerHTML = ""; pr.hidden = i <= 0; nx.hidden = i >= items.length - 1;
+      if (opc.titulo) pie.appendChild(el("b", "pfv-t", opc.titulo + (items.length > 1 ? "  " + (i + 1) + "/" + items.length : "")));
+      if (it.id) {
+        const lk = el("button", "pfv-like" + (it.mi_like ? " on" : ""), (it.mi_like ? "❤️ " : "🤍 ") + (it.likes || 0)); lk.type = "button";
+        lk.onclick = async () => { if (!usuarioActual) { mostrarAviso("Ingresá con Google para dar Me gusta.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
+          try { const { data, error } = await supabase.rpc("foto_like", { p_id: it.id }); if (error) throw error; it.mi_like = data.mi_like; it.likes = data.likes; lk.className = "pfv-like" + (it.mi_like ? " on" : ""); lk.textContent = (it.mi_like ? "❤️ " : "🤍 ") + it.likes; if (opc.alCambiar) opc.alCambiar(); } catch (_) { mostrarAviso("No se pudo dar Me gusta ahora.", "error"); } };
+        pie.appendChild(lk);
+        if (it.puedeBorrar) { const bb = el("button", "pfv-bor", "🗑 Borrar foto"); bb.type = "button"; bb.onclick = async () => { if (!confirm("¿Borrar esta foto?")) return; try { const { error } = await supabase.rpc("foto_borrar", { p_id: it.id }); if (error) throw error; try { supabase.storage.from("chatfotos").remove([it.path]); } catch (_) {} cerrarV(); if (opc.alBorrar) opc.alBorrar(); } catch (_) { mostrarAviso("No se pudo borrar.", "error"); } }; pie.appendChild(bb); }
+      }
+      if (opc.borrarDest) { const bd = el("button", "pfv-bor", "🗑 Eliminar destacada"); bd.type = "button"; bd.onclick = async () => { if (!confirm("¿Eliminar esta destacada? Las fotos quedan en tu perfil.")) return; try { const { error } = await supabase.rpc("destacada_borrar", { p_id: opc.borrarDest }); if (error) throw error; cerrarV(); if (opc.alBorrar) opc.alBorrar(); } catch (_) { mostrarAviso("No se pudo eliminar.", "error"); } }; pie.appendChild(bd); }
+    }
+    pr.onclick = (e) => { e.stopPropagation(); if (i > 0) { i--; pintar(); } }; nx.onclick = (e) => { e.stopPropagation(); if (i < items.length - 1) { i++; pintar(); } };
+    x.onclick = cerrarV; v.onclick = (e) => { if (e.target === v || e.target === im) cerrarV(); };
+    v.append(x, pr, im, nx, pie); document.body.appendChild(v); document.addEventListener("keydown", tecla, true); pintar();
+  }
+
+  // destacadas (burbujitas) y fotos con Me gusta
+  async function pintarGaleria(cu, p) {
+    const box = el("div", "pf-gal"); cu.appendChild(box);
+    let g = null; try { const { data, error } = await supabase.rpc("perfil_galeria", { p_id: p.id }); if (error) throw error; g = data; } catch (_) { if (p.yo) box.appendChild(el("p", "pf-chico", "Para tener fotos y destacadas hay que ejecutar el SQL v47.")); return; }
+    if (!g) return; const fotos = g.fotos || [], dests = g.destacadas || [], mia = !!p.yo, adm = (() => { try { return esAdminActual(); } catch (_) { return false; } })();
+    const mapF = (f) => ({ id: f.id, path: f.path, url: urlPortada(f.path), likes: f.likes, mi_like: f.mi_like, puedeBorrar: mia || adm });
+    const refrescar = () => { box.remove(); pintarGaleria(cu, p); };
+    if (dests.length || mia) {
+      const fila = el("div", "pf-dest"); box.appendChild(fila);
+      if (mia) { const n = el("button", "pf-d pf-d-nueva"); n.type = "button"; n.appendChild(el("span", "pf-d-c", "＋")); n.appendChild(el("small", "", "Nueva")); n.onclick = () => formDest(box, fotos, refrescar); fila.appendChild(n); }
+      dests.forEach((d) => { const b = el("button", "pf-d"); b.type = "button"; const c = el("span", "pf-d-c"); if (d.portada) c.style.backgroundImage = "url('" + urlPortada(d.portada) + "')"; else c.textContent = "⭐"; b.appendChild(c); b.appendChild(el("small", "", d.nombre));
+        b.onclick = () => { const fs = fotos.filter((f) => f.destacada_id === d.id).map(mapF); if (!fs.length) { mostrarAviso("Esta destacada todavía no tiene fotos.", "info"); return; } visor(fs, 0, { titulo: d.nombre, borrarDest: mia || adm ? d.id : null, alBorrar: refrescar, alCambiar: () => {} }); }; fila.appendChild(b); });
+    }
+    if (fotos.length || mia) {
+      const h = el("div", "pf-gal-h"); h.appendChild(el("b", "", "📷 Fotos"));
+      if (mia) { const fi = el("input"); fi.type = "file"; fi.accept = "image/*"; fi.hidden = true; const ab = el("button", "pf-sec pf-add", "＋ Agregar foto"); ab.type = "button"; ab.onclick = () => fi.click();
+        fi.onchange = async () => { const f = fi.files && fi.files[0]; fi.value = ""; if (!f) return; ab.disabled = true; ab.textContent = "Subiendo…";
+          try { const blob = await comprimir(f); const path = usuarioActual.id + "/gal-" + Date.now() + ".jpg"; const { error } = await supabase.storage.from("chatfotos").upload(path, blob, { contentType: "image/jpeg", upsert: false }); if (error) throw error; const r = await supabase.rpc("foto_agregar", { p_path: path }); if (r.error) throw r.error; refrescar(); }
+          catch (e) { mostrarAviso(String((e && e.message) || "").includes("LIMITE") ? "Llegaste al máximo de 60 fotos." : "No se pudo subir la foto. Probá con otra.", "error"); ab.disabled = false; ab.textContent = "＋ Agregar foto"; } };
+        h.append(ab, fi); }
+      box.appendChild(h);
+      if (!fotos.length) box.appendChild(el("p", "pf-chico", "Todavía no subiste fotos. ¡Subí la primera! Solo se permiten Me gusta (sin comentarios)."));
+      const gr = el("div", "pf-grid"); box.appendChild(gr);
+      const todas = fotos.map(mapF);
+      fotos.forEach((f, k) => { const t = el("button", "pf-t"); t.type = "button"; const im = el("img"); im.loading = "lazy"; im.alt = ""; im.src = urlPortada(f.path); t.appendChild(im);
+        const lk = el("span", "pf-t-l", "❤ " + (todas[k].likes || 0)); t.appendChild(lk);
+        t.onclick = () => visor(todas, k, { alBorrar: refrescar, alCambiar: () => { lk.textContent = "❤ " + (todas[k].likes || 0); } }); gr.appendChild(t); });
+    }
+  }
+  function formDest(box, fotos, listo) {
+    if (!fotos.length) { mostrarAviso("Primero subí algunas fotos y después armás tus destacadas.", "info"); return; }
+    box.querySelector(".pf-nd")?.remove();
+    const f = el("div", "pf-nd"); f.appendChild(el("b", "", "⭐ Nueva destacada"));
+    const nm = el("input", "pf-in"); nm.maxLength = 14; nm.placeholder = "Nombre (hasta 14 letras)"; f.appendChild(nm);
+    f.appendChild(el("small", "pf-chico", "Elegí las fotos que van adentro:"));
+    const gr = el("div", "pf-grid pf-grid-sel"); const sel = new Set();
+    fotos.forEach((x) => { const t = el("button", "pf-t"); t.type = "button"; const im = el("img"); im.alt = ""; im.src = urlPortada(x.path); t.appendChild(im); t.onclick = () => { if (sel.has(x.id)) { sel.delete(x.id); t.classList.remove("on"); } else { sel.add(x.id); t.classList.add("on"); } }; gr.appendChild(t); });
+    f.appendChild(gr);
+    const ac = el("div", "pf-acc"); const ok = el("button", "al-ok", "Crear"); ok.type = "button"; const no = el("button", "pf-sec", "Cancelar"); no.type = "button"; no.onclick = () => f.remove();
+    ok.onclick = async () => { if (!nm.value.trim()) { mostrarAviso("Ponele un nombre.", "info"); return; } if (!sel.size) { mostrarAviso("Elegí al menos una foto.", "info"); return; } ok.disabled = true;
+      try { const { error } = await supabase.rpc("destacada_crear", { p_nombre: nm.value, p_fotos: [...sel] }); if (error) throw error; listo(); } catch (e) { mostrarAviso(String((e && e.message) || "").includes("LINK") ? "Ese nombre no está permitido." : msgErr(e, "No se pudo crear."), "error"); ok.disabled = false; } };
+    ac.append(ok, no); f.appendChild(ac); box.prepend(f); nm.focus();
   }
 
   function pintarVerif(cu, p) {
@@ -8216,6 +8297,8 @@ const NOV = (function novedades() {
       const al = E("al-modal"); if (al && !al.dataset.pfObs) { al.dataset.pfObs = "1"; new MutationObserver(() => { if (al.hidden && !E("pf-modal").hidden) { if (usuarioActual && window.abrirPerfil) window.abrirPerfil(usuarioActual.id); } }).observe(al, { attributes: true, attributeFilter: ["hidden"] }); } }
     const bio = el("textarea", "pf-ta"); bio.maxLength = 140; bio.rows = 3; bio.value = p.bio || ""; bio.placeholder = p.es_soporte ? "Escribí tu presentación…" : "Contá algo sobre vos (máx. 140 letras, sin links ni teléfonos)";
     cu.appendChild(el("label", "pf-lab", "Descripción")); cu.appendChild(bio);
+    let marco = p.marco || ""; cu.appendChild(el("label", "pf-lab", "Color del marco de tu descripción")); const mw = el("div", "pf-sw");
+    ["", "#7fd6ff", "#19e68c", "#ffd75e", "#ff8a00", "#ff4d6d", "#ff8fc7", "#b388ff", "#ffffff"].forEach((c) => { const b = el("button", "pf-fb" + (marco === c ? " on" : "")); b.type = "button"; b.style.background = c || "rgba(255,255,255,.12)"; b.title = c ? "Color" : "Sin color"; if (!c) b.textContent = "∅"; b.onclick = () => { marco = c; mw.querySelectorAll(".pf-fb").forEach((x) => x.classList.remove("on")); b.classList.add("on"); }; mw.appendChild(b); }); cu.appendChild(mw);
     let tit = null; if (p.es_soporte) { cu.appendChild(el("label", "pf-lab", "Título (debajo de tu nombre)")); tit = el("input", "pf-in"); tit.maxLength = 40; tit.value = p.titulo || ""; tit.placeholder = "Ej: Dueña · Soporte de Recargas Zarela"; cu.appendChild(tit); }
     cu.appendChild(el("label", "pf-lab", "Fondo de tu perfil"));
     let sel = p.fondo || "", portada = null, subiendo = false; const sw = el("div", "pf-sw");
@@ -8233,16 +8316,25 @@ const NOV = (function novedades() {
     cu.appendChild(el("label", "pf-lab", "O poné tu propia foto de portada 📷"));
     const fr = el("div", "pf-acc"); const fi = el("input"); fi.type = "file"; fi.accept = "image/*"; fi.hidden = true;
     const bf = el("button", "pf-sec", "📷 Elegir foto de portada"); bf.type = "button"; bf.onclick = () => fi.click();
-    const bq = el("button", "pf-sec", "Quitar portada"); bq.type = "button"; bq.hidden = !p.portada; bq.onclick = () => { portada = ""; p.portada = null; bq.hidden = true; const c = cover(); if (c) c.style.background = fondoCss(sel, p.es_soporte); };
-    fi.onchange = async () => { const f = fi.files && fi.files[0]; fi.value = ""; if (!f) return; subiendo = true; bf.textContent = "Subiendo…";
-      try { const blob = await comprimir(f); const path = usuarioActual.id + "/portada-" + Date.now() + ".jpg"; const { error } = await supabase.storage.from("chatfotos").upload(path, blob, { contentType: "image/jpeg", upsert: false }); if (error) throw error; portada = path; p.portada = path; bq.hidden = false; const c = cover(); if (c) c.style.background = coverCss(p); sw.querySelectorAll(".pf-fb").forEach((x) => x.classList.remove("on")); }
-      catch (_) { mostrarAviso("No se pudo subir la foto. Probá con otra.", "error"); }
-      subiendo = false; bf.textContent = "📷 Elegir foto de portada"; };
+    let pend = null;
+    const bq = el("button", "pf-sec", "Quitar portada"); bq.type = "button"; bq.hidden = !p.portada; bq.onclick = () => { portada = ""; p.portada = null; pend = null; bq.hidden = true; const c = cover(); if (c) c.style.background = fondoCss(sel, p.es_soporte); };
+    fi.onchange = async () => { const f = fi.files && fi.files[0]; fi.value = ""; if (!f) return;
+      try {
+        const u = URL.createObjectURL(f); const im = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = u; });
+        pend = { file: f, fy: 0.5, w: im.width, h: im.height }; bq.hidden = false; sw.querySelectorAll(".pf-fb").forEach((x) => x.classList.remove("on"));
+        const c = cover(); if (!c) return; const pintar = () => { c.style.background = "linear-gradient(rgba(0,0,0,.12),rgba(0,0,0,.12)),url('" + u + "') 50% " + Math.round(pend.fy * 100) + "%/cover"; }; pintar();
+        c.classList.add("pf-mover"); let d = null; const hint = E("pf-hint-mover") || el("p", "pf-chico", "↕ Arrastrá la portada para acomodarla como quieras."); hint.id = "pf-hint-mover"; if (!hint.parentNode) fr.after(hint);
+        c.onpointerdown = (e) => { d = { y: e.clientY, fy: pend.fy }; try { c.setPointerCapture(e.pointerId); } catch (_) {} };
+        c.onpointermove = (e) => { if (!d) return; const cw = c.clientWidth, ch = c.clientHeight; const sh = Math.max(1, cw * pend.h / pend.w - ch); pend.fy = Math.min(1, Math.max(0, d.fy - (e.clientY - d.y) / sh)); pintar(); };
+        c.onpointerup = c.onpointercancel = () => { d = null; };
+      } catch (_) { mostrarAviso("No se pudo abrir esa foto. Probá con otra.", "error"); } };
     fr.append(bf, bq, fi); cu.appendChild(fr);
     cu.appendChild(el("p", "pf-chico", "Tu foto es la de tu cuenta de Google. Si la cambiás ahí, acá se actualiza sola."));
     const ac = el("div", "pf-acc"); cu.appendChild(ac);
     const g = el("button", "al-ok", "Guardar"); g.type = "button";
-    g.onclick = async () => { if (subiendo) return; g.disabled = true; try { const { error } = await supabase.rpc("mi_perfil_guardar", { p_bio: bio.value, p_fondo: sel, p_titulo: tit ? tit.value : null, p_portada: portada }); if (error) throw error; mostrarAviso("Perfil guardado ✔", "exito"); abrirPerfil(p.id); } catch (e) { mostrarAviso(msgErr(e, "No se pudo guardar."), "error"); g.disabled = false; } };
+    g.onclick = async () => { if (subiendo) return; g.disabled = true; try {
+      if (pend) { const blob = await recortarPortada(pend.file, pend.fy); const path = usuarioActual.id + "/portada-" + Date.now() + ".jpg"; const { error: eu } = await supabase.storage.from("chatfotos").upload(path, blob, { contentType: "image/jpeg", upsert: false }); if (eu) throw eu; portada = path; }
+      const { error } = await supabase.rpc("mi_perfil_guardar", { p_bio: bio.value, p_fondo: sel, p_titulo: tit ? tit.value : null, p_portada: portada }); if (error) throw error; try { await supabase.rpc("mi_perfil_marco", { p_color: marco }); } catch (_) {} mostrarAviso("Perfil guardado ✔", "exito"); abrirPerfil(p.id); } catch (e) { mostrarAviso(msgErr(e, "No se pudo guardar."), "error"); g.disabled = false; } };
     const c = el("button", "pf-sec", "Cancelar"); c.type = "button"; c.onclick = () => pintarPerfil(p, false);
     ac.appendChild(g); ac.appendChild(c);
   }
