@@ -3505,4 +3505,63 @@ body:not(.modo-admin) #adm-flota{display:none}
 .cm-fondo{flex:0 0 auto;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:.85rem;margin-left:auto}
 .cm-fondo+.cm-amg{margin-left:6px!important}
 /* fondo personalizado elegido por la persona */
-body.chat-con-fondo .cm-panel,body.chat-con-fondo .dm-panel,body.chat-con-fondo .hub-panel{background:var(--chat-fondo)!important}
+
+
+/* ===== v60h ===== */
+/* 1. Diapositivas del carrusel: vidrio blanco transparente (sin verde, sin estrellitas, sin marco rojo) */
+.carousel-slide.slide-top,.carousel-slide.slide-ayuda,.carousel-slide.slide-hist{background:rgba(255,255,255,.07)!important;-webkit-backdrop-filter:blur(14px) saturate(1.5);backdrop-filter:blur(14px) saturate(1.5);border:1px solid rgba(255,255,255,.38)!important;box-shadow:0 10px 32px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.55)!important}
+.carousel-slide.slide-top.active,.carousel-slide.slide-ayuda.active,.carousel-slide.slide-hist.active{border:1px solid rgba(255,255,255,.5)!important;box-shadow:0 12px 36px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.65)!important}
+.slide-top::before,.slide-top::after,.slide-ayuda::before,.slide-ayuda::after{display:none!important}
+.slide-ayuda .sa-h,.slide-ayuda .sa-paso p{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+.slide-ayuda .sa-paso p b{color:#fff3b0}
+.slide-ayuda .sa-ill{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.3);box-shadow:none}
+.slide-ayuda .sa-nav,.slide-ayuda .sa-pausa{border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.12)}
+.slide-ayuda .sa-pausa.on{background:rgba(255,255,255,.85);color:#10214a}
+
+/* 2. Barra de arriba: vidrio blanco transparente para todos */
+.navbar,body.es-admin .navbar{background:linear-gradient(180deg,rgba(255,255,255,.20),rgba(255,255,255,.07))!important;-webkit-backdrop-filter:blur(22px) saturate(1.6)!important;backdrop-filter:blur(22px) saturate(1.6)!important;border-bottom:1px solid rgba(255,255,255,.34)!important;box-shadow:0 4px 22px rgba(0,0,0,.25),inset 0 -1px 0 rgba(255,255,255,.2)!important}
+
+/* 3. Los chats nunca pasan por encima de la barra de arriba */
+@media (min-width:801px){
+ body:not(.modo-admin) .chat-widget-card.chat-v2,body:not(.modo-admin) .cm-panel,body:not(.modo-admin) .hub-panel,body:not(.modo-admin) .dm-panel{z-index:90!important}
+ body:not(.modo-admin) .navbar{z-index:100}
+}
+
+/* 4. El fondo elegido cambia SOLO la zona de mensajes (no la cabecera ni el pie) */
+body.chat-con-fondo .chat-widget-card.chat-v2{background:linear-gradient(160deg,rgba(255,255,255,.14),rgba(20,28,64,.46) 60%,rgba(10,14,36,.55))!important}
+body.chat-con-fondo #admin-chat-view{background:linear-gradient(170deg,rgba(18,36,78,.95),rgba(8,12,26,.97))!important}
+body.chat-con-fondo .chat-widget-card.chat-v2::before,body.chat-con-fondo .chat-widget-card.chat-v2::after,body.chat-con-fondo #admin-chat-view::before,body.chat-con-fondo #admin-chat-view::after{display:none!important}
+body.chat-con-fondo .chat-v2 .chat-messages-area,body.chat-con-fondo #admin-msgs,body.chat-con-fondo #cm-lista,body.chat-con-fondo #dm-lista{background:var(--chat-fondo)!important;background-attachment:local}
+
+/* 5. Pie del chat compacto y transparente; sin mensajes rápidos */
+#dm-chips,.dm-chips,.dm-chip{display:none!important}
+.dm-barra{background:transparent!important;padding:5px 8px!important;gap:5px!important}
+.dm-barra input{background:rgba(255,255,255,.12)!important;border-color:rgba(255,255,255,.32)!important;padding:7px 12px!important}
+.dm-ib{width:30px!important;height:30px!important}
+.cm-form{padding:5px 8px!important;gap:5px!important}
+.cm-form input{padding:7px 12px!important}
+.cm-reglas{padding:2px 10px 5px!important;font-size:.66rem!important}
+.chat-v2 .chat-input-area{padding:6px 8px!important}
+.chat-chips{padding:4px 8px 0!important}
+
+/* 6. Mensajes del Mundial estilo WhatsApp: nombre ✔ 👑 + Oficial a la izquierda, hora abajo a la derecha */
+.cm-msg{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.cm-cab{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-start}
+.cm-cab small{display:none}
+.cm-txt{display:block}
+.cm-hora{float:right;margin:6px 0 0 10px;font-size:.62rem;color:#cdd8f2;opacity:.85}
+.cm-txt::after{content:"";display:block;clear:both}
+.cm-ac{display:none!important}
+.dm-m .dm-pie{text-align:right}
+.dm-rx{margin-top:2px}
+
+/* menú de mantener presionado */
+#zhold{position:fixed;z-index:100001;min-width:190px;max-width:calc(100vw - 20px);padding:6px;border-radius:16px;background:rgba(30,38,70,.55);-webkit-backdrop-filter:blur(22px) saturate(1.7);backdrop-filter:blur(22px) saturate(1.7);border:1px solid rgba(255,255,255,.4);box-shadow:0 14px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.5);color:#fff;animation:zhIn .12s ease-out}
+@keyframes zhIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+#zhold .zh-em{display:flex;gap:2px;justify-content:space-between;padding:2px 2px 6px;border-bottom:1px solid rgba(255,255,255,.2);margin-bottom:4px}
+#zhold .zh-em button{background:none;border:0;font-size:1.35rem;padding:3px 5px;border-radius:50%;cursor:pointer}
+#zhold .zh-em button:hover{background:rgba(255,255,255,.18)}
+#zhold .zh-it{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;color:#fff;font:600 .88rem Poppins,sans-serif;padding:9px 10px;border-radius:10px;cursor:pointer;text-align:left}
+#zhold .zh-it:hover{background:rgba(255,255,255,.16)}
+#zhold .zh-mal{color:#ffb4b4}
+#cm-mas{flex:0 0 auto;margin-left:4px}

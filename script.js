@@ -3227,11 +3227,7 @@ function adornarMensaje(burbuja, f, ctx, filas) {
   chev.addEventListener("click", (e) => { e.stopPropagation(); abrirMenuMensaje(f, ctx, burbuja); });
   burbuja.appendChild(chev);
 
-  burbuja.addEventListener("click", (e) => {
-    if (e.target.closest("img, a, .msg-react, .msg-quote, .msg-chev")) return;
-    if (window.getSelection && String(window.getSelection()).trim()) return;   // el usuario está seleccionando texto
-    abrirMenuMensaje(f, ctx, burbuja);
-  });
+  mantenerPresionado(burbuja, () => abrirMenuMensaje(f, ctx, burbuja));
 }
 
 function cerrarMenuMensaje() {
@@ -3292,6 +3288,45 @@ function posicionarMenu(menu, burbuja) {
   if (r.right + mw + 6 <= vw - M) return colocar(r.top, r.right + 6);
   colocar(vh - mh - M, alineado());
 }
+
+// ===== Mantener presionado (estilo WhatsApp) =====
+function mantenerPresionado(nodo, cb) {
+  let t = null, x0 = 0, y0 = 0;
+  const parar = () => { clearTimeout(t); t = null; };
+  const iniciar = (x, y, ms) => { parar(); x0 = x; y0 = y; t = setTimeout(() => { t = null; try { navigator.vibrate && navigator.vibrate(12); } catch (_) {} cb(x0, y0); }, ms); };
+  nodo.addEventListener("touchstart", (e) => { if (e.touches.length !== 1 || e.target.closest("a,img,input,textarea")) return; iniciar(e.touches[0].clientX, e.touches[0].clientY, 450); }, { passive: true });
+  nodo.addEventListener("touchmove", (e) => { const p = e.touches[0]; if (p && (Math.abs(p.clientX - x0) > 9 || Math.abs(p.clientY - y0) > 9)) parar(); }, { passive: true });
+  ["touchend", "touchcancel"].forEach((n) => nodo.addEventListener(n, parar, { passive: true }));
+  nodo.addEventListener("mousedown", (e) => { if (e.button !== 0 || e.target.closest("a,img,input,textarea,button")) return; iniciar(e.clientX, e.clientY, 500); });
+  ["mouseup", "mouseleave"].forEach((n) => nodo.addEventListener(n, parar));
+  nodo.addEventListener("mousemove", (e) => { if (t && (Math.abs(e.clientX - x0) > 9 || Math.abs(e.clientY - y0) > 9)) parar(); });
+  nodo.addEventListener("contextmenu", (e) => { if (e.target.closest("a,img,input,textarea")) return; e.preventDefault(); parar(); cb(e.clientX, e.clientY); });
+}
+function cerrarMenuHold() { document.getElementById("zhold")?.remove(); }
+// opciones = [[icono, texto, fn, peligro?]]; emojis = [{e, fn}]
+function menuHold(x, y, opciones, emojis) {
+  cerrarMenuHold();
+  const m = document.createElement("div"); m.id = "zhold"; m.setAttribute("role", "menu");
+  if (emojis && emojis.length) {
+    const f = document.createElement("div"); f.className = "zh-em";
+    emojis.forEach((o) => { const b = document.createElement("button"); b.type = "button"; b.textContent = o.e; b.onclick = () => { cerrarMenuHold(); o.fn(); }; f.appendChild(b); });
+    m.appendChild(f);
+  }
+  opciones.filter(Boolean).forEach(([ic, tx, fn, mal]) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "zh-it" + (mal ? " zh-mal" : "");
+    const i = document.createElement("span"); i.textContent = ic; const l = document.createElement("span"); l.textContent = tx; b.append(i, l);
+    b.onclick = () => { cerrarMenuHold(); fn(); }; m.appendChild(b);
+  });
+  m.style.visibility = "hidden"; document.body.appendChild(m);
+  const w = m.offsetWidth, h = m.offsetHeight, M = 10;
+  m.style.left = Math.max(M, Math.min(x - w / 2, innerWidth - w - M)) + "px";
+  m.style.top = Math.max(M, Math.min(y + 8 > innerHeight - h - M ? y - h - 8 : y + 8, innerHeight - h - M)) + "px";
+  m.style.visibility = "";
+}
+document.addEventListener("pointerdown", (e) => { const z = document.getElementById("zhold"); if (z && !z.contains(e.target)) cerrarMenuHold(); }, true);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarMenuHold(); });
+window.addEventListener("scroll", cerrarMenuHold, true);
+Object.assign(window, { mantenerPresionado, menuHold });
 
 function abrirMenuMensaje(f, ctx, burbuja) {
   cerrarMenuMensaje();
@@ -7085,21 +7120,24 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
         const avM = miniAv(n.textContent, fotoM, "cm-av"); if (m.user_id) { avM.onclick = n.onclick; avM.style.cursor = "pointer"; } cab.appendChild(avM);
         cab.appendChild(m.tipo === "user" ? conBanner(n, m.user_id, true) : (m.tipo === "admin" ? conBanner(n, m.user_id, false) : n));
         if (m.tipo === "admin") { const s = document.createElement("span"); s.className = "cm-sello"; s.textContent = "✔ Oficial"; cab.appendChild(s); }
-        
-        const h = document.createElement("small"); h.textContent = hora(m.created_at); cab.appendChild(h);
         d.appendChild(cab);
-        const t = document.createElement("div"); t.className = "cm-txt"; t.textContent = m.texto; d.appendChild(t);
+        const t = document.createElement("div"); t.className = "cm-txt"; t.textContent = m.texto;
+        const h = document.createElement("small"); h.className = "cm-hora"; h.textContent = hora(m.created_at); t.appendChild(h);
+        d.appendChild(t);
         if (m.oculto) { const o = document.createElement("em"); o.textContent = esAdm() ? "Oculto (" + (m.motivo || "") + ") — solo lo ves vos" : "Solo lo ves vos: lo revisamos"; d.appendChild(o); }
-        const ac = document.createElement("div"); ac.className = "cm-ac";
-        if (esAdm()) {
-          const mk = (txt, fn) => { const b = document.createElement("button"); b.type = "button"; b.textContent = txt; b.onclick = fn; ac.appendChild(b); };
-          mk(m.oculto ? "Mostrar" : "Ocultar", () => admAcc("chat_admin_ocultar", { p_id: m.id, p_ocultar: !m.oculto }));
-          mk("Borrar", () => admAcc("chat_admin_borrar", { p_id: m.id }));
-          if (m.user_id && !mio) mk("Silenciar 1 h", () => admAcc("chat_admin_silenciar", { p_user: m.user_id, p_min: 60 }, "Silenciado 1 hora"));
-        } else if (usuarioActual && !mio && m.tipo === "user") {
-          const b = document.createElement("button"); b.type = "button"; b.textContent = "🚩 Reportar"; b.onclick = () => reportar(m.id, b); ac.appendChild(b);
-        }
-        if (ac.childNodes.length) d.appendChild(ac);
+        mantenerPresionado(d, (x, y) => {
+          const ops = [["📋", "Copiar", () => { try { navigator.clipboard.writeText(m.texto); mostrarAviso("Copiado", "exito"); } catch (_) {} }]];
+          if (esAdm()) {
+            ops.push(["📌", "Fijar arriba del chat", () => admAcc("chat_admin_fijar", { p_sala: "todas", p_texto: m.texto }, "Mensaje fijado")]);
+            ops.push([m.oculto ? "👁" : "🙈", m.oculto ? "Mostrar" : "Ocultar", () => admAcc("chat_admin_ocultar", { p_id: m.id, p_ocultar: !m.oculto })]);
+            if (m.user_id && !mio) ops.push(["🔇", "Silenciar 1 h", () => admAcc("chat_admin_silenciar", { p_user: m.user_id, p_min: 60 }, "Silenciado 1 hora")]);
+            ops.push(["🗑", "Borrar", () => admAcc("chat_admin_borrar", { p_id: m.id }), true]);
+          } else {
+            ops.push(["↩️", "Responder", () => { const i = E("cm-in"); if (i) { i.value = "@" + ((pp && pp.nombre) || m.nombre) + " " + i.value; i.focus(); } }]);
+            if (usuarioActual && !mio && m.tipo === "user") ops.push(["🚩", "Reportar", () => reportar(m.id, document.createElement("button")), true]);
+          }
+          menuHold(x, y, ops);
+        });
       }
       l.appendChild(d);
     });
@@ -7144,7 +7182,7 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
     const w = E("cm-panel"); if (!w) return;
     abierto = true; sinLeer = 0; pintarPunto(); w.classList.add("abierto"); document.body.classList.add("cm-abierto");
     pintarTabs(); pintarEntrada(); await calcPuede(); pintarEntrada(); await cargar();
-    const bar = E("cm-adm"); if (bar) bar.hidden = !esAdm();
+    const bar = E("cm-mas"); if (bar) bar.hidden = !esAdm();
   }
   function cerrar() { abierto = false; const w = E("cm-panel"); if (w) { w.classList.remove("abierto"); w.style.cssText = ""; } document.body.classList.remove("cm-abierto"); marcarTabs("soporte"); }
   async function enviar() {
@@ -7177,13 +7215,13 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
     E("cm-amg")?.addEventListener("click", () => window.abrirAmigos && window.abrirAmigos(""));
     E("cm-env")?.addEventListener("click", enviar);
     E("cm-in")?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); enviar(); } });
-    E("cm-fijar")?.addEventListener("click", fijar);
+    E("cm-mas")?.addEventListener("click", (e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); menuHold(r.right - 90, r.bottom, [["📌", "Fijar mensaje arriba del chat", fijar], ["🖼", "Fondo del chat", () => window.abrirSelectorFondo && window.abrirSelectorFondo()]]); });
     cargar();
     timer = setInterval(() => { if (!document.hidden) cargar(); }, abierto ? 4000 : 15000);
     setInterval(() => { if (!document.hidden && abierto) cargar(); }, 4000);
     try { canal = supabase.channel("chat-global").on("postgres_changes", { event: "*", schema: "public", table: "chat_global" }, () => cargar()).subscribe(); } catch (_) {}
   }
-  supabase.auth.onAuthStateChange(() => { puede = null; setTimeout(async () => { await calcPuede(); pintarEntrada(); const b = E("cm-adm"); if (b) b.hidden = !esAdm(); }, 500); });
+  supabase.auth.onAuthStateChange(() => { puede = null; setTimeout(async () => { await calcPuede(); pintarEntrada(); const b = E("cm-mas"); if (b) b.hidden = !esAdm(); }, 500); });
   document.addEventListener("DOMContentLoaded", iniciar);
 })();
 
@@ -7969,7 +8007,7 @@ const NOV = (function novedades() {
   async function abrirDM(c) {
     dmCon = c; abrirPanel("dm"); E("dm-nom").textContent = c.nombre; E("dm-sub").textContent = "#" + c.num_id + " · amigo"; const av = E("dm-av"); av.innerHTML = ""; av.appendChild(avatar(c.nombre, c.foto, "hub-av-s"));
     E("dm-lista").innerHTML = ""; E("dm-in").value = "";
-    const ch = E("dm-chips"); ch.innerHTML = ""; ["¿Jugás el torneo de hoy? 🏆", "¿Hacemos dúo? 🎮", "Dale, nos vemos ahí 🔥", "GG 👏"].forEach((t) => { const b = el("button", "dm-chip", t); b.type = "button"; b.onclick = () => enviarDM(t, "texto"); ch.appendChild(b); });
+    { const ch = E("dm-chips"); if (ch) { ch.innerHTML = ""; ch.hidden = true; } }
     cargarModoFotos(); await cargarDM(true);
   }
   async function cargarDM(forzar) {
@@ -7991,12 +8029,15 @@ const NOV = (function novedades() {
       else if (m.tipo === "foto") { const im = el("img", "dm-foto"); im.alt = "foto"; im.src = urlFoto(m.foto_path); im.onclick = () => { const z = E("dm-zoom"); z.querySelector("img").src = im.src; z.hidden = false; }; d.appendChild(im); if (m.texto) d.appendChild(el("div", "cm-txt", m.texto)); }
       else d.appendChild(el("div", "cm-txt", m.texto));
       const pie = el("small", "dm-pie", hora(m.created_at) + (m.mio ? (m.estado === "revision" ? " · ⏳ en revisión" : m.leido ? " ✓✓" : " ✓") : "")); d.appendChild(pie);
-      if (!m.mio) { const r = el("button", "dm-rep", "🚩"); r.type = "button"; r.title = "Reportar"; r.onclick = async () => { try { await supabase.rpc("dm_reportar", { p_id: m.id }); mostrarAviso("Gracias, lo revisamos 🙏", "exito"); } catch (_) {} }; pie.appendChild(r); }
+      mantenerPresionado(d, (x, y) => {
+        const ops = [];
+        if (m.texto && m.tipo !== "foto") ops.push(["📋", "Copiar", () => { try { navigator.clipboard.writeText(m.texto); mostrarAviso("Copiado", "exito"); } catch (_) {} }]);
+        ops.push(["↩️", "Responder", () => { const i = E("dm-in"); if (i) i.focus(); }]);
+        if (!m.mio) ops.push(["🚩", "Reportar", async () => { try { await supabase.rpc("dm_reportar", { p_id: m.id }); mostrarAviso("Gracias, lo revisamos 🙏", "exito"); } catch (_) {} }, true]);
+        menuHold(x, y, ops, m.estado === "ok" ? ["❤️", "🔥", "😂", "😮", "👏", "👍"].map((e) => ({ e, fn: () => reaccionarDM(m.id, e) })) : null);
+      });
       if (m.estado === "ok") {
         if ((m.rx || []).length) { const rr = el("div", "dm-rx"); m.rx.forEach((z) => { const b = el("button", "dm-rxc" + (z.mia ? " mia" : ""), z.e + (z.n > 1 ? " " + z.n : "")); b.type = "button"; b.onclick = () => reaccionarDM(m.id, z.e); rr.appendChild(b); }); d.appendChild(rr); }
-        const pl = el("button", "dm-rep dm-mas", "☺"); pl.type = "button"; pl.title = "Reaccionar";
-        pl.onclick = () => { const ya = d.querySelector(".dm-rxbar"); if (ya) { ya.remove(); return; } const bar = el("div", "dm-rxbar"); ["❤️", "🔥", "😂", "😮", "👏", "👍"].forEach((e) => { const b = el("button", "", e); b.type = "button"; b.onclick = () => reaccionarDM(m.id, e); bar.appendChild(b); }); d.appendChild(bar); };
-        pie.appendChild(pl);
       }
       l.appendChild(d);
     });
