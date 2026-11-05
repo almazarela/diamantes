@@ -3371,3 +3371,20 @@ em.est-raro{flex:1 1 100%;font-style:normal;font-weight:700;font-size:.76rem;col
 .pf-nombre{width:100%;margin:0 0 10px;background:#241a3d;color:#fff;border:1px solid #b57bff;border-radius:10px;padding:9px;font-weight:700;cursor:pointer}
 #al-modal{z-index:100050}
 .vf-of{color:#38bdf8;font-size:.8em}
+
+/* ===== v60b: filtro de no leídos + pulido de colores ===== */
+.nl-fila{display:flex;gap:6px;align-items:center}.nl-fila .adm-buscar{flex:1;min-width:0}
+.nl-btn,#hub-menu{background:#1b2146;color:#fff;border:1px solid #3b4a7a;border-radius:10px;width:36px;height:36px;font-size:1.2rem;font-weight:900;cursor:pointer;line-height:1}
+.nl-btn.on{background:#2563eb;border-color:#60a5fa}
+#hub-menu{width:32px;height:32px;margin-right:4px;border-radius:50%}
+.nl-menu{position:absolute;right:0;top:100%;z-index:100200;background:#141a36;border:1px solid #3b4a7a;border-radius:12px;padding:6px;min-width:190px;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.nl-menu button{display:block;width:100%;text-align:left;background:transparent;border:0;color:#e6efff;padding:10px 12px;border-radius:8px;font-size:.92rem;cursor:pointer}
+.nl-menu button:hover,.nl-menu button.on{background:#1f2c5e;color:#fff;font-weight:700}
+#hub-panel .cm-top{position:relative}
+.hub-aviso{display:block;width:100%;background:rgba(37,99,235,.22);color:#bfdbfe;border:0;border-bottom:1px solid #2563eb;padding:9px;font-size:.82rem;font-weight:700;cursor:pointer}
+.hub-fila.nl{background:linear-gradient(90deg,rgba(37,99,235,.2),transparent)}.hub-fila.nl .hub-t b{color:#fff}
+.hub-n{background:#22c55e!important;color:#052e16!important;font-weight:800}
+/* tarjeta de registrados hoy en el inicio del panel */
+.hoy-grid .cli-card{border-color:rgba(74,222,128,.55)}
+.hoy-grid .cli-card .hoy-cab b{color:#86efac}
+.hub-fila[hidden],.hub-aviso[hidden]{display:none!important}

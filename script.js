@@ -1454,7 +1454,21 @@ function tocarActividad(id) {
   renderListaClientes();
 }
 
+function menuNoLeidos(ancla, get, set) {
+  document.querySelectorAll(".nl-menu").forEach((x) => x.remove());
+  const m = document.createElement("div"); m.className = "nl-menu";
+  [["Todos los chats", false], ["🔵 Solo no leídos", true]].forEach(([t, v]) => { const b = document.createElement("button"); b.type = "button"; b.textContent = t + (get() === v ? "  ✔" : ""); b.className = get() === v ? "on" : ""; b.onclick = (e) => { e.stopPropagation(); set(v); m.remove(); }; m.appendChild(b); });
+  ancla.parentNode.style.position = "relative"; ancla.parentNode.appendChild(m);
+  setTimeout(() => document.addEventListener("click", () => m.remove(), { once: true }), 0);
+}
+function pintarBotonNoLeidos() {
+  const lab = document.querySelector("#admin-col-lista .adm-buscar"); if (!lab || document.getElementById("adm-nl-btn")) return;
+  const w = lab.parentNode; const fila = document.createElement("div"); fila.className = "nl-fila"; w.insertBefore(fila, lab); fila.appendChild(lab);
+  const b = document.createElement("button"); b.type = "button"; b.id = "adm-nl-btn"; b.className = "nl-btn"; b.setAttribute("aria-label", "Filtrar chats"); b.textContent = "⋮"; fila.appendChild(b);
+  b.onclick = (e) => { e.stopPropagation(); menuNoLeidos(b, () => soloNoLeidos, (v) => { soloNoLeidos = v; b.classList.toggle("on", v); renderListaClientes(); }); };
+}
 function renderListaClientes() {
+  try { pintarBotonNoLeidos(); } catch (_) {}
   const lista = $("admin-users-list");
   if (!lista) return;
   if (!clientesAdmin.length) return mensajeLista(lista, "Sin clientes todavía.", "#666");
@@ -5387,13 +5401,16 @@ function avisarMetaLocal() {
   if (metaAvisada) return; metaAvisada = true;
   mostrarAviso("Quedó guardado solo en este navegador. Para verlo en todos tus dispositivos ejecutá novedades_clientes_v10.sql en Supabase.", "info");
 }
+let soloNoLeidos = false;
 function pasaFiltroChats(uid) {
   const m = metaDe(uid);
+  if (soloNoLeidos && !((resumenAdmin.get(uid) || {}).noLeidos > 0)) return false;
   if (vistaChats === "archivados") return m.archivado;
   if (vistaChats.startsWith("sala")) return !m.archivado && m.salas.includes(Number(vistaChats.slice(4)));
   return !m.archivado;   // Chats: lo archivado desaparece; las salas NO lo sacan de acá
 }
 function textoVacioChats() {
+  if (soloNoLeidos) return "No tenés chats sin leer aquí ✔";
   if (vistaChats === "archivados") return "No hay chats archivados. Desde el menú ⋮ de un chat podés archivarlo.";
   if (vistaChats.startsWith("sala")) return "Todavía no hay nadie en la Sala " + vistaChats.slice(4) + ". Desde el menú ⋮ de un chat podés mandarlo acá.";
   return "Sin clientes todavía.";
@@ -6214,7 +6231,7 @@ async function pintarHoy() {
   }
   const grid = document.createElement("div"); grid.className = "hoy-grid";
   grid.append(
-    tarjeta("💬", "Chats sin leer", d.chats.length, "aviso", d.chats.map((x) => [etiquetaCliente(x.id), `${x.n} sin leer · ${tiempoRelativo(x.ultima)}`, () => abrirChat(x.id)]), "No hay mensajes sin leer.", ["Ir a Chats", () => mostrarVistaAdmin("clientes")]),
+    tarjetaClientes(abrirChat, "hoy"),
     tarjeta("🧾", "Órdenes por atender", d.ords.length, "alto", d.ords.map((o) => [`#${o.id} · ${o.diamantes || "?"} 💎 · ID ${o.id_jugador || "-"}`, (/REVISAR A MANO/i.test(o.envio_error || "") ? "⚠ revisar a mano · " : o.estado === "error_envio" ? "no llegó a n8n · " : "") + minOrd(o), () => mostrarVistaAdmin("ordenes")]), "Todas las órdenes están al día.", ["Ir a Órdenes", () => mostrarVistaAdmin("ordenes")]),
     tarjeta("📦", "Stock de PIN bajo", d.stock.length, "aviso", d.stock.map((p) => [`Paquete ${p.nombre} 💎`, p.n === 0 ? "sin PIN" : `quedan ${p.n}`, () => mostrarVistaAdmin("stock")]), "Hay PIN suficientes en todos los paquetes.", ["Ir a Stock", () => mostrarVistaAdmin("stock")]),
   );
@@ -6227,7 +6244,7 @@ async function pintarHoy() {
   const sm = document.createElement("summary"); sm.textContent = "⚙️ Más datos y herramientas"; mas.appendChild(sm);
   mas.addEventListener("toggle", () => { hoyMasAbierto = mas.open; });
   const g2 = document.createElement("div"); g2.className = "hoy-grid";
-  g2.append(hoy, tarjetaLimitesPin(), tarjetaAvisosWa(), tarjetaClientes(abrirChat, "hoy"), tarjetaClientes(abrirChat, "total"), tarjetaReglasPerfil());
+  g2.append(hoy, tarjetaLimitesPin(), tarjetaAvisosWa(), tarjetaClientes(abrirChat, "total"), tarjetaReglasPerfil());
   mas.appendChild(g2); c.appendChild(mas);
   if (d.err.length) { const p = document.createElement("p"); p.className = "hoy-mas"; p.textContent = "No se pudo leer: " + d.err.join(", ") + ". Tocá 🔄 para reintentar."; c.appendChild(p); }
   if (!hoyTotal(d) && !d.err.length) { const ok = document.createElement("p"); ok.className = "hoy-todo"; ok.textContent = "✅ Todo al día. No tenés nada pendiente."; c.prepend(ok); }
@@ -7833,12 +7850,14 @@ const NOV = (function novedades() {
   function fila(av, tit, sub, meta, n, fijado, fn) {
     const b = el("button", "hub-fila" + (fijado ? " fij" : "")); b.type = "button"; b.appendChild(av);
     const t = el("div", "hub-t"); const h = el("div", "hub-h"); h.appendChild(el("b", "", tit)); if (fijado) h.appendChild(el("span", "hub-pin", "📌")); t.appendChild(h); t.appendChild(el("small", "", sub)); b.appendChild(t);
-    const m = el("div", "hub-m"); if (meta) m.appendChild(el("small", "", meta)); if (n) m.appendChild(el("em", "hub-n", n > 99 ? "99+" : String(n))); b.appendChild(m); b.onclick = fn; return b;
+    const m = el("div", "hub-m"); if (meta) m.appendChild(el("small", "", meta)); if (n) m.appendChild(el("em", "hub-n", n > 99 ? "99+" : String(n))); b.appendChild(m); b.onclick = fn; if (n) b.classList.add("nl"); if (soloNL && !n) b.hidden = true; return b;
   }
+  let soloNL = false;
   async function pintarHub() {
     const l = E("hub-lista"); if (!l) return;
     await cargarConvs();
     l.innerHTML = "";
+    if (soloNL) { const av = el("button", "hub-aviso", "🔵 Mostrando solo no leídos · tocá para ver todos"); av.type = "button"; av.onclick = () => { soloNL = false; pintarHub(); }; l.appendChild(av); }
     const mundo = el("span", "hub-av hub-mundo", "🌎");
     let ult = "Chateá con todos los clientes"; try { const ms = document.querySelectorAll("#cm-lista .cm-msg .cm-txt"); if (ms.length) ult = ms[ms.length - 1].textContent; } catch (_) {}
     l.appendChild(fila(mundo, "Mundial", ult.slice(0, 48), "", (window.cmSinLeer && window.cmSinLeer()) || 0, true, () => { cerrarPaneles(null); window.abrirChatMundo(); }));
@@ -7927,6 +7946,7 @@ const NOV = (function novedades() {
   }
   function iniciar() {
     E("hub-x")?.addEventListener("click", () => { todoCerrado(); });
+    E("hub-menu")?.addEventListener("click", (e) => { e.stopPropagation(); menuNoLeidos(E("hub-menu"), () => soloNL, (v) => { soloNL = v; pintarHub(); }); });
     E("hub-amg")?.addEventListener("click", () => window.abrirAmigos && window.abrirAmigos(""));
     E("chat-volver")?.addEventListener("click", () => { try { if (!esPC()) alternarChat(false); } catch (_) {} window.abrirHub(); });
     E("dm-back")?.addEventListener("click", () => window.abrirHub());
