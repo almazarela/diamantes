@@ -3903,3 +3903,13 @@ body.ahorro #grid-binance .diamond-box{background:linear-gradient(150deg,#6c86ff
 /* v72: panel de administrador — borde izquierdo para agarrarlo */
 .adm-izq{display:none}
 @media (min-width:801px){body.modo-admin .adm-izq{display:block;position:absolute;left:0;top:0;bottom:0;width:14px;cursor:grab;z-index:6;touch-action:none;border-radius:14px 0 0 14px;background:linear-gradient(90deg,rgba(125,211,252,.35),transparent)}body.modo-admin .adm-izq:hover{background:linear-gradient(90deg,rgba(125,211,252,.6),transparent)}body.modo-admin .adm-izq:active{cursor:grabbing}}
+
+/* v74 · regalo por cargar saldo */
+.pay-chip.tiene-bono{display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.15}
+.pay-chip .bono-t{font-size:.66rem;font-weight:800;color:#19e68c;background:rgba(25,230,140,.14);border:1px solid rgba(25,230,140,.5);border-radius:999px;padding:1px 6px;white-space:nowrap}
+.pay-chip.sel .bono-t{color:#fff;background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.6)}
+.bono-ban{display:flex;flex-direction:column;align-items:center;gap:1px;margin:2px 0 8px;padding:8px 10px;border-radius:12px;text-align:center;background:linear-gradient(135deg,rgba(25,230,140,.18),rgba(24,182,230,.14));border:1px solid rgba(25,230,140,.55)}
+.bono-ban[hidden],.bono-res[hidden]{display:none}
+.bono-ban b{font-size:.92rem;color:#7dffc4}.bono-ban span{font-size:.74rem;opacity:.85}
+.bono-res{margin:-2px 0 8px;padding:7px 10px;border-radius:10px;font-size:.82rem;text-align:center;background:rgba(25,230,140,.12);border:1px dashed rgba(25,230,140,.6);color:#e9fff5}
+.bono-res .bono-tot{color:#7dffc4;font-size:1rem}.bono-res span{color:#7dffc4;font-weight:700}

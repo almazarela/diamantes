@@ -131,9 +131,9 @@ function abrirModalSeleccionCarga() {
   mostrarModal("modal-seleccion-carga", true);
 }
 function cerrarModalSeleccionCarga() { mostrarModal("modal-seleccion-carga", false); }
-function abrirModalBinance() { cerrarTodosLosModales(); mostrarModal("modal-binance", true); }
+function abrirModalBinance() { cerrarTodosLosModales(); mostrarModal("modal-binance", true); try { bonoPintar(); bonoLeer(); } catch (_) {} }
 function cerrarModalBinance() { mostrarModal("modal-binance", false); }
-function abrirModalMercadoPagoSaldo() { cerrarTodosLosModales(); mostrarModal("modal-mercadopago", true); }
+function abrirModalMercadoPagoSaldo() { cerrarTodosLosModales(); mostrarModal("modal-mercadopago", true); try { bonoPintar(); bonoLeer(); } catch (_) {} }
 function cerrarModalMercadoPagoSaldo() { mostrarModal("modal-mercadopago", false); }
 
 function prepararMensajeChat(texto) {
@@ -154,7 +154,7 @@ function copiarDato(id, btn) {
   });
 }
 function elegirMonto(inputId, valor) {
-  const i = $(inputId); if (i) i.value = valor;
+  const i = $(inputId); if (i) { i.value = valor; try { i.dispatchEvent(new Event("input")); } catch (_) {} }
   i?.closest(".pay-box")?.querySelectorAll(".pay-chip").forEach((b) => b.classList.toggle("sel", b.textContent.replace(/\D/g, "") === String(valor)));
 }
 
@@ -169,9 +169,56 @@ function procesarCarga({ inputId, moneda, metodo, url, modalCerrar, minimo = 0 }
     return;
   }
   modalCerrar();
-  prepararMensajeChat(`Hola! Quiero cargar ${monto} ${moneda} con ${metodo}. Ahora te envío el comprobante.`);
+  const rg = bonoCalc(moneda, monto);
+  const txtRg = rg.extra > 0 ? ` 🎁 Con el regalo de la promo: +${bonoFmt(moneda, rg.extra)} (total ${bonoFmt(moneda, monto + rg.extra)}).` : "";
+  prepararMensajeChat(`Hola! Quiero cargar ${monto} ${moneda} con ${metodo}.${txtRg} Ahora te envío el comprobante.`);
   mostrarAviso("Realizá el pago y enviá el comprobante por el chat.", "ok");
 }
+
+// ------------------------- REGALO POR CARGAR SALDO (v73) -------------------
+const BONO_DEF = { bono_on: "on", bono_mp: "5000:150,10000:500,20000:1200,50000:3500,100000:8000", bono_usd: "10:0.3,20:0.8,50:2.5,100:6" };
+let bonoCfg = { ...BONO_DEF };
+function bonoTramos(moneda) {
+  const t = String(bonoCfg[moneda === "USD" ? "bono_usd" : "bono_mp"] || "").split(",").map((p) => p.split(":").map(Number)).filter((a) => a.length === 2 && a[0] > 0 && a[1] >= 0);
+  return t.sort((a, b) => a[0] - b[0]);
+}
+function bonoCalc(moneda, monto) {
+  if (bonoCfg.bono_on !== "on" || !(monto > 0)) return { extra: 0, pct: 0 };
+  let t = null; bonoTramos(moneda).forEach((x) => { if (monto >= x[0]) t = x; });
+  if (!t || !(t[1] > 0)) return { extra: 0, pct: 0 };
+  const rate = t[1] / t[0]; let extra = monto * rate;
+  extra = moneda === "USD" ? Math.round(extra * 100) / 100 : Math.round(extra / 10) * 10;
+  return { extra, pct: Math.round(rate * 1000) / 10 };
+}
+function bonoFmt(moneda, n) {
+  return moneda === "USD" ? "US$ " + Number(n).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "$" + Math.round(n).toLocaleString("es-AR");
+}
+function bonoPintar() {
+  [["modal-mercadopago", "monto-mp", "ARS"], ["modal-binance", "monto-usdt", "USD"]].forEach(([mid, iid, mon]) => {
+    const m = $(mid), inp = $(iid); if (!m || !inp) return;
+    const on = bonoCfg.bono_on === "on";
+    m.querySelectorAll(".pay-chip").forEach((c) => {
+      const old = c.querySelector(".bono-t"); if (old) old.remove();
+      const mt = (c.getAttribute("onclick") || "").match(/elegirMonto\('[^']+',(\d+)\)/); if (!mt) return;
+      const r = bonoCalc(mon, Number(mt[1]));
+      if (on && r.extra > 0) { const s = document.createElement("small"); s.className = "bono-t"; s.textContent = "🎁 +" + bonoFmt(mon, r.extra); c.appendChild(s); c.classList.add("tiene-bono"); } else c.classList.remove("tiene-bono");
+    });
+    let ban = m.querySelector(".bono-ban");
+    if (!ban) { ban = document.createElement("div"); ban.className = "bono-ban"; const ch = m.querySelector(".pay-chips"); if (ch) ch.parentNode.insertBefore(ban, ch); }
+    ban.hidden = !on; ban.innerHTML = "<b>🎁 Cargá y llevate regalo</b><span>Mientras más cargás, más te regalamos.</span>";
+    let res = m.querySelector(".bono-res");
+    if (!res) { res = document.createElement("div"); res.className = "bono-res"; inp.insertAdjacentElement("afterend", res); inp.addEventListener("input", bonoPintar); }
+    const v = parseFloat(inp.value), r = bonoCalc(mon, v);
+    if (on && v > 0 && r.extra > 0) { res.hidden = false; res.innerHTML = "Cargás <b>" + bonoFmt(mon, v) + "</b> → recibís <b class=\"bono-tot\">" + bonoFmt(mon, v + r.extra) + "</b> <span>(+" + bonoFmt(mon, r.extra) + " de regalo 🎁)</span>"; }
+    else if (on && v > 0) { const sig = bonoTramos(mon).find((x) => x[0] > v && x[1] > 0); res.hidden = !sig; if (sig) res.innerHTML = "Cargando <b>" + bonoFmt(mon, sig[0]) + "</b> o más ya te regalamos <b>🎁</b>"; }
+    else res.hidden = true;
+  });
+}
+async function bonoLeer() {
+  try { const { data } = await supabase.from("novedades_config").select("clave,valor").in("clave", ["bono_on", "bono_mp", "bono_usd"]); bonoCfg = { ...BONO_DEF }; (data || []).forEach((r) => { if (r.valor) bonoCfg[r.clave] = r.valor; }); } catch (_) {}
+  bonoPintar();
+}
+setTimeout(bonoLeer, 1500);
 
 function procesarPagoBinanceSeguro() {
   procesarCarga({ inputId: "monto-usdt", moneda: "USD", metodo: "Binance USDT", minimo: 10, modalCerrar: cerrarModalBinance });
@@ -7781,6 +7828,34 @@ const NOV = (function novedades() {
     const lMus = el("div", "nv-lista"); cMus.appendChild(lMus);
     async function cargarMusAdm() { lMus.innerHTML = ""; try { const { data, error } = await supabase.rpc("admin_musica_lista"); if (error) throw error; if (!data.length) lMus.appendChild(el("p", "adm-ayuda", "Todavía no hay pedidos.")); data.forEach((m) => { const f = el("div", "nv-item"); f.appendChild(el("b", "", m.nombre + " · " + new Date(m.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }))); f.appendChild(el("span", "", m.texto)); const d = el("button", "nv-mini nv-rojo", "Listo / borrar"); d.type = "button"; d.onclick = async () => { await supabase.rpc("admin_musica_borrar", { p_id: m.id }); cargarMusAdm(); }; f.appendChild(d); lMus.appendChild(f); }); } catch (_) { lMus.appendChild(el("p", "adm-ayuda", "No pude leer los pedidos (¿ejecutaste el SQL v52?).")); } }
     cargarMusAdm();
+    // regalo por cargar saldo
+    const cBo = caja("🎁 Regalo por cargar saldo", "Cuando el cliente carga saldo ve cuánto se lleva de regalo, y el pedido llega al chat con el total. El regalo lo acreditás vos junto con la carga. Ojo con el margen: mantenelo chico.");
+    const bonoOn = el("select"); [["on", "Activado"], ["off", "Apagado"]].forEach(([v, t]) => { const o = el("option", "", t); o.value = v; bonoOn.appendChild(o); }); bonoOn.value = (typeof bonoCfg !== "undefined" && bonoCfg.bono_on) || "on";
+    const fOn = el("div", "nv-fila"); fOn.appendChild(el("b", "", "Mostrar el regalo a los clientes")); fOn.appendChild(bonoOn); cBo.appendChild(fOn);
+    const tablas = {};
+    [["bono_mp", "Mercado Pago (pesos)", "ARS"], ["bono_usd", "Binance (dólares)", "USD"]].forEach(([clave, nombre, mon]) => {
+      cBo.appendChild(el("b", "", nombre));
+      const lista = el("div", "nv-lista"); cBo.appendChild(lista); tablas[clave] = [];
+      const pintarFila = (a, g) => {
+        const f = el("div", "nv-fila"); const i1 = el("input"); i1.type = "number"; i1.step = "any"; i1.min = "0"; i1.value = a; i1.placeholder = "Carga"; const i2 = el("input"); i2.type = "number"; i2.step = "any"; i2.min = "0"; i2.value = g; i2.placeholder = "Regalo";
+        const pc = el("small", "", ""); const act = () => { const a1 = parseFloat(i1.value), g1 = parseFloat(i2.value); pc.textContent = a1 > 0 && g1 >= 0 ? "= " + (Math.round(g1 / a1 * 1000) / 10) + " %" : ""; }; i1.oninput = i2.oninput = act; act();
+        const q = el("button", "nv-mini nv-rojo", "✕"); q.type = "button"; q.onclick = () => { f.remove(); tablas[clave] = tablas[clave].filter((x) => x.f !== f); };
+        f.append(el("span", "", "Si carga"), i1, el("span", "", "regalo"), i2, pc, q); lista.appendChild(f); tablas[clave].push({ f, i1, i2 });
+      };
+      String((typeof bonoCfg !== "undefined" && bonoCfg[clave]) || "").split(",").forEach((p) => { const [a, g] = p.split(":"); if (a) pintarFila(a, g); });
+      const mas = el("button", "nv-mini", "＋ Agregar escalón"); mas.type = "button"; mas.onclick = () => pintarFila("", ""); cBo.appendChild(mas);
+    });
+    const bBo = el("button", "nv-btn nv-grande", "Guardar regalo"); bBo.type = "button";
+    bBo.onclick = async () => {
+      let ok = await rpcAdm("admin_nov_config", { p_clave: "bono_on", p_valor: bonoOn.value });
+      for (const clave of ["bono_mp", "bono_usd"]) {
+        const txt = tablas[clave].map((x) => [parseFloat(x.i1.value), parseFloat(x.i2.value)]).filter((a) => a[0] > 0 && a[1] >= 0).map((a) => a[0] + ":" + a[1]).join(",");
+        if (!txt) { mostrarAviso("Poné al menos un escalón en " + (clave === "bono_mp" ? "Mercado Pago" : "Binance") + ".", "error"); ok = false; continue; }
+        ok = (await rpcAdm("admin_nov_config", { p_clave: clave, p_valor: txt })) && ok;
+      }
+      if (ok) { mostrarAviso("Regalo guardado ✔", "exito"); try { bonoLeer(); } catch (_) {} }
+    };
+    cBo.appendChild(bBo);
     // historias
     const c5 = caja("✨ Historias: para aprobar y activas", "Al aprobar una foto, esa persona pasa a ser «de confianza»: sus próximas fotos salen sin esperar (el texto siempre se filtra solo). Con 4 reportes una historia se oculta sola.");
     const fmh = el("div", "nv-fila"); fmh.appendChild(el("b", "", "📸 Las fotos de los clientes salen…"));
