@@ -279,6 +279,7 @@ function seleccionarMetodo(metodo) {
   try { const yaEra = $("card-mp")?.classList.contains("active") === esMP; if (!yaEra) sfx("abrir"); } catch (_) {}
   $("card-mp")?.classList.toggle("active", esMP);
   $("card-binance")?.classList.toggle("active", !esMP);
+  $("mf-flechas")?.querySelector(".mf-l")?.classList.toggle("on", esMP); $("mf-flechas")?.querySelector(".mf-r")?.classList.toggle("on", !esMP);
   const gMP = $("grid-mp");
   const gBN = $("grid-binance");
   if (gMP) gMP.style.display = esMP ? "block" : "none";
@@ -8692,27 +8693,6 @@ const NOV = (function novedades() {
     asa.addEventListener("pointerup", () => { if (r) { r = null; guardar(); } });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciar); else iniciar();
-})();
-
-
-// ===== v75: en PC los paquetes (3 por fila) usan el espacio libre de la izquierda y un poco de la derecha =====
-(function () {
-  function ajustar() {
-    ["grid-mp", "grid-binance"].forEach((id) => {
-      const c = document.getElementById(id), g = c && c.querySelector(".grid-diamonds"); if (!g) return;
-      if (!matchMedia("(min-width: 801px)").matches || document.body.classList.contains("modo-admin") || c.offsetWidth === 0) { g.style.width = ""; g.style.marginLeft = ""; return; }
-      g.style.width = ""; g.style.marginLeft = "";
-      const cw = c.getBoundingClientRect().width, left = c.getBoundingClientRect().left;
-      const W = Math.min(860, innerWidth - 40), extra = Math.max(0, W - cw);
-      const izq = Math.min(extra * 0.72, Math.max(0, left - 20)), der = Math.max(0, Math.min(extra - izq, innerWidth - c.getBoundingClientRect().right - 20));
-      const ancho = cw + izq + der;
-      g.style.width = Math.round(ancho) + "px"; g.style.marginLeft = -Math.round(izq) + "px";
-    });
-  }
-  window.addEventListener("resize", ajustar);
-  const ro = window.ResizeObserver ? new ResizeObserver(ajustar) : null;
-  function ligar() { ["grid-mp", "grid-binance"].forEach((id) => { const c = document.getElementById(id); if (c && ro) ro.observe(c); }); new MutationObserver(ajustar).observe(document.body, { attributes: true, attributeFilter: ["class"] }); ajustar(); }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ligar); else ligar();
 })();
 
 
