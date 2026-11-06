@@ -7636,7 +7636,7 @@ const NOV = (function novedades() {
   }
 
   // ------------------------------ PANEL ADMIN: NOVEDADES ------------------------------
-  const FLAGS = [["f_historias", "✨ Historias"], ["f_cupones", "🎟️ Cupones"], ["f_referidos", "🤝 Referidos"], ["f_puntos", "⭐ Puntos"], ["x_ayuda", "❓ Centro de ayuda y Chats bloqueados"], ["x_ahorro", "⚡ Modo ahorro automático en celulares lentos"]];
+  const FLAGS = [["f_historias", "✨ Historias"], ["f_cupones", "🎟️ Cupones"], ["f_referidos", "🤝 Referidos"], ["f_puntos", "⭐ Puntos"], ["x_ayuda", "❓ Centro de ayuda y Chats bloqueados"], ["x_ahorro", "⚡ Avisar a clientes con celular lento para que activen el Modo ahorro"]];
   const AJUSTES = [["ref_amigo_pct", "Bono del amigo invitado (% de su 1ª recarga)"], ["ref_amigo_tope_ars", "…tope en pesos ($)"], ["ref_amigo_tope_usd", "…tope en dólares (US$)"], ["ref_puntos", "Puntos que gana quien invita"], ["pts_unidad_ars", "1 punto cada ($ pesos recargados)"], ["pts_unidad_usd", "1 punto cada (US$ recargados)"], ["pts_valor_ars", "Valor de 1 punto ($ pesos)"], ["pts_min", "Mínimo de puntos para canjear"]];
   const aLocal = (iso) => { if (!iso) return ""; const d = new Date(iso); if (isNaN(d)) return ""; const p = (n) => String(n).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "T" + p(d.getHours()) + ":" + p(d.getMinutes()); };
   async function rpcAdm(fn, args, ok) { try { const { error } = await supabase.rpc(fn, args); if (error) throw error; if (ok) mostrarAviso(ok, "exito"); return true; } catch (e) { mostrarAviso("No se pudo: " + ((e && e.message) || "revisá el SQL v40"), "error"); return false; } }
@@ -8636,7 +8636,7 @@ const NOV = (function novedades() {
   // --- modo ahorro
   const LS = "zarela_ahorro";
   const lento = () => { try { const c = navigator.connection || {}; return matchMedia("(max-width: 800px)").matches && ((navigator.deviceMemory && navigator.deviceMemory <= 4) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || c.saveData === true || matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (_) { return false; } };
-  const modo = () => { let v = null; try { v = localStorage.getItem(LS); } catch (_) {} return v === "1" ? true : v === "0" ? false : (on("x_ahorro") && lento()); };
+  const modo = () => { let v = null; try { v = localStorage.getItem(LS); } catch (_) {} return v === "1"; };
   function aplicarAhorro() { const a = modo(); document.body.classList.toggle("ahorro", a); const b = E("sb-ahorro"); if (b) { b.setAttribute("aria-pressed", String(a)); const sm = b.querySelector("small"); if (sm) { sm.textContent = a ? "Activado: página más liviana." : "Apagado. Activalo si tu celu va lento."; sm.className = a ? "sb-okv" : ""; } } }
   E("sb-ahorro")?.addEventListener("click", () => { const nuevo = !document.body.classList.contains("ahorro"); try { localStorage.setItem(LS, nuevo ? "1" : "0"); } catch (_) {} aplicarAhorro(); mostrarAviso(nuevo ? "Modo ahorro activado ⚡" : "Modo ahorro apagado", "exito"); });
   // --- centro de ayuda
@@ -8673,5 +8673,25 @@ const NOV = (function novedades() {
   // --- configuración del admin (interruptores)
   async function leer() { try { const { data } = await supabase.from("novedades_config").select("clave,valor"); cx = {}; (data || []).forEach((r) => { if (String(r.clave).startsWith("x_")) cx[r.clave] = r.valor; }); } catch (_) {}
     ["sb-ayuda", "sb-bloq"].forEach((i) => { const b = E(i); if (b) b.hidden = !on("x_ayuda"); }); aplicarAhorro(); }
+  // --- sugerencia automática: si el celular va lento, avisamos y que decida el cliente
+  function sugerirAhorro(motivo) {
+    try { if (localStorage.getItem(LS) !== null || sessionStorage.getItem("zarela_ahorro_ask")) return; sessionStorage.setItem("zarela_ahorro_ask", "1"); } catch (_) {}
+    if (!on("x_ahorro") || document.body.classList.contains("ahorro") || E("z-ahorro-ask")) return;
+    const d = document.createElement("div"); d.id = "z-ahorro-ask"; d.setAttribute("role", "alert");
+    const t = document.createElement("div"); t.className = "zaa-t"; t.innerHTML = "<b>⚡ Detectamos que tu celular va lento</b><small>Activá el Modo ahorro y la página anda más liviana. Lo podés cambiar cuando quieras desde el menú.</small>";
+    const f = document.createElement("div"); f.className = "zaa-b";
+    const si = document.createElement("button"); si.type = "button"; si.className = "zaa-si"; si.textContent = "Activar ahorro";
+    const no = document.createElement("button"); no.type = "button"; no.className = "zaa-no"; no.textContent = "Ahora no";
+    si.onclick = () => { try { localStorage.setItem(LS, "1"); } catch (_) {} aplicarAhorro(); d.remove(); mostrarAviso("Modo ahorro activado ⚡", "exito"); };
+    no.onclick = () => { try { localStorage.setItem(LS, "0"); } catch (_) {} d.remove(); };
+    f.append(si, no); d.append(t, f); document.body.appendChild(d); setTimeout(() => { if (d.isConnected) d.remove(); }, 20000);
+  }
+  function sondaFps() {
+    if (!matchMedia("(max-width: 800px)").matches) return;
+    let n = 0, t0 = 0, malos = 0;
+    const paso = (t) => { if (document.hidden) { requestAnimationFrame(paso); return; } if (t0) { const dt = t - t0; n++; if (dt > 45) malos++; } t0 = t; if (n < 90) requestAnimationFrame(paso); else if (malos / n > 0.4) sugerirAhorro("fps"); };
+    setTimeout(() => requestAnimationFrame(paso), 4000);
+  }
+  setTimeout(() => { if (lento()) sugerirAhorro("hw"); }, 3500); sondaFps();
   aplicarAhorro(); leer(); setInterval(() => { if (!document.hidden) leer(); }, 120000);
 })();

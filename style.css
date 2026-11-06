@@ -3850,3 +3850,18 @@ body.ahorro .zlogo-m{filter:none}
 .mus-ped input{flex:1;min-width:0;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;border-radius:999px;padding:6px 11px;font-size:.74rem;font-family:inherit}
 .mus-ped input::placeholder{color:rgba(255,255,255,.6)}
 .mus-ped button{border:none;border-radius:50%;width:30px;height:30px;flex:0 0 auto;cursor:pointer;color:#fff;background:linear-gradient(135deg,#19e68c,#18b6e6);font-size:.8rem}
+
+/* ===== v71 ===== */
+/* modo ahorro: fondos sólidos oscuros (sin desenfoque no puede quedar transparente) */
+body.ahorro .carousel-slide.slide-top,body.ahorro .carousel-slide.slide-ayuda,body.ahorro .carousel-slide.slide-hist{background:linear-gradient(160deg,#16204a,#0c1230)!important}
+body.ahorro #dm-panel,body.ahorro #cm-panel,body.ahorro #hub-panel,body.ahorro .mus-panel,body.ahorro #pf-modal #pf-card,body.ahorro .hsp-it,body.ahorro .sh-b,body.ahorro .ay-it,body.ahorro .bq-fila,body.ahorro .adm-flota,body.ahorro #adm-flota{background:#101838!important}
+body.ahorro .hs-panel,body.ahorro #hs-panel{background:#0b1028!important}
+body.ahorro .carousel-slide.slide-hist .sh-in,body.ahorro .carousel-slide *{text-shadow:none!important}
+/* centro de ayuda y bloqueados: scroll interno */
+#ay-modal .nh-card,#bq-modal .nh-card{display:flex;flex-direction:column;max-height:86vh;max-height:86dvh}
+#ay-cuerpo,#bq-cuerpo{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;min-height:0;flex:1 1 auto;touch-action:pan-y}
+/* aviso de celular lento */
+#z-ahorro-ask{position:fixed;left:12px;right:12px;bottom:84px;z-index:4500;max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:18px;color:#fff;background:linear-gradient(160deg,rgba(40,56,120,.97),rgba(14,20,52,.98));border:1px solid rgba(255,255,255,.4);box-shadow:0 12px 34px rgba(0,0,0,.55)}
+.zaa-t b{display:block;font-size:.92rem;margin-bottom:3px}.zaa-t small{font-size:.78rem;opacity:.9;line-height:1.35}
+.zaa-b{display:flex;gap:8px}.zaa-b button{flex:1;border:none;border-radius:12px;padding:9px;font-weight:800;cursor:pointer;font-family:inherit}
+.zaa-si{background:linear-gradient(135deg,#19e68c,#18b6e6);color:#06231a}.zaa-no{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.3)!important}
