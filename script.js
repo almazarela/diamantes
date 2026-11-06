@@ -8591,16 +8591,24 @@ const NOV = (function novedades() {
     let g = {}; try { g = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (_) {}
     const aplicar = () => {
       if (!pc()) { p.style.transform = ""; p.style.width = ""; p.style.height = ""; return; }
-      p.style.transform = "translate(" + (g.x || 0) + "px," + (g.y || 0) + "px)";
       p.style.width = g.w ? g.w + "px" : ""; p.style.height = g.h ? g.h + "px" : ""; p.style.maxWidth = g.w ? "none" : "";
       p.style.overflow = g.h ? "auto" : "";
+      // límites: nunca pasa por debajo de la barra de arriba ni se sale por los costados
+      p.style.transform = ""; const r0 = p.getBoundingClientRect(), nb = document.querySelector(".navbar"), nav = nb ? nb.getBoundingClientRect().bottom : 0;
+      const nt = r0.top + scrollY, nl = r0.left;
+      g.y = Math.max(Math.round(g.y || 0), Math.ceil(nav + 6 - nt));
+      g.x = Math.round(Math.max(-nl, Math.min(g.x || 0, innerWidth - 120 - nl)));
+      p.style.transform = "translate(" + g.x + "px," + g.y + "px)";
     };
     const guardar = () => { try { localStorage.setItem(KEY, JSON.stringify(g)); } catch (_) {} };
     aplicar(); window.addEventListener("resize", aplicar);
     let d = null;
-    top.addEventListener("pointerdown", (e) => { if (!pc() || e.target.closest("button,select,label,input,a")) return; d = { x: e.clientX, y: e.clientY, gx: g.x || 0, gy: g.y || 0 }; try { top.setPointerCapture(e.pointerId); } catch (_) {} });
-    top.addEventListener("pointermove", (e) => { if (!d) return; g.x = d.gx + e.clientX - d.x; g.y = d.gy + e.clientY - d.y; aplicar(); });
-    ["pointerup", "pointercancel"].forEach((n) => top.addEventListener(n, () => { if (d) { d = null; guardar(); } }));
+    const izq = document.createElement("i"); izq.className = "adm-izq"; izq.title = "Arrastrá para mover el panel"; p.appendChild(izq);
+    [top, izq].forEach((n) => {
+      n.addEventListener("pointerdown", (e) => { if (!pc() || e.target.closest("button,select,label,input,a")) return; d = { x: e.clientX, y: e.clientY, gx: g.x || 0, gy: g.y || 0 }; try { n.setPointerCapture(e.pointerId); } catch (_) {} e.preventDefault(); });
+      n.addEventListener("pointermove", (e) => { if (!d) return; g.x = d.gx + e.clientX - d.x; g.y = d.gy + e.clientY - d.y; aplicar(); });
+      ["pointerup", "pointercancel"].forEach((k) => n.addEventListener(k, () => { if (d) { d = null; guardar(); } }));
+    });
     top.addEventListener("dblclick", (e) => { if (e.target.closest("button,select,label,input,a")) return; g = {}; aplicar(); guardar(); });
     top.style.cursor = "grab"; top.title = "Arrastrá para mover el panel (doble clic = lugar original)";
     let r = null;

@@ -3865,3 +3865,41 @@ body.ahorro .carousel-slide.slide-hist .sh-in,body.ahorro .carousel-slide *{text
 .zaa-t b{display:block;font-size:.92rem;margin-bottom:3px}.zaa-t small{font-size:.78rem;opacity:.9;line-height:1.35}
 .zaa-b{display:flex;gap:8px}.zaa-b button{flex:1;border:none;border-radius:12px;padding:9px;font-weight:800;cursor:pointer;font-family:inherit}
 .zaa-si{background:linear-gradient(135deg,#19e68c,#18b6e6);color:#06231a}.zaa-no{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.3)!important}
+
+/* v72 · paquetes en CRISTAL (como la maleta de Ualá): vidrio claro con bordes iridiscentes (Mercado Pago) y vidrio azul cielo (Binance). 3 por fila solo en PC */
+#grid-mp .diamond-box,#grid-binance .diamond-box{isolation:isolate;border:0!important;border-top:0!important}
+#grid-mp .diamond-box::after,#grid-binance .diamond-box::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.6px;pointer-events:none;z-index:2;
+  background:conic-gradient(from 210deg,#ff9fd8,#9fe3ff,#c9b0ff,#ffffff,#8ff0ff,#ffb8e8,#b7a6ff,#ff9fd8);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+#grid-mp .diamond-box::before,#grid-binance .diamond-box::before{content:"";position:absolute;inset:0;left:0;right:0;top:0;height:auto;z-index:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(118deg,rgba(255,255,255,.6) 0%,rgba(255,255,255,.12) 30%,transparent 46%,transparent 66%,rgba(255,255,255,.3) 100%),radial-gradient(70% 38% at 50% 0,rgba(255,255,255,.55),transparent 70%)}
+#grid-mp .diamond-box>*,#grid-binance .diamond-box>*{position:relative;z-index:1}
+/* Mercado Pago: cristal claro */
+#grid-mp .diamond-box{background:linear-gradient(150deg,rgba(255,255,255,.78),rgba(222,214,255,.5) 48%,rgba(205,236,255,.62)),#8f9bd8;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  box-shadow:0 14px 26px rgba(4,8,34,.55),0 2px 0 rgba(255,255,255,.7) inset,0 -14px 22px rgba(160,140,255,.3) inset,0 0 22px rgba(170,200,255,.22)}
+#grid-mp .diamond-box h4{color:#16204f;text-shadow:0 1px 0 rgba(255,255,255,.7)}
+#grid-mp .diamond-box .icon{filter:drop-shadow(0 3px 5px rgba(70,90,200,.45)) drop-shadow(0 0 10px rgba(255,255,255,.9))}
+#grid-mp .diamond-box .price{color:#1a2a8a;background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.9);text-shadow:none;box-shadow:0 1px 4px rgba(60,80,200,.2)}
+#grid-mp .btn-buy{color:#fff!important;background:linear-gradient(180deg,#7f98ff,#2c40e0)!important;box-shadow:0 5px 0 #1a2a9e,0 10px 16px rgba(10,20,90,.4),0 1px 0 rgba(255,255,255,.55) inset!important}
+#grid-mp .btn-buy:active{box-shadow:0 1px 0 #1a2a9e,0 3px 6px rgba(10,20,90,.35),0 1px 0 rgba(255,255,255,.55) inset!important}
+/* Binance: cristal azul cielo y celeste (sin dorado) */
+#grid-binance .diamond-box,#grid-binance .reseller-box{background:linear-gradient(150deg,rgba(130,152,255,.95),rgba(44,64,226,.92) 52%,rgba(110,184,245,.92)),#2c40e0;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  box-shadow:0 14px 26px rgba(4,8,50,.6),0 2px 0 rgba(255,255,255,.5) inset,0 -14px 22px rgba(120,200,255,.28) inset,0 0 24px rgba(90,140,255,.35)}
+#grid-binance .reseller-box:hover{border:0}
+#grid-binance .diamond-box h4{color:#fff;text-shadow:0 1px 6px rgba(10,20,110,.5)}
+#grid-binance .diamond-box .icon{filter:drop-shadow(0 3px 6px rgba(10,20,120,.5)) drop-shadow(0 0 12px rgba(190,225,255,.9))}
+#grid-binance .diamond-box .price,#grid-binance .diamond-box .usdt-price{color:#fff!important;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.55);text-shadow:0 1px 4px rgba(10,20,110,.5);box-shadow:0 1px 6px rgba(10,20,110,.25) inset}
+#grid-binance .btn-buy,#grid-binance .btn-usdt{color:#1a2a8a!important;background:linear-gradient(180deg,#ffffff,#cfe3ff)!important;box-shadow:0 5px 0 #1a2a9e,0 10px 16px rgba(5,10,70,.45),0 1px 0 #fff inset!important}
+#grid-binance .btn-buy:hover,#grid-binance .btn-usdt:hover{background:linear-gradient(180deg,#ffffff,#d9e9ff)!important;box-shadow:0 5px 0 #1a2a9e,0 10px 16px rgba(5,10,70,.45),0 1px 0 #fff inset!important}
+#grid-binance .btn-buy:active,#grid-binance .btn-usdt:active{box-shadow:0 1px 0 #1a2a9e,0 3px 6px rgba(5,10,70,.4),0 1px 0 #fff inset!important}
+/* PC: 3 por fila (el celular queda en 2) */
+@media (min-width:801px){#grid-mp .grid-diamonds,#grid-binance .grid-diamonds{grid-template-columns:repeat(3,1fr)}}
+/* Modo ahorro: sin desenfoque, fondo sólido */
+body.ahorro #grid-mp .diamond-box{background:linear-gradient(150deg,#e9e6ff,#cfd0f4)!important}
+body.ahorro #grid-binance .diamond-box{background:linear-gradient(150deg,#6c86ff,#2c40e0)!important}
+
+/* v72: panel de administrador — borde izquierdo para agarrarlo */
+.adm-izq{display:none}
+@media (min-width:801px){body.modo-admin .adm-izq{display:block;position:absolute;left:0;top:0;bottom:0;width:14px;cursor:grab;z-index:6;touch-action:none;border-radius:14px 0 0 14px;background:linear-gradient(90deg,rgba(125,211,252,.35),transparent)}body.modo-admin .adm-izq:hover{background:linear-gradient(90deg,rgba(125,211,252,.6),transparent)}body.modo-admin .adm-izq:active{cursor:grabbing}}
