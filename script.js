@@ -8695,6 +8695,27 @@ const NOV = (function novedades() {
 })();
 
 
+// ===== v75: en PC los paquetes (3 por fila) usan el espacio libre de la izquierda y un poco de la derecha =====
+(function () {
+  function ajustar() {
+    ["grid-mp", "grid-binance"].forEach((id) => {
+      const c = document.getElementById(id), g = c && c.querySelector(".grid-diamonds"); if (!g) return;
+      if (!matchMedia("(min-width: 801px)").matches || document.body.classList.contains("modo-admin") || c.offsetWidth === 0) { g.style.width = ""; g.style.marginLeft = ""; return; }
+      g.style.width = ""; g.style.marginLeft = "";
+      const cw = c.getBoundingClientRect().width, left = c.getBoundingClientRect().left;
+      const W = Math.min(860, innerWidth - 40), extra = Math.max(0, W - cw);
+      const izq = Math.min(extra * 0.72, Math.max(0, left - 20)), der = Math.max(0, Math.min(extra - izq, innerWidth - c.getBoundingClientRect().right - 20));
+      const ancho = cw + izq + der;
+      g.style.width = Math.round(ancho) + "px"; g.style.marginLeft = -Math.round(izq) + "px";
+    });
+  }
+  window.addEventListener("resize", ajustar);
+  const ro = window.ResizeObserver ? new ResizeObserver(ajustar) : null;
+  function ligar() { ["grid-mp", "grid-binance"].forEach((id) => { const c = document.getElementById(id); if (c && ro) ro.observe(c); }); new MutationObserver(ajustar).observe(document.body, { attributes: true, attributeFilter: ["class"] }); ajustar(); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ligar); else ligar();
+})();
+
+
 // ===== Teclado en el celular: la pantalla no salta, solo se achica =====
 (function () {
   const vv = window.visualViewport; if (!vv) return;
