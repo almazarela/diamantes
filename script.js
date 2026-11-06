@@ -8257,7 +8257,7 @@ const NOV = (function novedades() {
     const vol = el("button", "pf-volver", "‹ Volver"); vol.type = "button"; vol.onclick = cerrar; card.appendChild(vol); card.appendChild(botonX());
     const av = el("div", "pf-av"); av.appendChild(miniAv(p.nombre, p.foto, "pf-av-i")); card.appendChild(av);
     if (p.foto && !editando) { av.classList.add("pf-zoom"); av.title = "Tocá para ver la foto"; av.onclick = () => visor([{ url: String(p.foto).replace(/=s\d+(-c)?(?=$|[?&])/, "=s640-c"), av: true }], 0); }
-    if (p.nota) av.appendChild(el("div", "pf-nota", p.nota));
+    if (p.nota) { const nb = el("div", "pf-nota"); nb.appendChild(el("small", "", "Nota")); nb.appendChild(el("span", "", p.nota)); av.appendChild(nb); }
     const cu = el("div", "pf-cuerpo"); card.appendChild(cu);
     // nombre + sellos
     const nom = el("div", "pf-nom"); nom.appendChild(el("h3", "", p.nombre));
@@ -8265,7 +8265,7 @@ const NOV = (function novedades() {
     else if (p.verificado) { const v = selloVerif(); v.classList.add("pf-vf"); nom.appendChild(v); }
     cu.appendChild(nom);
     const cab2 = el("div", "pf-cab2"), izq = el("div", "pf-izq"), der = el("div", "pf-mini"); cab2.appendChild(izq); cab2.appendChild(der); cu.appendChild(cab2);
-    const sub = el("div", "pf-sub"); if (p.titulo) sub.appendChild(el("b", "", p.titulo)); else if (p.es_soporte) sub.appendChild(el("b", "", "Soporte de Recargas Zarela"));
+    const sub = el("div", "pf-sub"); { const tt = p.titulo || (p.es_soporte ? "Soporte de Recargas Zarela" : ""); if (tt) sub.appendChild(el("b", "pf-titulo", "✦ " + tt.charAt(0).toUpperCase() + tt.slice(1))); }
     if (p.num_id) sub.appendChild(el("span", "pf-num", "#" + p.num_id));
     try { if (p.desde) sub.appendChild(el("span", "", "Desde " + new Date(p.desde).toLocaleDateString("es-AR", { month: "short", year: "numeric" }))); } catch (_) {}
     izq.appendChild(sub);
@@ -8273,7 +8273,7 @@ const NOV = (function novedades() {
     if (ni >= 0 && NIVELES[ni]) { const b = el("span", "niv-ins n" + ni, NIVELES[ni].ico + " " + NIVELES[ni].n); b.title = "Nivel " + NIVELES[ni].n; izq.appendChild(b); }
     const mini = (n, t) => { const d = el("div", "pf-dato pf-mi"); d.appendChild(el("b", "", n)); d.appendChild(el("small", "", t)); der.appendChild(d); return d; };
     if (!p.es_soporte) mini(fmtN(p.amigos), "Amigos");
-    const dsg = mini(fmtN(p.seguidores || 0), "Seguidores");
+    const dsg = mini(fmtN(p.seguidores || 0), "Seguidores"); const mlk = mini(fmtN(p.likes || 0), "Me gusta");
     if (editando) return pintarEditor(p, cu);
     // descripción
     { const bi = el("p", "pf-bio" + (p.bio ? " pf-marco" : " vacio"), p.bio || (p.yo ? "Todavía no escribiste nada sobre vos. ¡Tocá «Editar perfil»!" : p.es_soporte ? "Estamos para ayudarte con tus recargas 💎" : "Sin descripción todavía.")); if (p.bio && p.marco) { bi.style.setProperty("--mc", p.marco); bi.classList.add("con-color"); } cu.appendChild(bi); }
@@ -8297,7 +8297,7 @@ const NOV = (function novedades() {
       dl.classList.add("btn"); if (p.mi_like) dl.classList.add("on"); dl.title = "Tocá para dar Me gusta (uno por día)";
       dl.onclick = async () => { if (!usuarioActual) { mostrarAviso("Ingresá con Google para dar Me gusta.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
         if (p.mi_like) { mostrarAviso("Hoy ya le diste Me gusta. ¡Volvé mañana! ❤️", "info"); return; }
-        try { const { data, error } = await supabase.rpc("perfil_like", { p_user: p.id }); if (error) throw error; p.mi_like = true; p.likes = data.likes; dl.classList.add("on"); dl.firstChild.textContent = fmtN(p.likes); mostrarAviso("❤️ ¡Listo! Mañana podés darle otro.", "exito"); }
+        try { const { data, error } = await supabase.rpc("perfil_like", { p_user: p.id }); if (error) throw error; p.mi_like = true; p.likes = data.likes; dl.classList.add("on"); dl.firstChild.textContent = fmtN(p.likes); mlk.firstChild.textContent = fmtN(p.likes); mostrarAviso("❤️ ¡Listo! Mañana podés darle otro.", "exito"); }
         catch (e) { if (String((e && e.message) || "").includes("YA_HOY")) { p.mi_like = true; dl.classList.add("on"); mostrarAviso("Hoy ya le diste Me gusta. ¡Volvé mañana! ❤️", "info"); } else mostrarAviso("No se pudo ahora.", "error"); } };
       const segUI = (sg) => { sg.classList.toggle("on", !!p.sigo); sg.textContent = p.sigo ? "✓ Siguiendo" : "＋ Seguir"; };
       const sgb = el("button", "pf-sec pf-seg"); sgb.type = "button"; segUI(sgb);
@@ -8534,7 +8534,7 @@ const NOV = (function novedades() {
     mod("#dm-ids", (n) => { n.hidden = true; }), mod("#op-inv", (n) => { n.hidden = true; }),
     [() => { const n = document.getElementById("sidebar-menu"); return n && n.classList.contains("open") ? n : null; }, () => toggleMenu()],
     [() => { const n = document.getElementById("hist-panel"); return n && !n.hidden ? n : null; }, () => alternarHistorial(false)],
-    pan("#dm-panel", clic("dm-back")), pan("#cm-panel", clic("cm-x")), pan("#hub-panel", clic("hub-x")),
+    pan("#dm-panel", clic("dm-back")), pan("#cm-panel", clic("cm-x")), pan("#chat-widget", () => { try { alternarChat(false); } catch (_) {} }), pan("#hub-panel", clic("hub-x")),
   ];
   function capaAbierta() {
     for (const [test, cerrar] of CAPAS) { const n = test(); if (n) return { n, cerrar }; }

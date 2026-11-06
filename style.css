@@ -3804,3 +3804,29 @@ body.ahorro .niv-ins::after{display:none}
   .chat-cerrar{padding:12px!important}
 }
 :focus-visible{outline:2px solid #8ecbff;outline-offset:2px}
+
+/* ===== v68 ===== */
+/* bloquear el scroll de la página de atrás cuando hay algo abierto */
+body.hs-abierto,body.pf-abierto,body:has(.nh-modal:not([hidden])),body:has(#hc-modal:not([hidden])){overflow:hidden!important}
+html:has(body.hs-abierto),html:has(body.pf-abierto){overflow:hidden!important}
+.hs-panel,.hs-visor,.nh-modal,.nh-card,.al-cuerpo,.hsp-grid{overscroll-behavior:contain}
+.hs-visor{touch-action:none}
+/* panel de historias: encabezado ordenado en celular */
+@media (max-width:800px){
+  .hsp-cab{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+  .hsp-cab>b{order:1;font-size:1rem;flex:1 1 auto}
+  .hsp-cab>#hsp-x{order:2;margin-left:auto}
+  .hsp-cab>.hs-sp{display:none}
+  .hsp-cab>#hsp-act,.hsp-cab>#hsp-rec{order:3;flex:1 1 0;white-space:nowrap;font-size:.76rem;padding:7px 6px;text-align:center}
+}
+/* título del perfil: bien visible */
+.pf-sub b.pf-titulo{display:inline-block;padding:3px 12px;border-radius:999px;font-size:13px;font-weight:800;letter-spacing:.2px;text-transform:capitalize;color:#fff3c4;background:linear-gradient(135deg,rgba(255,190,60,.38),rgba(255,120,40,.22));border:1px solid rgba(255,200,90,.65);box-shadow:0 2px 8px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.45)}
+/* nota estilo Instagram */
+.pf-nota{display:flex;flex-direction:column;align-items:flex-start;gap:1px;top:-6px!important;bottom:auto!important;left:calc(100% - 20px)!important;transform:none!important;min-width:70px;max-width:min(62vw,230px);padding:6px 12px 7px;border-radius:18px;background:rgba(255,255,255,.95);color:#20253d;white-space:normal!important;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.pf-nota small{font-size:9.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#7a809c}
+.pf-nota span{font-size:13.5px;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
+.pf-nota::before,.pf-nota::after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.95)}
+.pf-nota::after{width:9px;height:9px;left:6px;bottom:-9px}
+.pf-nota::before{width:5px;height:5px;left:-1px;bottom:-16px}
+.pf-nota{width:max-content}
+.pf-sub b.pf-titulo{text-transform:none!important;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
