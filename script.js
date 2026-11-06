@@ -56,6 +56,8 @@ let enviandoChat = false;
 const $ = (id) => document.getElementById(id);
 
 function mostrarAviso(texto, tipo = "info") {
+  // los clientes nunca ven avisos técnicos ("¿ejecutaste el SQL…?"): eso es solo para la cuenta admin
+  if (/SQL\s*v\d+/i.test(String(texto))) { if (!navigator.onLine) texto = "Sin conexión a internet. Revisá tu Wi-Fi o datos y probá de nuevo."; else if (!(typeof esAdminActual === "function" && esAdminActual())) texto = "No se pudo ahora. Probá de nuevo en un momento."; }
   const colores = { info: "#009ee3", error: "#ff5c5c", ok: "#2ecc71" };
   const div = document.createElement("div");
   div.textContent = texto;
@@ -7250,7 +7252,7 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
       await cargar();
     } catch (e) {
       const m = String((e && e.message) || ""); const k = Object.keys(ERR).find((x) => m.includes(x));
-      mostrarAviso(k ? ERR[k] : "No se pudo enviar. ¿Ejecutaste el SQL v39?", "error");
+      mostrarAviso(k ? ERR[k] : (!navigator.onLine ? "Sin conexión a internet. Revisá tu Wi-Fi o datos y probá de nuevo." : "No se pudo enviar. ¿Ejecutaste el SQL v39?"), "error");
     }
     enviando = false; E("cm-env").disabled = false;
   }
