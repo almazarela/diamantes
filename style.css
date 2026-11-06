@@ -3981,3 +3981,20 @@ body.ahorro .mf-flechas button.on{animation:none}
 #modal-binance .pay-chip .bono-t{color:#ffe08a;background:rgba(243,186,47,.16);border-color:rgba(243,186,47,.6)}
 #modal-binance .bono-res{background:rgba(243,186,47,.12);border-color:rgba(243,186,47,.65);color:#fff8e0}
 #modal-binance .bono-res .bono-tot,#modal-binance .bono-res span{color:#ffe08a}
+
+/* v78 · MERCADO PAGO: cristal CLARO y luminoso (como la maleta). Liviano: el desenfoque solo en PC; en celular sin desenfoque ni animaciones */
+#grid-mp .diamond-box{
+  background:linear-gradient(145deg,rgba(255,255,255,.5) 0%,rgba(214,228,255,.2) 34%,rgba(190,205,255,.14) 62%,rgba(255,255,255,.4) 100%),rgba(120,150,255,.16)!important;
+  -webkit-backdrop-filter:blur(6px) saturate(1.5);backdrop-filter:blur(6px) saturate(1.5);
+  box-shadow:0 10px 22px rgba(0,0,20,.4),0 2px 0 rgba(255,255,255,.85) inset,0 -18px 26px rgba(170,205,255,.3) inset,3px 0 0 rgba(255,120,200,.3) inset,-3px 0 0 rgba(90,225,255,.34) inset,0 0 26px rgba(170,200,255,.32)!important}
+#grid-mp .diamond-box::before{background:linear-gradient(112deg,rgba(255,255,255,.75) 0%,rgba(255,255,255,.2) 22%,transparent 40%),linear-gradient(298deg,rgba(255,255,255,.38),transparent 30%),radial-gradient(70% 32% at 50% 0,rgba(255,255,255,.55),transparent 72%)}
+#grid-mp .diamond-box h4{color:#fff;text-shadow:0 1px 3px rgba(5,10,70,.75),0 0 10px rgba(5,10,70,.35)}
+#grid-mp .diamond-box .icon{filter:drop-shadow(0 2px 4px rgba(0,10,90,.5)) drop-shadow(0 0 10px rgba(255,255,255,.95))}
+#grid-mp .diamond-box .price{color:#10205f;background:rgba(255,255,255,.78);border:1px solid #fff;text-shadow:none;box-shadow:0 2px 6px rgba(0,10,80,.25)}
+#grid-mp .btn-buy{background:linear-gradient(180deg,#86a0ff,#2a45e6)!important;box-shadow:0 5px 0 #1a2a9e,0 8px 12px rgba(10,20,90,.35),0 1px 0 rgba(255,255,255,.6) inset!important}
+@media (max-width:800px){
+  #grid-mp .diamond-box{-webkit-backdrop-filter:none;backdrop-filter:none;transition:none;
+    background:linear-gradient(145deg,rgba(255,255,255,.5) 0%,rgba(214,228,255,.22) 34%,rgba(190,205,255,.16) 62%,rgba(255,255,255,.4) 100%),rgba(46,66,150,.5)!important;
+    box-shadow:0 6px 12px rgba(0,0,20,.4),0 2px 0 rgba(255,255,255,.8) inset,0 -14px 20px rgba(170,205,255,.28) inset,3px 0 0 rgba(255,120,200,.3) inset,-3px 0 0 rgba(90,225,255,.34) inset!important}
+  #grid-mp .diamond-box:hover{transform:none}
+}
