@@ -3928,9 +3928,8 @@ body.ahorro #grid-binance .diamond-box{background:linear-gradient(150deg,#4f78ff
 
 /* v76 · PC: columna principal más ancha (pasos 1 y 2 y los 3 paquetes quedan alineados) */
 @media (min-width:801px){
-  body:not(.modo-admin) .container{max-width:890px}
-  body:not(.modo-admin) .main-layout-grid{grid-template-columns:1fr;gap:0}
-  body:not(.modo-admin) .right-widgets-col{height:0;min-height:0;margin:0;padding:0}
+  body:not(.modo-admin) .container{max-width:min(1220px,calc(100vw - 32px));margin-left:max(16px,calc((100vw - 1260px)/2 - 30px));margin-right:auto}
+  body:not(.modo-admin) .main-layout-grid{grid-template-columns:1fr 310px;gap:20px}
 }
 /* v76 · sin cartel "Paquetes ... (ARS)": las flechitas del medio indican cuál está activo */
 #grid-mp .expanded-box-header,#grid-binance .expanded-box-header{display:none}
@@ -3970,3 +3969,15 @@ body.ahorro .mf-flechas button.on{animation:none}
 .pay-dato .pay-cvu{font-size:.92rem!important}
 .pay-dato-2{margin-top:6px!important}
 .pay-nota{margin:6px 0 8px!important;font-size:11.5px!important}
+
+/* v77 · colores del regalo según el medio: azul (Mercado Pago) y dorado (Binance) */
+#modal-mercadopago .bono-ban{background:linear-gradient(135deg,rgba(56,189,248,.2),rgba(37,99,235,.16));border-color:rgba(56,189,248,.65)}
+#modal-mercadopago .bono-ban b{color:#9fdcff}#modal-mercadopago .bono-ban span{color:#cfe9ff}
+#modal-mercadopago .pay-chip .bono-t{color:#9fdcff;background:rgba(56,189,248,.16);border-color:rgba(56,189,248,.6)}
+#modal-mercadopago .bono-res{background:rgba(56,189,248,.12);border-color:rgba(56,189,248,.65);color:#eaf6ff}
+#modal-mercadopago .bono-res .bono-tot,#modal-mercadopago .bono-res span{color:#9fdcff}
+#modal-binance .bono-ban{background:linear-gradient(135deg,rgba(243,186,47,.2),rgba(240,165,0,.12));border-color:rgba(243,186,47,.65)}
+#modal-binance .bono-ban b{color:#ffe08a}#modal-binance .bono-ban span{color:#ffeebf}
+#modal-binance .pay-chip .bono-t{color:#ffe08a;background:rgba(243,186,47,.16);border-color:rgba(243,186,47,.6)}
+#modal-binance .bono-res{background:rgba(243,186,47,.12);border-color:rgba(243,186,47,.65);color:#fff8e0}
+#modal-binance .bono-res .bono-tot,#modal-binance .bono-res span{color:#ffe08a}
