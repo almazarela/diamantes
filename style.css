@@ -3830,3 +3830,23 @@ html:has(body.hs-abierto),html:has(body.pf-abierto){overflow:hidden!important}
 .pf-nota::before{width:5px;height:5px;left:-1px;bottom:-16px}
 .pf-nota{width:max-content}
 .pf-sub b.pf-titulo{text-transform:none!important;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+
+/* ===== v69: logo oficial Zarela ===== */
+.zlogo{display:inline-flex;align-items:center;gap:8px;line-height:1}
+.zlogo-m{width:34px;height:34px;flex:0 0 auto;filter:drop-shadow(0 3px 8px rgba(255,61,110,.55));transition:transform .4s}
+.zlogo:hover .zlogo-m{transform:rotate(-6deg) scale(1.06)}
+.zlogo-t{font-family:'Poppins','Orbitron',sans-serif;font-weight:800;font-size:1.08rem;letter-spacing:.2em;background:linear-gradient(90deg,#fff,#ffe6c2 60%,#ffb199);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;text-shadow:none!important}
+.sidebar-logo .zlogo-m{width:44px;height:44px}
+.sidebar-logo .zlogo-t{font-size:1.4rem}
+@media (max-width:800px){.zlogo-m{width:28px;height:28px}.zlogo-t{font-size:.9rem;letter-spacing:.15em}.zlogo{gap:6px}}
+@media (max-width:360px){.navbar .zlogo-t{display:none}}
+body.ahorro .zlogo-m{filter:none}
+/* Argentina | ES alineado con las pastillas de saldo */
+.header-right-group{align-items:flex-start!important}
+.header-right-group .region{align-self:flex-start;display:inline-flex;align-items:center;box-sizing:border-box;height:var(--pill-h,34px)}
+.header-right-group .region{--pill-h:42px;margin-top:0!important}
+@media (max-width:800px){.header-right-group .region{--pill-h:19px;padding:0 8px!important;font-size:11px!important;line-height:1!important}}
+.mus-ped{display:flex;gap:6px;margin-top:2px}
+.mus-ped input{flex:1;min-width:0;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;border-radius:999px;padding:6px 11px;font-size:.74rem;font-family:inherit}
+.mus-ped input::placeholder{color:rgba(255,255,255,.6)}
+.mus-ped button{border:none;border-radius:50%;width:30px;height:30px;flex:0 0 auto;cursor:pointer;color:#fff;background:linear-gradient(135deg,#19e68c,#18b6e6);font-size:.8rem}

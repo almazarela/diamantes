@@ -531,6 +531,19 @@ function pintarPanelMusica() {
   const parar = () => clearTimeout(ocultarMusicaT), seguir = () => { clearTimeout(ocultarMusicaT); ocultarMusicaT = setTimeout(() => $("reproductor")?.classList.remove("abierto"), 6000); };
   p.addEventListener("pointerenter", parar); p.addEventListener("pointerdown", parar); p.addEventListener("pointerleave", seguir); p.addEventListener("change", seguir);
 })();
+(function pedirMusica() {
+  const f = $("mus-ped"), i = $("mus-ped-in"); if (!f || !i) return;
+  f.addEventListener("submit", async (e) => {
+    e.preventDefault(); const t = i.value.trim();
+    if (t.length < 3) { mostrarAviso("Escribí el nombre del tema o artista 🎵", "info"); return; }
+    if (!usuarioActual) { mostrarAviso("Ingresá con Google para pedir una canción.", "info"); try { window.loginConGoogle(); } catch (_) {} return; }
+    const bt = f.querySelector("button"); bt.disabled = true;
+    try { const { error } = await supabase.rpc("musica_pedir", { p_texto: t }); if (error) throw error; i.value = ""; mostrarAviso("¡Pedido enviado! Lo vamos a mirar 🎶", "exito"); }
+    catch (er) { const m = String((er && er.message) || ""); mostrarAviso(m.includes("LIMITE") ? "Ya pediste 3 temas hoy. ¡Mañana seguimos! 🎶" : m.includes("NO_PERMITIDO") ? "Sin links ni usuarios, solo el nombre del tema." : "No se pudo enviar ahora (¿SQL v52?).", "error"); }
+    bt.disabled = false;
+  });
+  ["pointerdown", "focusin", "input"].forEach((ev) => f.addEventListener(ev, () => { try { clearTimeout(ocultarMusicaT); ocultarMusicaT = setTimeout(() => $("reproductor")?.classList.remove("abierto"), 20000); } catch (_) {} }));
+})();
 async function ponerTema(n, reproducir = true) {
   const audio = $("musica-fondo"); if (!audio) return;
   const lista = await armarListaMusica();
@@ -7761,6 +7774,11 @@ const NOV = (function novedades() {
         [a, z, d].forEach((x) => f.appendChild(x)); lp.appendChild(f); }); } catch (_) { lp.appendChild(el("p", "adm-ayuda", "No pude leer las promos (¿ejecutaste el SQL v40?).")); }
     }
     cargarPro();
+    // pedidos de música
+    const cMus = caja("🎵 Pedidos de música", "Lo que los clientes te piden que agregues al reproductor (máx. 3 por persona por día).");
+    const lMus = el("div", "nv-lista"); cMus.appendChild(lMus);
+    async function cargarMusAdm() { lMus.innerHTML = ""; try { const { data, error } = await supabase.rpc("admin_musica_lista"); if (error) throw error; if (!data.length) lMus.appendChild(el("p", "adm-ayuda", "Todavía no hay pedidos.")); data.forEach((m) => { const f = el("div", "nv-item"); f.appendChild(el("b", "", m.nombre + " · " + new Date(m.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }))); f.appendChild(el("span", "", m.texto)); const d = el("button", "nv-mini nv-rojo", "Listo / borrar"); d.type = "button"; d.onclick = async () => { await supabase.rpc("admin_musica_borrar", { p_id: m.id }); cargarMusAdm(); }; f.appendChild(d); lMus.appendChild(f); }); } catch (_) { lMus.appendChild(el("p", "adm-ayuda", "No pude leer los pedidos (¿ejecutaste el SQL v52?).")); } }
+    cargarMusAdm();
     // historias
     const c5 = caja("✨ Historias: para aprobar y activas", "Al aprobar una foto, esa persona pasa a ser «de confianza»: sus próximas fotos salen sin esperar (el texto siempre se filtra solo). Con 4 reportes una historia se oculta sola.");
     const fmh = el("div", "nv-fila"); fmh.appendChild(el("b", "", "📸 Las fotos de los clientes salen…"));
