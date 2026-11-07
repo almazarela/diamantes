@@ -92,11 +92,12 @@
   position: relative;
   transition: all 0.25s ease;
   }
-  .bonoxs-card:hover { transform: translateY(-3px); border-color: #ff3b3b; }
+  .bonoxs-card:hover { transform: translateY(-3px); border-color: #3b82ff; }
+  .bonoxs-card#card-binance:hover { border-color: #f3ba2f; }
   .bonoxs-card.active {
-  border-color: #ff3b3b;
-  background: linear-gradient(180deg, rgba(255, 59, 59, 0.15) 0%, rgba(14, 15, 22, 1) 100%);
-  box-shadow: 0 0 15px rgba(255, 59, 59, 0.3);
+  border-color: #3b82ff;
+  background: linear-gradient(180deg, rgba(59, 130, 255, 0.18) 0%, rgba(14, 15, 22, 1) 100%);
+  box-shadow: 0 0 15px rgba(59, 130, 255, 0.35);
   }
   .bonoxs-card#card-binance.active {
   border-color: #f3ba2f;
@@ -118,7 +119,7 @@
   display: inline-block; font-size: 11px; font-weight: 700; color: #fff;
   background: #1f2833; padding: 6px 14px; border-radius: 6px; border: 1px solid #45a29e;
   }
-  .bonoxs-card.active .btn-bonoxs-select { background: #ff3b3b; border-color: #ff3b3b; }
+  .bonoxs-card.active .btn-bonoxs-select { background: #2f6bff; border-color: #2f6bff; }
   .bonoxs-card#card-binance.active .btn-bonoxs-select { background: #f3ba2f; border-color: #f3ba2f; color: #000; }
   
   .expanded-box-header {
@@ -1164,7 +1165,7 @@
 
   <section class="card admin-panel-card" id="admin-panel-section" style="display: none;">
   <div class="adm-top">
-  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 81</small></span>
+  <span class="adm-tit"><i class="fa-solid fa-shield-halved"></i> Panel administrador <small style="opacity:.55;font-weight:500;font-size:10px">versión 82</small></span>
   <label class="adm-soporte" title="Lo que ven tus clientes arriba del chat"><span>Estado ante clientes:</span>
   <select id="adm-soporte" aria-label="Estado que ven los clientes"><option value="en_linea">🟢 En línea (si estoy en la página)</option><option value="desconectada">⚪ Desconectada</option><option value="oculto">🙈 No mostrar nada</option></select></label>
   <button type="button" class="adm-salir" onclick="salirModoAdmin()" aria-label="Volver al modo normal"><i class="fa-solid fa-arrow-left"></i> <span>Volver al modo normal</span></button>
