@@ -3974,11 +3974,39 @@ body.ahorro .mf-flechas button.on{animation:none}
   #grid-mp .grid-diamonds,#grid-binance .grid-diamonds{grid-template-columns:repeat(3,1fr);gap:14px}
 }
 
-/* v80 · Plástico lila (diseño 02) para paquetes Mercado Pago */
-body:not(.ahorro) #grid-mp .diamond-box{border-radius:16px!important;background:linear-gradient(120deg,rgba(210,180,255,.3),rgba(190,160,255,.1) 45%,rgba(230,190,255,.26))!important;box-shadow:0 10px 22px rgba(60,20,120,.5),inset 0 0 0 1px rgba(235,215,255,.55),inset 0 -12px 18px -4px rgba(190,140,255,.4),inset 0 6px 10px -4px rgba(255,255,255,.45),0 0 18px rgba(190,150,255,.3)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
-body:not(.ahorro) #grid-mp .diamond-box::before{background:linear-gradient(105deg,rgba(255,255,255,.5) 0%,rgba(255,255,255,.1) 16%,transparent 34%),radial-gradient(60% 24% at 50% 0,rgba(255,255,255,.35),transparent 70%)!important;border-radius:inherit}
-body:not(.ahorro) #grid-mp .diamond-box::after{background:conic-gradient(from 200deg,#ffb0f0,#c9b0ff,#a9c8ff,#fff,#e8b0ff,#ffb0f0)!important;padding:1.6px!important;border-radius:inherit}
-body:not(.ahorro) #grid-mp .diamond-box h4{color:#fff!important;text-shadow:0 1px 3px rgba(5,10,70,.8),0 0 10px rgba(5,10,70,.4)!important}
-body:not(.ahorro) #grid-mp .diamond-box .icon{filter:drop-shadow(0 2px 4px rgba(0,10,90,.55)) drop-shadow(0 0 10px rgba(190,230,255,.9))!important}
-body:not(.ahorro) #grid-mp .diamond-box .price{color:#fff!important;background:rgba(255,255,255,.16)!important;border:1px solid rgba(255,255,255,.55)!important;text-shadow:0 1px 4px rgba(0,0,40,.6)!important;box-shadow:0 1px 0 rgba(255,255,255,.3) inset!important}
-
+/* v81 · Mercado Pago = azul vivo (el que tenía Binance) · Binance = neón verde */
+body #grid-mp .diamond-box{background:linear-gradient(150deg,rgba(86,128,255,.98),rgba(24,52,255,.97) 48%,rgba(30,150,255,.96)),#1f3dff!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  box-shadow:0 14px 26px rgba(2,6,60,.65),0 2px 0 rgba(255,255,255,.4) inset,0 -16px 24px rgba(40,170,255,.35) inset,0 0 26px rgba(40,90,255,.5)!important}
+body #grid-mp .diamond-box::before{background:linear-gradient(118deg,rgba(255,255,255,.26) 0%,rgba(255,255,255,.04) 30%,transparent 46%,transparent 70%,rgba(255,255,255,.14) 100%),radial-gradient(70% 34% at 50% 0,rgba(255,255,255,.28),transparent 70%)!important}
+body #grid-mp .diamond-box h4{color:#fff!important;text-shadow:0 1px 6px rgba(10,20,110,.5)!important}
+body #grid-mp .diamond-box .icon{filter:drop-shadow(0 3px 6px rgba(10,20,120,.5)) drop-shadow(0 0 12px rgba(190,225,255,.9))!important}
+body #grid-mp .diamond-box .price{color:#fff!important;background:rgba(255,255,255,.2)!important;border:1px solid rgba(255,255,255,.55)!important;text-shadow:0 1px 4px rgba(10,20,110,.5)!important;box-shadow:0 1px 6px rgba(10,20,110,.25) inset!important}
+body #grid-mp .btn-buy{color:#1a2a8a!important;background:linear-gradient(180deg,#ffffff,#cfe3ff)!important;box-shadow:0 5px 0 #1a2a9e,0 10px 16px rgba(5,10,70,.45),0 1px 0 #fff inset!important}
+body #grid-mp .btn-buy:active{box-shadow:0 1px 0 #1a2a9e,0 3px 6px rgba(5,10,70,.4),0 1px 0 #fff inset!important}
+body.ahorro #grid-mp .diamond-box{background:linear-gradient(150deg,#4f78ff,#1f3dff 55%,#1e8fff)!important;box-shadow:0 6px 0 #1a2a9e,0 10px 14px rgba(0,0,0,.35)!important}
+body.ahorro #grid-mp .diamond-box h4{color:#fff!important;text-shadow:none!important}
+body.ahorro #grid-mp .diamond-box .price{color:#fff!important;background:rgba(255,255,255,.2)!important;border-color:rgba(255,255,255,.55)!important}
+/* Binance: neón verde (diseño 10) */
+body #grid-binance .diamond-box,body #grid-binance .reseller-box{background:linear-gradient(145deg,rgba(60,255,150,.12),rgba(20,60,40,.42) 50%,rgba(60,255,150,.12)),#08170f!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  box-shadow:0 0 18px rgba(40,255,140,.55),inset 0 0 16px rgba(40,255,140,.26),0 10px 20px rgba(0,0,0,.4)!important}
+body #grid-binance .diamond-box::before{background:linear-gradient(105deg,rgba(255,255,255,.3),transparent 28%)!important}
+body #grid-binance .diamond-box::after{padding:2px!important;background:linear-gradient(135deg,#e0ffe9,#2bff8a,#eafff2,#19e68c)!important}
+body #grid-binance .diamond-box h4{color:#fff!important;text-shadow:0 1px 6px rgba(0,30,10,.7)!important}
+body #grid-binance .diamond-box .icon{filter:drop-shadow(0 3px 6px rgba(0,40,20,.6)) drop-shadow(0 0 12px rgba(150,255,200,.85))!important}
+body #grid-binance .diamond-box .price,body #grid-binance .diamond-box .usdt-price{color:#eafff3!important;background:rgba(40,255,140,.14)!important;border:1px solid rgba(120,255,190,.6)!important;text-shadow:0 1px 4px rgba(0,30,10,.6)!important;box-shadow:none!important}
+body #grid-binance .btn-buy,body #grid-binance .btn-usdt{color:#032612!important;background:linear-gradient(180deg,#b8ffd8,#2be58a)!important;box-shadow:0 5px 0 #0c8a4a,0 10px 16px rgba(0,30,15,.5),0 1px 0 #fff inset!important}
+body #grid-binance .btn-buy:hover,body #grid-binance .btn-usdt:hover{background:linear-gradient(180deg,#c9ffe3,#3df09a)!important}
+body #grid-binance .btn-buy:active,body #grid-binance .btn-usdt:active{box-shadow:0 1px 0 #0c8a4a,0 3px 6px rgba(0,30,15,.45),0 1px 0 #fff inset!important}
+body.ahorro #grid-binance .diamond-box{background:linear-gradient(150deg,#0f3a24,#0a2417)!important;box-shadow:0 6px 0 #0c8a4a,0 10px 14px rgba(0,0,0,.35)!important}
+/* IDs recientes en una sola línea */
+#zi-lista{display:block}
+.zi-fila{display:flex;flex-wrap:nowrap;gap:6px;align-items:center;overflow:hidden}
+.zi-fila .zi-chip{flex:0 1 auto;min-width:0;max-width:34%}
+.zi-fila .zi-chip>button:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.zi-fila .zi-mas{flex:0 0 auto;white-space:nowrap}
+#zi-lista .zi-panel{margin-top:6px}
+/* con una ventana de cargar saldo abierta no se puede scrollear la página de atrás */
+body.saldo-lock{overflow:hidden!important}
+.pay-modal{overscroll-behavior:contain}

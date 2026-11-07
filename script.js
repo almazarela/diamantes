@@ -116,6 +116,8 @@ function mostrarModal(id, visible) {
   const el = $(id);
   try { if (el && visible !== (el.style.display === "flex")) sfx(visible ? "abrir" : "cerrar"); } catch (_) {}
   if (el) el.style.display = visible ? "flex" : "none";
+  // con una ventana de saldo abierta, la página de atrás no se mueve
+  try { document.body.classList.toggle("saldo-lock", ["modal-seleccion-carga", "modal-binance", "modal-mercadopago", "modal-convertir"].some((m) => { const e = $(m); return e && e.style.display === "flex"; })); } catch (_) {}
 }
 function cerrarTodosLosModales() {
   ["modal-seleccion-carga", "modal-binance", "modal-mercadopago", "modal-convertir"].forEach((id) => mostrarModal(id, false));
@@ -2599,7 +2601,8 @@ function flotaPos(w) { try { const r = w.getBoundingClientRect(); localStorage.s
 function flotaAjustar(w) {
   // que nunca quede fuera de la pantalla
   const r = w.getBoundingClientRect(); const mw = innerWidth, mh = innerHeight;
-  let l = Math.min(Math.max(0, r.left), Math.max(0, mw - r.width)), t = Math.min(Math.max(0, r.top), Math.max(0, mh - r.height));
+  const nb = document.querySelector(".navbar"), top0 = nb ? Math.max(0, Math.round(nb.getBoundingClientRect().bottom)) + 6 : 0;   // nunca pasa por encima de la barra de arriba
+  let l = Math.min(Math.max(0, r.left), Math.max(0, mw - r.width)), t = Math.min(Math.max(top0, r.top), Math.max(top0, mh - r.height));
   w.style.left = l + "px"; w.style.top = t + "px"; w.style.right = "auto"; w.style.bottom = "auto";
 }
 function flotaCentrar(w) {
@@ -2635,7 +2638,7 @@ function flotaSacar() {
   // arrastrar (barra o burbuja)
   let dx = 0, dy = 0, drag = null, movio = false;
   const ini = (e) => { if (e.target.closest("button") && !e.target.classList.contains("flota-burb")) return; const r = w.getBoundingClientRect(); drag = { x: e.clientX, y: e.clientY, l: r.left, t: r.top }; movio = false; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} };
-  const mueve = (e) => { if (!drag) return; const ddx = e.clientX - drag.x, ddy = e.clientY - drag.y; if (Math.abs(ddx) + Math.abs(ddy) > 4) movio = true; if (!movio) return; w.style.left = (drag.l + ddx) + "px"; w.style.top = (drag.t + ddy) + "px"; w.style.right = "auto"; w.style.bottom = "auto"; };
+  const mueve = (e) => { if (!drag) return; const ddx = e.clientX - drag.x, ddy = e.clientY - drag.y; if (Math.abs(ddx) + Math.abs(ddy) > 4) movio = true; if (!movio) return; const nb0 = document.querySelector(".navbar"), tope = nb0 ? Math.round(nb0.getBoundingClientRect().bottom) + 6 : 0; w.style.left = Math.min(Math.max(0, drag.l + ddx), Math.max(0, innerWidth - w.offsetWidth)) + "px"; w.style.top = Math.min(Math.max(tope, drag.t + ddy), Math.max(tope, innerHeight - w.offsetHeight)) + "px"; w.style.right = "auto"; w.style.bottom = "auto"; };
   const fin = () => { if (!drag) return; drag = null; flotaAjustar(w); flotaPos(w); flotaMargen(); };
   [bar, burb].forEach((n) => { n.addEventListener("pointerdown", ini); n.addEventListener("pointermove", mueve); n.addEventListener("pointerup", fin); n.addEventListener("pointercancel", fin); });
   burb.addEventListener("click", () => { if (!movio) { minimizar(false); if (!matchMedia("(max-width: 800px)").matches) flotaCentrar(w); flotaMargen(); } });
@@ -4537,19 +4540,22 @@ function pintarIdsGuardados() {
     del.onclick = () => borrarIdGuardado(x);
     chip.append(b, del); return chip;
   };
-  // El primero guardado queda a la vista; todos los demás van en el desplegable "Mis ID guardados"
-  const filas = idsGuardados.length ? [hacerChip(idsGuardados[0])] : [];
-  if (idsGuardados.length > 1) {
+  // A la vista quedan los más recientes (3 en PC, 2 en celular) en UNA sola línea; todos van en "Mis ID guardados"
+  const visibles = window.matchMedia("(min-width:801px)").matches ? 3 : 2;
+  const fila = document.createElement("div"); fila.className = "zi-fila";
+  idsGuardados.slice(0, visibles).forEach((x) => fila.appendChild(hacerChip(x)));
+  if (idsGuardados.length > visibles) {
     const mas = document.createElement("button"); mas.type = "button"; mas.className = "zi-mas" + (ziAbierto ? " abierto" : "");
     mas.setAttribute("aria-expanded", String(ziAbierto));
     mas.innerHTML = '<i class="fa-solid fa-folder-open"></i> Mis ID guardados <em>' + idsGuardados.length + '</em> <i class="fa-solid fa-chevron-down zi-fl"></i>';
     mas.onclick = () => { ziAbierto = !ziAbierto; pintarIdsGuardados(); };
-    filas.push(mas);
-    if (ziAbierto) {
-      const panel = document.createElement("div"); panel.className = "zi-panel";
-      idsGuardados.forEach((x) => panel.appendChild(hacerChip(x)));
-      filas.push(panel);
-    }
+    fila.appendChild(mas);
+  }
+  const filas = [fila];
+  if (ziAbierto && idsGuardados.length > visibles) {
+    const panel = document.createElement("div"); panel.className = "zi-panel";
+    idsGuardados.forEach((x) => panel.appendChild(hacerChip(x)));
+    filas.push(panel);
   }
   lista.replaceChildren(...filas);
   const puedeGuardar = !!usuarioActual && valido && !yaEsta && idsGuardados.length < 6;
@@ -4687,7 +4693,7 @@ function montarAyudaPagos() {
     cargarUltimas(); cargarTopMes(); montarAyudaPagos();
     actualizarEstadoServicio();
     setInterval(actualizarEstadoServicio, 180000);
-    setInterval(() => { if (!document.hidden) cargarUltimas(); }, 5000);
+    setInterval(() => { if (!document.hidden) cargarUltimas(); }, 30000);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) cargarUltimas(); });
     $("player-id")?.addEventListener("input", pintarIdsGuardados);
     $("zi-guardar")?.addEventListener("click", guardarIdActual);
@@ -5465,7 +5471,7 @@ let saldoBase = null, saldoBaseUid = null;
       saldoBase = { ...saldos };
     } catch (_) {}
   };
-  setInterval(() => { if (!document.hidden && usuarioActual && !esAdminActual()) cargarSaldo(usuarioActual); }, 5000);
+  setInterval(() => { if (!document.hidden && usuarioActual && !esAdminActual()) cargarSaldo(usuarioActual); }, 15000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden && usuarioActual && !esAdminActual()) cargarSaldo(usuarioActual); });
   addEventListener("focus", () => { if (usuarioActual && !esAdminActual()) cargarSaldo(usuarioActual); });
 }
@@ -7321,8 +7327,7 @@ setInterval(clientesNuevosVigilar, 45000); setTimeout(clientesNuevosVigilar, 800
     E("cm-in")?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); enviar(); } });
     E("cm-mas")?.addEventListener("click", (e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); menuHold(r.right - 90, r.bottom, [["📌", "Fijar mensaje arriba del chat", fijar], ["🖼", "Fondo del chat", () => window.abrirSelectorFondo && window.abrirSelectorFondo()]]); });
     cargar();
-    timer = setInterval(() => { if (!document.hidden) cargar(); }, abierto ? 4000 : 15000);
-    setInterval(() => { if (!document.hidden && abierto) cargar(); }, 4000);
+    timer = setInterval(() => { if (!document.hidden) cargar(); }, abierto ? 8000 : 30000);   // v81: menos consultas (el canal en vivo avisa cuando hay mensajes nuevos)
     try { canal = supabase.channel("chat-global").on("postgres_changes", { event: "*", schema: "public", table: "chat_global" }, () => cargar()).subscribe(); } catch (_) {}
   }
   supabase.auth.onAuthStateChange(() => { puede = null; setTimeout(async () => { await calcPuede(); pintarEntrada(); const b = E("cm-mas"); if (b) b.hidden = !esAdm(); }, 500); });
