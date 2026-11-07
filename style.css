@@ -4010,3 +4010,5 @@ body.ahorro #grid-binance .diamond-box{background:linear-gradient(150deg,#0f3a24
 /* con una ventana de cargar saldo abierta no se puede scrollear la página de atrás */
 body.saldo-lock{overflow:hidden!important}
 .pay-modal{overscroll-behavior:contain}
+html:has(body.saldo-lock){overflow:hidden!important}
+.cg-modal{overscroll-behavior:contain}

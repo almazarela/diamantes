@@ -7705,6 +7705,16 @@ const NOV = (function novedades() {
   async function rpcAdm(fn, args, ok) { try { const { error } = await supabase.rpc(fn, args); if (error) throw error; if (ok) mostrarAviso(ok, "exito"); return true; } catch (e) { mostrarAviso("No se pudo: " + ((e && e.message) || "revisá el SQL v40"), "error"); return false; } }
   const nvAbiertas = new Set(["fotos", "hist"]);
   const AYUDA = {
+    regalo: { t: "🎁 Regalo por cargar saldo", resumen: "Un extra que ven los clientes cuando cargan saldo: «cargá $X y llevate $Y de regalo».",
+      que: "Cuando un cliente va a cargar saldo (Mercado Pago o Binance), ve cuánto se lleva de regalo según el monto que elige. El pedido te llega al chat con el total (carga + regalo). El regalo lo acreditás vos junto con la carga, a mano.",
+      donde: "En «Cargar saldo» → Mercado Pago o Binance: aparece un cartel verde (dorado en Binance) y los montos con un globito de regalo.",
+      pasos: ["«Mostrar el regalo a los clientes»: Activado o Apagado.", "Escribí los tramos en pesos con el formato monto:regalo, separados por coma. Ejemplo: 10000:500,50000:3500. Desde ese monto, el cliente recibe ese mismo porcentaje de regalo (500 sobre 10.000 = 5 %).", "Hacelo igual en dólares (ejemplo: 10:0.5,50:3).", "Tocá «Guardar». Los clientes lo ven apenas recargan la página.", "Ojo con el margen: mantenelo chico (ejemplo: 4 % sobre 10.000 = $400)."],
+      mock: '<div class="mk-menu"><b>🎁 Cargá $10.000</b><br>y llevate <b>$500</b> de regalo</div>' },
+    musica: { t: "🎵 Pedidos de música", resumen: "Lo que los clientes te piden que agregues al reproductor de la página.",
+      que: "Cada cliente puede pedirte hasta 3 canciones por día. Acá ves la lista y decidís cuáles agregás.",
+      donde: "Los clientes lo piden desde el reproductor de música de la página.",
+      pasos: ["Abrí este apartado para ver los pedidos.", "Mirá cuáles se repiten: son los que más quieren.", "Agregá las que te gusten al reproductor.", "Podés borrar un pedido cuando ya lo atendiste."],
+      mock: '<div class="mk-b">🎵 «Canción» · pedida por 4 clientes</div>' },
     fotos: { t: "📷 Fotos nuevas en chats privados", resumen: "Te avisa cuando tus clientes se mandan fotos entre amigos. Las fotos salen libres, vos solo las podés mirar.",
       que: "Los clientes que son amigos pueden mandarse fotos en su chat privado. No esperan tu aprobación, pero acá te aparece el aviso (y un número rojo en la pestaña Novedades).",
       donde: "Los clientes la ven en su chat privado, botón 📷 al lado de donde escriben.",
@@ -7764,7 +7774,7 @@ const NOV = (function novedades() {
     const r = E("nv-admin"); if (!r) return;
     await cargarCfg();
     r.innerHTML = "";
-    const idDe = (t) => t.includes("Interruptores") ? "interr" : t.includes("Ajustes") ? "ajustes" : t.includes("Cupones") ? "cup" : t.includes("Promos") ? "promos" : t.includes("Historias:") ? "hist" : t.includes("Mensajes de historias") ? "histmsg" : t.includes("Chats privados") ? "chats" : t.includes("Fotos nuevas") ? "fotos" : t.includes("Insignia") ? "verif" : t;
+    const idDe = (t) => t.includes("Interruptores") ? "interr" : t.includes("Ajustes") ? "ajustes" : t.includes("Cupones") ? "cup" : t.includes("Promos") ? "promos" : t.includes("Historias:") ? "hist" : t.includes("Mensajes de historias") ? "histmsg" : t.includes("Chats privados") ? "chats" : t.includes("Fotos nuevas") ? "fotos" : t.includes("Insignia") ? "verif" : t.includes("Regalo") ? "regalo" : t.includes("música") ? "musica" : t;
     const lista = [];
     const caja = (tit, ayuda) => {
       const id = idDe(tit), d = el("details", "nv-caja"); d.dataset.id = id; const sm = el("summary", "nv-sum"); sm.appendChild(el("span", "nv-st", tit));
@@ -8128,9 +8138,9 @@ const NOV = (function novedades() {
   { // arrastrar el chat cuando está en modo flotante (desde su barra de arriba)
     let d = null;
     document.addEventListener("pointerdown", (e) => { if (!flotaUser || !esPC()) return; const hd = e.target.closest && e.target.closest(".cm-top,.chat-widget-header"); if (!hd || e.target.closest("button,a,input,select")) return; const p = hd.closest(".cm-panel,.hub-panel,.dm-panel,.chat-widget-card"); if (!p) return; const r = p.getBoundingClientRect(); d = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, w: r.width, h: r.height }; });
-    document.addEventListener("pointermove", (e) => { if (!d) return; const l = Math.min(Math.max(0, d.l + e.clientX - d.x), innerWidth - d.w), t = Math.min(Math.max(0, d.t + e.clientY - d.y), innerHeight - d.h); const rs = document.documentElement.style; rs.setProperty("--fx", Math.round(l) + "px"); rs.setProperty("--fy", Math.round(t) + "px"); });
+    document.addEventListener("pointermove", (e) => { if (!d) return; const nb = document.querySelector(".navbar"), tope = nb ? Math.round(nb.getBoundingClientRect().bottom) + 6 : 0; const l = Math.min(Math.max(0, d.l + e.clientX - d.x), innerWidth - d.w), t = Math.min(Math.max(tope, d.t + e.clientY - d.y), Math.max(tope, innerHeight - d.h));   // no pasa la barra de arriba const rs = document.documentElement.style; rs.setProperty("--fx", Math.round(l) + "px"); rs.setProperty("--fy", Math.round(t) + "px"); });
     document.addEventListener("pointerup", () => { if (!d) return; d = null; try { const rs = document.documentElement.style; localStorage.setItem("zarela_chat_pos", JSON.stringify([rs.getPropertyValue("--fx"), rs.getPropertyValue("--fy")])); } catch (_) {} });
-    try { const g = JSON.parse(localStorage.getItem("zarela_chat_pos") || "null"); if (g) { document.documentElement.style.setProperty("--fx", g[0]); document.documentElement.style.setProperty("--fy", g[1]); } } catch (_) {}
+    try { const g = JSON.parse(localStorage.getItem("zarela_chat_pos") || "null"); if (g) { const nb0 = document.querySelector(".navbar"), tp = nb0 ? Math.round(nb0.getBoundingClientRect().bottom) + 6 : 0; document.documentElement.style.setProperty("--fx", g[0]); document.documentElement.style.setProperty("--fy", Math.max(tp, parseInt(g[1], 10) || tp) + "px"); } } catch (_) {}
     new MutationObserver(() => pedirFijar()).observe(document.body, { attributes: true, attributeFilter: ["class"] });
   }
   let fcT = 0; const pedirFijar = () => { if (!fcT) fcT = requestAnimationFrame(() => { fcT = 0; fijarChat(); }); };
