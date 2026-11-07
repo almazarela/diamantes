@@ -7669,6 +7669,16 @@ const NOV = (function novedades() {
     const s2 = sec("🤝", "Invitá a tus amigos", "f_referidos");
     const rp = num("ref_puntos", 50);
     s2.appendChild(el("p", "", "Tu amigo usa tu código en su primera recarga y recibe un bono. Cuando se acredita, vos ganás " + fmt(rp) + " puntos."));
+    try {   // meta de referidos: progreso
+      if (activo("f_referidos")) {
+        const { data: m } = await supabase.rpc("mi_meta_referidos");
+        if (m) {
+          s2.appendChild(el("p", "", "🏁 Premio extra: cuando tu amigo haga " + m.meta + " recargas de al menos $" + fmt(m.min_ars) + " cada una, los DOS reciben $" + fmt(m.premio) + " de saldo."));
+          if (m.soy_amigo) s2.appendChild(el("div", "pr-ok", m.pagado ? "✅ Ya cobraste tu premio por la meta" : "Tu avance: " + m.hechas + " de " + m.meta + " recargas"));
+          if (m.invitados) s2.appendChild(el("div", "pr-ok", "👥 Invitaste a " + m.invitados + " · " + m.cumplieron + " ya cumplieron la meta"));
+        }
+      }
+    } catch (_) {}
     if (activo("f_referidos") && cod) {
       const f = el("div", "pr-cod"); f.appendChild(el("b", "", cod));
       const c = el("button", "pr-mini", "Copiar"); c.type = "button"; c.onclick = () => { try { navigator.clipboard.writeText(cod); mostrarAviso("Código copiado", "exito"); } catch (_) {} };
@@ -7690,7 +7700,7 @@ const NOV = (function novedades() {
 
   // ------------------------------ PANEL ADMIN: NOVEDADES ------------------------------
   const FLAGS = [["f_historias", "✨ Historias"], ["f_cupones", "🎟️ Cupones"], ["f_referidos", "🤝 Referidos"], ["f_puntos", "⭐ Puntos"], ["x_ayuda", "❓ Centro de ayuda y Chats bloqueados"], ["x_ahorro", "⚡ Avisar a clientes con celular lento para que activen el Modo ahorro"]];
-  const AJUSTES = [["ref_amigo_pct", "Bono del amigo invitado (% de su 1ª recarga)"], ["ref_amigo_tope_ars", "…tope en pesos ($)"], ["ref_amigo_tope_usd", "…tope en dólares (US$)"], ["ref_puntos", "Puntos que gana quien invita"], ["pts_unidad_ars", "1 punto cada ($ pesos recargados)"], ["pts_unidad_usd", "1 punto cada (US$ recargados)"], ["pts_valor_ars", "Valor de 1 punto ($ pesos)"], ["pts_min", "Mínimo de puntos para canjear"]];
+  const AJUSTES = [["ref_amigo_pct", "Bono del amigo invitado (% de su 1ª recarga)"], ["ref_amigo_tope_ars", "…tope en pesos ($)"], ["ref_amigo_tope_usd", "…tope en dólares (US$)"], ["ref_puntos", "Puntos que gana quien invita"], ["pts_unidad_ars", "1 punto cada ($ pesos recargados)"], ["pts_unidad_usd", "1 punto cada (US$ recargados)"], ["pts_valor_ars", "Valor de 1 punto ($ pesos)"], ["pts_min", "Mínimo de puntos para canjear"], ["ref_meta_n", "🏁 Meta: cuántas recargas debe hacer el amigo"], ["ref_meta_min_ars", "…cada una de al menos ($ pesos)"], ["ref_meta_min_usd", "…o de al menos (US$)"], ["ref_meta_premio_ars", "Premio en saldo para CADA UNO al cumplir la meta ($)"], ["ref_meta_max_mes", "Máximo de premios por mes para quien invita (anti-trampa)"]];
   const aLocal = (iso) => { if (!iso) return ""; const d = new Date(iso); if (isNaN(d)) return ""; const p = (n) => String(n).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "T" + p(d.getHours()) + ":" + p(d.getMinutes()); };
   async function rpcAdm(fn, args, ok) { try { const { error } = await supabase.rpc(fn, args); if (error) throw error; if (ok) mostrarAviso(ok, "exito"); return true; } catch (e) { mostrarAviso("No se pudo: " + ((e && e.message) || "revisá el SQL v40"), "error"); return false; } }
   const nvAbiertas = new Set(["fotos", "hist"]);
@@ -7731,7 +7741,7 @@ const NOV = (function novedades() {
     ajustes: { t: "⚙️ Ajustes de premios", resumen: "Los números de los premios: referidos y puntos. Mantenelos chicos.",
       que: "Define cuánto regalás. Referidos: un amigo usa el código de otro y recibe un % de su 1ª recarga; quien lo invitó gana puntos. Puntos: cada cliente suma 1 punto por cada $ que recarga y los canjea por saldo.",
       donde: "Menú ☰ → «Cupones y puntos»: ahí ven su código para invitar, sus puntos y el botón para canjear.",
-      pasos: ["Ejemplo: bono 3 % con tope $1500 → si el amigo recarga $20.000 recibe $600.", "Ejemplo: 1 punto cada $1000 y cada punto vale $10 → recargar $50.000 da 50 puntos = $500.", "«Mínimo de puntos» = desde cuántos puntos pueden canjear.", "Cuidado con los márgenes: tu costo de 1.000 💎 es $11.616.", "Tocá «Guardar ajustes». Los premios se pagan solo cuando la recarga queda COMPLETADA."],
+      pasos: ["Ejemplo: bono 3 % con tope $1500 → si el amigo recarga $20.000 recibe $600.", "Ejemplo: 1 punto cada $1000 y cada punto vale $10 → recargar $50.000 da 50 puntos = $500.", "«Mínimo de puntos» = desde cuántos puntos pueden canjear.", "Cuidado con los márgenes: tu costo de 1.000 💎 es $11.616.", "🏁 META (v54): el amigo debe hacer N recargas (ej. 3) de al menos $3.000 cada una. Al cumplirla, los DOS reciben el premio en saldo (ej. $500). Ejemplo: 3 recargas de $3.000 = $9.000 vendidos; premios $1.000 en total (11 %), dentro de tu margen. Anti-trampa: no paga si amigo e invitador recargaron al mismo ID de jugador, y quien invita tiene tope de premios por mes. Se paga una sola vez por amigo y solo si «Referidos» está en Activo.", "Tocá «Guardar ajustes». Los premios se pagan solo cuando la recarga queda COMPLETADA."],
       mock: '<div class="mk-menu"><b>⭐ Mis puntos</b><br>50 puntos · valen $500</div>' },
     promos: { t: "📅 Promos programadas", resumen: "Mensajes que se publican SOLOS a una hora y en los días que elijas.",
       que: "Escribís un mensaje (ej. «¡50 % de descuento hoy!») y elegís a qué hora y qué días se publica solo, sin que estés conectada.",
