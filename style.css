@@ -3965,31 +3965,20 @@ body.ahorro .mf-flechas button.on{animation:none}
 #modal-binance .bono-res{background:rgba(243,186,47,.12);border-color:rgba(243,186,47,.65);color:#fff8e0}
 #modal-binance .bono-res .bono-tot,#modal-binance .bono-res span{color:#ffe08a}
 
-/* v78 · MERCADO PAGO: cristal CLARO y luminoso (como la maleta). Liviano: el desenfoque solo en PC; en celular sin desenfoque ni animaciones */
-#grid-mp .diamond-box{
-  background:linear-gradient(145deg,rgba(255,255,255,.5) 0%,rgba(214,228,255,.2) 34%,rgba(190,205,255,.14) 62%,rgba(255,255,255,.4) 100%),rgba(120,150,255,.16)!important;
-  -webkit-backdrop-filter:blur(6px) saturate(1.5);backdrop-filter:blur(6px) saturate(1.5);
-  box-shadow:0 10px 22px rgba(0,0,20,.4),0 2px 0 rgba(255,255,255,.85) inset,0 -18px 26px rgba(170,205,255,.3) inset,3px 0 0 rgba(255,120,200,.3) inset,-3px 0 0 rgba(90,225,255,.34) inset,0 0 26px rgba(170,200,255,.32)!important}
-#grid-mp .diamond-box::before{background:linear-gradient(112deg,rgba(255,255,255,.75) 0%,rgba(255,255,255,.2) 22%,transparent 40%),linear-gradient(298deg,rgba(255,255,255,.38),transparent 30%),radial-gradient(70% 32% at 50% 0,rgba(255,255,255,.55),transparent 72%)}
-#grid-mp .diamond-box h4{color:#fff;text-shadow:0 1px 3px rgba(5,10,70,.75),0 0 10px rgba(5,10,70,.35)}
-#grid-mp .diamond-box .icon{filter:drop-shadow(0 2px 4px rgba(0,10,90,.5)) drop-shadow(0 0 10px rgba(255,255,255,.95))}
-#grid-mp .diamond-box .price{color:#10205f;background:rgba(255,255,255,.78);border:1px solid #fff;text-shadow:none;box-shadow:0 2px 6px rgba(0,10,80,.25)}
-#grid-mp .btn-buy{background:linear-gradient(180deg,#86a0ff,#2a45e6)!important;box-shadow:0 5px 0 #1a2a9e,0 8px 12px rgba(10,20,90,.35),0 1px 0 rgba(255,255,255,.6) inset!important}
-@media (max-width:800px){
-  #grid-mp .diamond-box{-webkit-backdrop-filter:none;backdrop-filter:none;transition:none;
-    background:linear-gradient(145deg,rgba(255,255,255,.5) 0%,rgba(214,228,255,.22) 34%,rgba(190,205,255,.16) 62%,rgba(255,255,255,.4) 100%),rgba(46,66,150,.5)!important;
-    box-shadow:0 6px 12px rgba(0,0,20,.4),0 2px 0 rgba(255,255,255,.8) inset,0 -14px 20px rgba(170,205,255,.28) inset,3px 0 0 rgba(255,120,200,.3) inset,-3px 0 0 rgba(90,225,255,.34) inset!important}
-  #grid-mp .diamond-box:hover{transform:none}
+/* v80 · PC: columna principal más ancha pegada a la izquierda (chat a la derecha); 3 paquetes por fila cuando entran */
+@media (min-width:801px){
+  body:not(.modo-admin) .container{max-width:min(1080px,calc(100vw - 32px));margin-left:max(16px,calc((100vw - 1080px)/2 - 60px));margin-right:auto}
+  body:not(.modo-admin) .main-layout-grid{grid-template-columns:1fr 310px;gap:20px}
+}
+@media (min-width:1100px){
+  #grid-mp .grid-diamonds,#grid-binance .grid-diamonds{grid-template-columns:repeat(3,1fr);gap:14px}
 }
 
-/* v79 · PC: cristal sobre fondo blanco (como la maleta sobre blanco). Solo PC; en celular queda liviano */
-@media (min-width:801px){
-  #grid-mp .grid-diamonds{padding:14px;border-radius:22px;background:linear-gradient(160deg,#ffffff 0%,#eef2ff 55%,#f8f4ff 100%);box-shadow:0 10px 30px rgba(0,0,20,.45),0 0 0 1px rgba(255,255,255,.7) inset}
-  #grid-mp .diamond-box{background:linear-gradient(145deg,rgba(255,255,255,.55) 0%,rgba(185,205,245,.22) 38%,rgba(165,185,235,.18) 64%,rgba(255,255,255,.5) 100%),rgba(150,175,235,.16)!important;
-    -webkit-backdrop-filter:none;backdrop-filter:none;
-    box-shadow:0 8px 16px rgba(60,80,150,.28),0 0 0 1px rgba(120,140,200,.35) inset,0 2px 0 #fff inset,0 -16px 22px rgba(120,150,230,.3) inset,4px 0 0 rgba(255,120,200,.34) inset,-4px 0 0 rgba(80,215,255,.4) inset,0 0 0 4px rgba(255,255,255,.55)!important}
-  #grid-mp .diamond-box::before{background:linear-gradient(112deg,rgba(255,255,255,.95) 0%,rgba(255,255,255,.35) 18%,transparent 36%),linear-gradient(298deg,rgba(110,130,200,.28),transparent 28%),radial-gradient(70% 28% at 50% 0,rgba(255,255,255,.9),transparent 72%)}
-  #grid-mp .diamond-box h4{color:#16204f;text-shadow:0 1px 0 rgba(255,255,255,.9)}
-  #grid-mp .diamond-box .icon{filter:drop-shadow(0 3px 5px rgba(50,80,200,.5))}
-  #grid-mp .diamond-box .price{color:#10205f;background:rgba(255,255,255,.9);border:1px solid rgba(120,140,210,.45);box-shadow:0 2px 6px rgba(60,80,170,.22)}
-}
+/* v80 · Plástico lila (diseño 02) para paquetes Mercado Pago */
+body:not(.ahorro) #grid-mp .diamond-box{border-radius:16px!important;background:linear-gradient(120deg,rgba(210,180,255,.3),rgba(190,160,255,.1) 45%,rgba(230,190,255,.26))!important;box-shadow:0 10px 22px rgba(60,20,120,.5),inset 0 0 0 1px rgba(235,215,255,.55),inset 0 -12px 18px -4px rgba(190,140,255,.4),inset 0 6px 10px -4px rgba(255,255,255,.45),0 0 18px rgba(190,150,255,.3)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+body:not(.ahorro) #grid-mp .diamond-box::before{background:linear-gradient(105deg,rgba(255,255,255,.5) 0%,rgba(255,255,255,.1) 16%,transparent 34%),radial-gradient(60% 24% at 50% 0,rgba(255,255,255,.35),transparent 70%)!important;border-radius:inherit}
+body:not(.ahorro) #grid-mp .diamond-box::after{background:conic-gradient(from 200deg,#ffb0f0,#c9b0ff,#a9c8ff,#fff,#e8b0ff,#ffb0f0)!important;padding:1.6px!important;border-radius:inherit}
+body:not(.ahorro) #grid-mp .diamond-box h4{color:#fff!important;text-shadow:0 1px 3px rgba(5,10,70,.8),0 0 10px rgba(5,10,70,.4)!important}
+body:not(.ahorro) #grid-mp .diamond-box .icon{filter:drop-shadow(0 2px 4px rgba(0,10,90,.55)) drop-shadow(0 0 10px rgba(190,230,255,.9))!important}
+body:not(.ahorro) #grid-mp .diamond-box .price{color:#fff!important;background:rgba(255,255,255,.16)!important;border:1px solid rgba(255,255,255,.55)!important;text-shadow:0 1px 4px rgba(0,0,40,.6)!important;box-shadow:0 1px 0 rgba(255,255,255,.3) inset!important}
+
